@@ -1,7 +1,7 @@
 body { 
   background-color: #f8f9fa; 
   font-family: '微軟正黑體', sans-serif; 
-  padding-bottom: 80px; /* 留出底部導覽列的空間，避免內容被擋住 */
+  padding-bottom: 80px; 
 }
 
 .church-header { 
@@ -45,7 +45,6 @@ body {
   align-items: center; 
 }
 
-/* ================= 底部導覽列樣式 ================= */
 .bottom-nav {
   position: fixed;
   bottom: 0;
