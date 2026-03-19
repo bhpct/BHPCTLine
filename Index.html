@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>霧峰教會 - 會友系統</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+  <style>
+    body { background-color: #f8f9fa; font-family: '微軟正黑體', sans-serif; }
+    .church-header { background-color: #2c3e50; color: white; padding: 25px 20px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .info-label { color: #6c757d; font-size: 0.9rem; margin-bottom: 2px; }
+    .info-value { font-size: 1.1rem; font-weight: 500; color: #333; margin-bottom: 15px; }
+    #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; }
+  </style>
+</head>
+<body>
+
+  <div id="loading" style="display: none;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
+  </div>
+
+  <div class="church-header text-center mb-4">
+    <h3 id="ui-userName">讀取中...</h3>
+    <span class="badge bg-warning text-dark mt-2" id="ui-userTier"><i class="fas fa-medal"></i> 驗證狀態</span>
+  </div>
+
+  <div class="container pb-5">
+    
+    <div id="page-profile" style="display: none;">
+      <div class="card p-4">
+        <h5 class="mb-3"><i class="fas fa-id-card text-primary"></i> 我的基本資料</h5>
+        <div class="row">
+          <div class="col-6">
+            <div class="info-label">聯絡電話</div>
+            <div class="info-value" id="info-phone">...</div>
+          </div>
+          <div class="col-6">
+            <div class="info-label">生日</div>
+            <div class="info-value" id="info-birthday">...</div>
+          </div>
+          <div class="col-12">
+            <div class="info-label">服事單位</div>
+            <div class="info-value" id="info-service">...</div>
+          </div>
+          <div class="col-12">
+            <div class="info-label">接收推播頻道 (團契/牧區)</div>
+            <div class="info-value text-primary" id="info-groups">...</div>
+          </div>
+        </div>
+        <button class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+          <i class="fas fa-edit"></i> 修改資料與推播設定
+        </button>
+      </div>
+
+      <div class="card p-4 mt-3">
+        <h5 class="mb-3"><i class="fas fa-passport text-success"></i> 我的參與護照</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>累積參與活動：</span>
+          <span class="badge bg-success rounded-pill" style="font-size:1rem;">12 場</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span>完成造就課程：</span>
+          <span class="badge bg-info rounded-pill" style="font-size:1rem;">3 堂</span>
+        </div>
+        <button class="btn btn-light w-100 mt-3 text-secondary border">展開我的屬靈履歷 (即將開放)</button>
+      </div>
+    </div>
+
+    <div id="page-finance" style="display: none;">
+      <div id="finance-locked" class="card p-5 text-center mt-3" style="display: block;">
+        <i class="fas fa-lock fa-4x text-secondary mb-3"></i>
+        <h4 class="text-dark">財務查詢權限未開通</h4>
+        <p class="text-muted mt-2">為保護教會財務隱私，查詢個人奉獻需經辦公室人工核對身分。<br>若您已完成基本綁定，請點擊下方按鈕申請開通。</p>
+        <button class="btn btn-primary mt-3 px-4 rounded-pill" onclick="applyFinanceAccess()">👉 點此申請開通財務權限</button>
+      </div>
+
+      <div id="finance-unlocked" style="display: none;">
+        <div class="card p-4 mt-3 bg-white border-0" style="border-left: 5px solid #28a745 !important;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0 text-success"><i class="fas fa-hand-holding-usd"></i> <span id="dynamicYear">...</span> 年度奉獻</h5>
+            <div class="form-check form-switch text-end" id="familySwitchContainer" style="display: block;">
+              <input class="form-check-input" type="checkbox" id="familySwitch" onchange="toggleFamilyView()">
+              <label class="form-check-label text-muted" for="familySwitch" style="font-size: 0.9rem;">全戶視角</label>
+            </div>
+          </div>
+          <div class="text-muted" style="font-size: 0.9rem;">本年度累積總額</div>
+          <h2 class="text-dark fw-bold mt-1">NT$ <span id="finance-total">32,500</span></h2>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h6 class="text-center text-muted mb-3">各項事工奉獻佔比</h6>
+          <div style="position: relative; height:250px; width:100%">
+            <canvas id="donationChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card p-3 mt-3 mb-5">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-list"></i> 逐筆明細</h6>            
+          </div>
+          <ul class="list-group list-group-flush" id="donation-list">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <div class="fw-bold">月定獻金</div>
+                <div class="text-muted" style="font-size: 0.8rem;">2026/03/08 <span class="badge bg-light text-dark ms-1">已綁定會友</span></div>
+              </div>
+              <span class="text-primary fw-bold">$ 2,000</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <div class="fw-bold">感恩獻金</div>
+                <div class="text-muted" style="font-size: 0.8rem;">2026/03/08 <span class="badge bg-light text-dark ms-1">已綁定會友</span></div>
+              </div>
+              <span class="text-primary fw-bold">$ 2,000</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-prayer" style="display: none;">
+      <div class="card p-4 mt-3 bg-light border-0" style="border-radius: 15px;">
+        <i class="fas fa-quote-left text-muted mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+        <p class="mb-0 text-dark" style="font-style: italic; font-size: 0.95rem;">
+          「應當一無掛慮，只要凡事藉著禱告、祈求，和感謝，將你們所要的告訴神。」
+        </p>
+        <div class="text-end text-muted mt-2" style="font-size: 0.85rem;">— 腓立比書 4:6</div>
+      </div>
+
+      <div class="card p-4 mt-3 mb-5">
+        <h5 class="mb-3"><i class="fas fa-praying-hands text-primary"></i> 送出代禱事項</h5>
+        <form id="prayerForm">
+          <div class="mb-3">
+            <label class="form-label text-muted">代禱對象 <span class="text-danger">*</span></label>
+            <select class="form-select" id="prayer-target" required>
+              <option value="" selected disabled>請選擇代禱對象</option>
+              <option value="為自己">為自己</option>
+              <option value="為家人親友">為家人親友</option>
+              <option value="為教會/肢體">為教會/肢體</option>
+              <option value="為社會/國家">為社會/國家</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted">代禱內容 <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="prayer-content" rows="5" placeholder="請盡量具體描述需要代禱的事項..." required></textarea>
+          </div>
+          <div class="mb-4 p-3 bg-light rounded">
+            <label class="form-label text-muted fw-bold mb-2">公開意願設定</label>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="prayer-public" id="public-yes" value="公開" checked>
+              <label class="form-check-label" for="public-yes">同意刊登於主日週報與代禱網 (公開)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="prayer-public" id="public-no" value="保密">
+              <label class="form-check-label" for="public-no">僅限牧者與關懷同工代禱 (保密)</label>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary w-100 py-2 rounded-pill" onclick="submitPrayer()">
+            <i class="fas fa-paper-plane"></i> 送出代禱
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="page-events" style="display: none;">
+      <div class="card p-4 mt-3 bg-white border-0" style="border-radius: 15px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+        <h5 class="mb-1 text-primary fw-bold"><i class="fas fa-calendar-check"></i> 近期活動與課程</h5>
+        <p class="text-muted mb-0" style="font-size: 0.9rem;">一鍵報名，輕鬆參與教會生活</p>
+      </div>
+
+      <div id="event-list" class="mt-3 mb-5">
+        <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid #3498db !important;">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="badge bg-primary mb-2">福音活動</span>
+              <h5 class="fw-bold mb-1 text-dark">2026 兒童夏令營</h5>
+              <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> 2026/07/15 - 07/18</div>
+              <div class="text-muted mt-1" style="font-size: 0.85rem;"><i class="fas fa-users w-20px"></i> 剩餘名額：12 人</div>
+            </div>
+            <button class="btn btn-primary btn-sm rounded-pill px-3 mt-2" onclick="openRegModal('E2026001', '2026 兒童夏令營', true, true)">報名</button>
+          </div>
+        </div>
+        <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid #9b59b6 !important;">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="badge mb-2" style="background-color:#9b59b6">信徒造就課程</span>
+              <h5 class="fw-bold mb-1 text-dark">春季成人主日學</h5>
+              <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> 2026/04/01 起</div>
+              <div class="text-muted mt-1" style="font-size: 0.85rem;"><i class="fas fa-users w-20px"></i> 剩餘名額：無上限</div>
+            </div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 mt-2" onclick="openRegModal('E2026002', '春季成人主日學', false, false)">報名</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div> 
+
+  <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title">修改資料與推播設定</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="profileForm">
+            <div class="mb-3">
+              <label class="form-label">聯絡電話</label>
+              <input type="tel" class="form-control" id="input-phone" placeholder="例如：0912345678">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">生日</label>
+              <input type="date" class="form-control" id="input-birthday">
+            </div>
+            <hr>
+            <label class="form-label text-primary fw-bold"><i class="fas fa-bell"></i> 我想接收以下單位的最新消息：</label>
+            <div id="checkbox-groups" class="row px-2">
+              <div class="col-6 form-check">
+                <input class="form-check-input" type="checkbox" value="活泉團契" id="chk-1" checked>
+                <label class="form-check-label" for="chk-1">活泉團契</label>
+              </div>
+              <div class="col-6 form-check">
+                <input class="form-check-input" type="checkbox" value="社青團契" id="chk-2" checked>
+                <label class="form-check-label" for="chk-2">社青團契</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" onclick="saveProfile()">儲存修改</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="regModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-dark" id="regEventName">活動名稱</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="regForm">
+            <input type="hidden" id="regEventId">
+            <h6 class="text-primary fw-bold"><i class="fas fa-user-check"></i> 參加者身分</h6>
+            <div class="mb-3">
+              <select class="form-select" id="regProxyType" onchange="toggleProxyFields()">
+                <option value="self" selected>👤 本人參加</option>
+                <option value="proxy" id="opt-proxy">👥 為親友/長輩/孩童代為報名</option>
+              </select>
+            </div>
+            <div id="proxyFields" class="p-3 bg-light rounded mb-3" style="display: none; border-left: 3px solid #f39c12;">
+              <div class="mb-2">
+                <label class="form-label text-muted" style="font-size:0.9rem;">參與者真實姓名 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="regParticipantName">
+              </div>
+              <div>
+                <label class="form-label text-muted" style="font-size:0.9rem;">聯絡電話 (選填)</label>
+                <input type="tel" class="form-control form-control-sm" id="regParticipantPhone">
+              </div>
+            </div>
+            <div id="extraInfoSection" style="display: none;">
+              <hr>
+              <h6 class="text-danger fw-bold"><i class="fas fa-shield-alt"></i> 保險與特殊需求</h6>
+              <div class="alert alert-warning p-2" style="font-size: 0.85rem;">⚠️ 本活動需辦理平安險，請確實填寫以下資料。</div>
+              <div class="mb-2">
+                <label class="form-label text-muted" style="font-size:0.9rem;">身分證字號 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="regIdNumber">
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-muted" style="font-size:0.9rem;">出生年月日 <span class="text-danger">*</span></label>
+                <input type="date" class="form-control form-control-sm" id="regDob">
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-muted" style="font-size:0.9rem;">特殊需求備註 (選填)</label>
+                <input type="text" class="form-control form-control-sm" id="regMemo">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer flex-column border-0 pt-0">
+          <div class="form-check w-100 mb-2">
+            <input class="form-check-input" type="checkbox" id="regAgree" required>
+            <label class="form-check-label text-muted" for="regAgree" style="font-size: 0.8rem;">我同意教會收集上述資料用於活動聯繫與保險辦理。</label>
+          </div>
+          <button type="button" class="btn btn-primary w-100 rounded-pill py-2 mb-2" onclick="submitRegistration()">
+            <i class="fas fa-paper-plane"></i> 確定送出報名
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script>
+    // 【終極防護】：攔截任何可能導致當機的隱形語法錯誤！
+    window.onerror = function(msg, url, line) {
+      alert("🚨 系統發生致命錯誤！請截圖回報給工程師。\n錯誤訊息：" + msg + "\n發生在第 " + line + " 行。");
+    };
+
+    // ====== 系統常數設定區 ======
+    let currentUID = ""; 
+    let globalUserName = "未綁定會友"; 
+    
+    // 【重要】：請將此處替換為您的真實 LIFF ID
+    const myLiffId = '2009444508-qaGGdlps';
+    
+    // 【重要】：請將此處替換為您從 GAS 取得的 API 網址 (結尾是 /exec)
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
+    
+    // 從網址上抓取 ?page= 參數 (取代原本的 <?= targetPage ?>)
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetPage = urlParams.get('page') || "profile";
+
+    // 1. 網頁載入時啟動 LIFF 引擎
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById('loading').style.display = 'flex';
+      
+      if (!myLiffId) {
+        alert("🚨 錯誤：網頁沒有設定 LIFF ID！");
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+
+      // 初始化 LIFF
+      liff.init({ liffId: myLiffId })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            // 電腦版防封殺：改為顯示一顆登入按鈕，並使用 top.location 強制跳轉
+            document.getElementById('loading').innerHTML = `
+              <div class="text-center px-4">
+                <i class="fab fa-line fa-4x text-success mb-3"></i>
+                <h4 class="fw-bold mb-3 text-dark">等待登入驗證</h4>
+                <p class="text-muted mb-4" style="font-size:0.95rem;">為了確保會友資料安全，<br>請點擊下方按鈕授權 LINE 登入。</p>
+                <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="window.top.location.href = 'https://liff.line.me/' + myLiffId;">
+                  <i class="fas fa-sign-in-alt"></i> 點此授權登入
+                </button>
+              </div>
+            `;
+          } else {
+            // 成功登入！取得真實的 LINE 帳號資料
+            liff.getProfile().then(profile => {
+              currentUID = profile.userId;         
+              const lineName = profile.displayName;
+              fetchUserData(currentUID, lineName);
+            }).catch(err => {
+              alert("🚨 錯誤：無法取得 LINE 帳號資料\n" + err.message);
+              document.getElementById('loading').style.display = 'none';
+            });
+          }
+        })
+        .catch((err) => {
+          alert('🚨 錯誤：LIFF 啟動失敗！請檢查 LIFF ID 設定。\n' + err.message);
+          document.getElementById('loading').style.display = 'none';
+        });
+    });
+
+    // 2. 向資料庫 API 索取個人資料 (使用 fetch 取代 google.script.run)
+    function fetchUserData(uid, lineName) {
+      // 呼叫 GET API
+      fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
+        .then(response => response.json())
+        .then(response => {
+          document.getElementById('loading').style.display = 'none'; 
+          
+          if(response.found) {
+            // 資料庫有這個人 (已綁定)
+            globalUserName = response.name; 
+            document.getElementById("ui-userName").innerText = response.name + "，平安！";
+            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-crown"></i> ' + response.tier;
+            document.getElementById("info-phone").innerText = response.phone || "未填寫";
+            document.getElementById("info-birthday").innerText = response.birthday || "未填寫";
+            document.getElementById("info-service").innerText = response.service;
+            document.getElementById("info-groups").innerText = response.groups || "未設定";
+            
+            document.getElementById("input-phone").value = response.phone;
+            document.getElementById("input-birthday").value = response.birthday;
+          } else {
+            // 資料庫找不到這個人 (未綁定)
+            globalUserName = lineName;
+            document.getElementById("ui-userName").innerText = lineName + "，您好！";
+            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-exclamation-circle"></i> 尚未綁定會友';
+            document.getElementById("info-phone").innerText = "您的專屬 UID：";
+            
+            document.getElementById("info-birthday").innerHTML = `
+              <div class="p-2 bg-light border rounded text-danger text-center font-monospace" style="user-select: all; word-break: break-all;">
+                ${uid}
+              </div>
+            `;
+            document.getElementById("info-service").innerText = "👉 請長按複製上方紅字 UID 交給辦公室進行綁定";
+            document.getElementById("info-groups").innerText = "未綁定";
+            document.querySelector('.btn-outline-primary').style.display = 'none';
+          }
+          
+          if(targetPage === 'finance') {
+            document.getElementById('dynamicYear').innerText = response.sysYear; 
+            document.getElementById('finance-locked').style.display = response.tier === 'Tier 1' || !response.found ? 'block' : 'none';
+            document.getElementById('finance-unlocked').style.display = response.tier === 'Tier 1' || !response.found ? 'none' : 'block';
+            if(response.tier !== 'Tier 1' && response.found) renderDonationChart();
+          }
+
+          const pages = ['profile', 'finance', 'prayer', 'events'];
+          pages.forEach(p => {
+            if(document.getElementById('page-' + p)) {
+              document.getElementById('page-' + p).style.display = (p === targetPage) ? 'block' : 'none';
+            }
+          });
+        })
+        .catch(error => {
+          alert("🚨 資料庫連線失敗！\n" + error.message);
+          document.getElementById('loading').style.display = 'none';
+        });
+    }
+
+    // 3. 儲存個人資料 (使用 fetch POST)
+    function saveProfile() {
+      const btn = document.querySelector('#editProfileModal .btn-primary');
+      const newPhone = document.getElementById('input-phone').value;
+      const newBirthday = document.getElementById('input-birthday').value;
+      
+      let newGroupsArray = [];
+      document.querySelectorAll('#checkbox-groups input[type="checkbox"]:checked').forEach(chk => newGroupsArray.push(chk.value));
+      const newGroupsStr = newGroupsArray.join('、');
+
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 儲存中...';
+      
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProfile',
+          uid: currentUID,
+          phone: newPhone,
+          birthday: newBirthday,
+          groups: newGroupsStr
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if(res.success) {
+          alert('✅ 資料已成功更新！');
+          window.location.reload(); 
+        } else {
+          alert('錯誤：' + res.message);
+          btn.innerHTML = '儲存修改';
+        }
+      })
+      .catch(error => {
+        alert("連線錯誤：" + error.message);
+        btn.innerHTML = '儲存修改';
+      });
+    }
+
+    // 4. 畫圓餅圖與開通申請
+    function renderDonationChart() {
+      const ctx = document.getElementById('donationChart').getContext('2d');
+      const dataValues = [22100, 7800, 2600]; 
+      const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'],
+          datasets: [{
+            data: dataValues, 
+            backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'],
+            borderWidth: 0
+          }]
+        },
+        options: { 
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw; 
+                  const percentage = Math.round((value / totalAmount) * 100); 
+                  return `${label}: $ ${value.toLocaleString()} (${percentage}%)`;
+                }
+              }
+            }
+          }, cutout: '70%' 
+        }
+      });
+    }
+
+    function applyFinanceAccess() {
+      alert("已發送申請！請等候辦公室同工審核開通。");
+    }
+
+    function toggleFamilyView() {
+      const isChecked = document.getElementById('familySwitch').checked;
+      alert(isChecked ? "已切換至【全戶視角】" : "已切換至【個人視角】");
+    }
+
+    // 5. 送出代禱 (使用 fetch POST)
+    function submitPrayer() {
+      const target = document.getElementById('prayer-target').value;
+      const content = document.getElementById('prayer-content').value;
+      const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
+      
+      if(!target || !content) { alert("請填寫代禱對象與內容！"); return; }
+      
+      const btn = document.querySelector('#page-prayer .btn-primary');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
+      
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'submitPrayer',
+          uid: currentUID,
+          userName: globalUserName,
+          target: target,
+          content: content,
+          isPublic: isPublic
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          alert('🙏 您的代禱事項已成功送出！牧者與同工會為您守望。');
+          document.getElementById('prayerForm').reset();
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱';
+        } else {
+          alert('系統發生錯誤：' + res.message);
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
+        }
+      })
+      .catch(error => {
+        alert("連線錯誤：" + error.message);
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
+      });
+    }
+
+    // 6. 一鍵報名系統 (使用 fetch POST)
+    function openRegModal(eventId, eventName, allowProxy, requireExtraInfo) {
+      document.getElementById('regEventId').value = eventId;
+      document.getElementById('regEventName').innerText = eventName;
+      
+      const proxyOption = document.getElementById('opt-proxy');
+      if (allowProxy) { proxyOption.style.display = 'block'; } else { proxyOption.style.display = 'none'; document.getElementById('regProxyType').value = 'self'; }
+      
+      document.getElementById('extraInfoSection').style.display = requireExtraInfo ? 'block' : 'none';
+      toggleProxyFields(); 
+      document.getElementById('regAgree').checked = false;
+      new bootstrap.Modal(document.getElementById('regModal')).show();
+    }
+
+    function toggleProxyFields() {
+      const type = document.getElementById('regProxyType').value;
+      document.getElementById('proxyFields').style.display = (type === 'proxy') ? 'block' : 'none';
+    }
+
+    function submitRegistration() {
+      if (!document.getElementById('regAgree').checked) { alert("請先勾選同意收集資料聲明喔！"); return; }
+      
+      const eventId = document.getElementById('regEventId').value;
+      const isProxy = (document.getElementById('regProxyType').value === 'proxy');
+      
+      let participantName = globalUserName; 
+      let participantPhone = document.getElementById('info-phone').innerText; 
+
+      if (isProxy) {
+        participantName = document.getElementById('regParticipantName').value;
+        participantPhone = document.getElementById('regParticipantPhone').value;
+        if (!participantName) { alert("代為報名請務必填寫「參與者真實姓名」！"); return; }
+      }
+
+      let extraInfoObj = {};
+      const idNumber = document.getElementById('regIdNumber').value;
+      const dob = document.getElementById('regDob').value;
+      const memo = document.getElementById('regMemo').value;
+      
+      if (document.getElementById('extraInfoSection').style.display !== 'none') {
+        if (!idNumber || !dob) { alert("本活動需辦理保險，請確實填寫身分證字號與出生年月日！"); return; }
+        extraInfoObj.身分證 = idNumber;
+        extraInfoObj.生日 = dob;
+      }
+      if (memo) extraInfoObj.備註 = memo;
+      
+      const extraInfoStr = Object.keys(extraInfoObj).length > 0 ? JSON.stringify(extraInfoObj) : "";
+
+      const btn = document.querySelector('#regModal .btn-primary');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...';
+      
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'submitRegistration',
+          eventId: eventId,
+          uid: currentUID,
+          isProxy: isProxy,
+          participantName: participantName,
+          participantPhone: participantPhone,
+          extraInfoStr: extraInfoStr
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          alert("🎉 " + res.message);
+          bootstrap.Modal.getInstance(document.getElementById('regModal')).hide();
+          document.getElementById('regForm').reset(); 
+        } else {
+          alert("⚠️ " + res.message);
+        }
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
+      })
+      .catch(error => {
+        alert("連線錯誤：" + error.message);
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
+      });
+    }
+  </script>
+</body>
+</html>
