@@ -101,20 +101,44 @@ function fetchUserData(uid, lineName) {
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
         
-        // 【新增】更新學習護照 (真實連動)
+        // 更新學習護照 (真實連動)
         document.getElementById("info-event-count").innerText = `${response.eventCount} 場`;
         document.getElementById("info-course-count").innerText = `${response.courseCount} 堂`;
 
-        // 【新增】如果都沒參加過，按鈕變成「首次報名」並跳轉
-        const historyBtn = document.getElementById("btn-spiritual-history");
-        if (response.eventCount === 0 && response.courseCount === 0) {
-          historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
-          historyBtn.className = 'btn btn-primary w-100 mt-3 shadow-sm';
-          historyBtn.onclick = function() { switchPage('events'); };
+        // 渲染學習歷程清單
+        const historyContainer = document.getElementById("history-list");
+        historyContainer.innerHTML = "";
+        if (response.attendedHistory && response.attendedHistory.length > 0) {
+            response.attendedHistory.forEach(ev => {
+                let badgeClass = ev.category.includes('課程') ? 'bg-info text-dark' : 'bg-success';
+                let html = `
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                  <div>
+                    <div class="fw-bold">${ev.name}</div>
+                    <div class="text-muted" style="font-size: 0.8rem;"><i class="far fa-calendar-check"></i> ${ev.date}</div>
+                  </div>
+                  <span class="badge ${badgeClass} rounded-pill">${ev.category}</span>
+                </li>`;
+                historyContainer.innerHTML += html;
+            });
         } else {
-          historyBtn.innerHTML = '展開我的屬靈履歷 (即將開放)';
-          historyBtn.className = 'btn btn-light w-100 mt-3 text-secondary border';
-          historyBtn.onclick = null;
+            historyContainer.innerHTML = '<li class="list-group-item text-center text-muted py-4">尚無出席紀錄，繼續加油！</li>';
+        }
+
+        // 動態切換按鈕：如果完全沒紀錄也沒報名，引導去活動頁面
+        const historyBtn = document.getElementById("btn-spiritual-history");
+        if (response.eventCount === 0 && response.courseCount === 0 && (!response.registeredEvents || response.registeredEvents.length === 0)) {
+          historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
+          historyBtn.className = 'btn btn-primary w-100 mt-3 shadow-sm rounded-pill';
+          historyBtn.onclick = function() { switchPage('events'); };
+          historyBtn.removeAttribute('data-bs-toggle');
+          historyBtn.removeAttribute('data-bs-target');
+        } else {
+          historyBtn.innerHTML = '<i class="fas fa-book-open"></i> 展開我的學習歷程';
+          historyBtn.className = 'btn btn-outline-primary w-100 mt-3 rounded-pill';
+          historyBtn.onclick = null; // 取消跳轉
+          historyBtn.setAttribute('data-bs-toggle', 'modal');
+          historyBtn.setAttribute('data-bs-target', '#historyModal');
         }
 
         const serviceContainer = document.getElementById("checkbox-services");
@@ -166,7 +190,29 @@ function fetchUserData(uid, lineName) {
         document.getElementById("bound-profile-view").style.display = "none";
       }
       
-      // 【新增】動態渲染活動列表
+      // 動態渲染「已報名」活動列表
+      const regEventListContainer = document.getElementById("registered-event-list");
+      regEventListContainer.innerHTML = "";
+      if (response.registeredEvents && response.registeredEvents.length > 0) {
+        response.registeredEvents.forEach(ev => {
+          let html = `
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <div class="fw-bold text-dark mb-1">${ev.name}</div>
+              <div class="text-muted" style="font-size: 0.8rem;"><i class="far fa-calendar-alt"></i> ${ev.date}</div>
+              <div class="text-secondary mt-1" style="font-size: 0.8rem;">
+                <span class="badge bg-light text-dark border">${ev.regType}</span> 參與者: ${ev.participantName}
+              </div>
+            </div>
+            <span class="text-success"><i class="fas fa-check-circle fa-2x"></i></span>
+          </div>`;
+          regEventListContainer.innerHTML += html;
+        });
+      } else {
+        regEventListContainer.innerHTML = '<div class="text-center text-muted my-3" style="font-size:0.9rem;">目前沒有待參加的活動。</div>';
+      }
+
+      // 動態渲染「開放報名」活動列表
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
       if (response.activeEvents && response.activeEvents.length > 0) {
@@ -430,13 +476,16 @@ function submitRegistration() {
   .then(res => res.json())
   .then(res => {
     if (res.success) {
-      Swal.fire('報名成功', res.message, 'success');
+      Swal.fire('報名成功', res.message, 'success').then(() => {
+        // 報名成功後自動重整網頁，更新「已報名」清單
+        window.location.reload();
+      });
       bootstrap.Modal.getInstance(document.getElementById('regModal')).hide();
       document.getElementById('regForm').reset(); 
     } else {
       Swal.fire('報名失敗', res.message, 'error');
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
     }
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
   })
   .catch(err => {
     Swal.fire('連線錯誤', err.message, 'error');
