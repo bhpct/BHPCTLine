@@ -5,6 +5,7 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
+// 系統常數
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
@@ -23,12 +24,13 @@ document.addEventListener("DOMContentLoaded", function() {
   liff.init({ liffId: myLiffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
+        // 【修復】已經在 GitHub Pages，可以直接使用標準的 liff.login() 語法，解決無痕模式卡住的問題
         document.getElementById('loading').innerHTML = `
           <div class="text-center px-4">
             <i class="fab fa-line fa-4x text-success mb-3"></i>
             <h4 class="fw-bold mb-3 text-dark">等待登入驗證</h4>
             <p class="text-muted mb-4" style="font-size:0.95rem;">為了確保會友資料安全，<br>請點擊下方按鈕授權 LINE 登入。</p>
-            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="window.top.location.href = 'https://liff.line.me/' + myLiffId;">
+            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="liff.login({ redirectUri: window.location.href });">
               <i class="fas fa-sign-in-alt"></i> 點此授權登入
             </button>
           </div>
@@ -50,9 +52,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// ================= 新增：頁面切換邏輯 =================
+// 【新增】頁面切換邏輯 (搭配底部導覽列使用)
 function switchPage(pageId) {
-  // 1. 隱藏所有頁面區塊，移除所有按鈕的 active 狀態
   const pages = ['profile', 'finance', 'prayer', 'events'];
   pages.forEach(p => {
     if (document.getElementById('page-' + p)) {
@@ -63,7 +64,6 @@ function switchPage(pageId) {
     }
   });
 
-  // 2. 顯示目標頁面，將點擊的按鈕設為 active
   if (document.getElementById('page-' + pageId)) {
     document.getElementById('page-' + pageId).style.display = 'block';
   }
@@ -71,7 +71,7 @@ function switchPage(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
   }
 
-  // 3. 如果切換到奉獻頁面，且權限允許，則渲染圖表
+  // 如果切換到奉獻頁面，且權限允許，則渲染圖表
   if (pageId === 'finance' && document.getElementById('finance-unlocked').style.display === 'block') {
     renderDonationChart();
   }
@@ -156,7 +156,7 @@ function fetchUserData(uid, lineName) {
         document.getElementById('finance-unlocked').style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
       }
 
-      // 呼叫切換頁面函數 (取代原本的寫死 forEach)
+      // 載入完成後，自動切換到目標頁面
       switchPage(targetPage);
     })
     .catch(error => {
@@ -248,7 +248,6 @@ function saveProfile() {
 }
 
 function renderDonationChart() {
-  // 如果畫布被隱藏，Chart.js 可能會算錯尺寸，因此只在顯示時繪製
   const canvas = document.getElementById('donationChart');
   if (!canvas) return;
   
@@ -256,7 +255,6 @@ function renderDonationChart() {
   const dataValues = [22100, 7800, 2600]; 
   const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
   
-  // 避免重複渲染造成重疊
   if (window.myDonationChart) {
     window.myDonationChart.destroy();
   }
