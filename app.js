@@ -1,4 +1,5 @@
 window.onerror = function(msg, url, line) {
+  // 嚴重錯誤保留傳統 alert 確保一定能看到
   alert("🚨 系統發生致命錯誤！請截圖回報給工程師。\n錯誤訊息：" + msg + "\n發生在第 " + line + " 行。");
 };
 
@@ -16,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('loading').style.display = 'flex';
   
   if (!myLiffId) {
-    alert("🚨 錯誤：網頁沒有設定 LIFF ID！");
+    Swal.fire('錯誤', '網頁沒有設定 LIFF ID！', 'error');
     document.getElementById('loading').style.display = 'none';
     return;
   }
@@ -24,7 +25,6 @@ document.addEventListener("DOMContentLoaded", function() {
   liff.init({ liffId: myLiffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
-        // 【修復】已經在 GitHub Pages，可以直接使用標準的 liff.login() 語法，解決無痕模式卡住的問題
         document.getElementById('loading').innerHTML = `
           <div class="text-center px-4">
             <i class="fab fa-line fa-4x text-success mb-3"></i>
@@ -41,18 +41,18 @@ document.addEventListener("DOMContentLoaded", function() {
           const lineName = profile.displayName;
           fetchUserData(currentUID, lineName);
         }).catch(err => {
-          alert("🚨 錯誤：無法取得 LINE 帳號資料\n" + err.message);
+          Swal.fire('錯誤', '無法取得 LINE 帳號資料<br>' + err.message, 'error');
           document.getElementById('loading').style.display = 'none';
         });
       }
     })
     .catch((err) => {
-      alert('🚨 錯誤：LIFF 啟動失敗！請檢查 LIFF ID 設定。\n' + err.message);
+      Swal.fire('錯誤', 'LIFF 啟動失敗！請檢查 LIFF ID 設定。<br>' + err.message, 'error');
       document.getElementById('loading').style.display = 'none';
     });
 });
 
-// 【新增】頁面切換邏輯 (搭配底部導覽列使用)
+// 頁面切換邏輯
 function switchPage(pageId) {
   const pages = ['profile', 'finance', 'prayer', 'events'];
   pages.forEach(p => {
@@ -101,6 +101,7 @@ function fetchUserData(uid, lineName) {
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
 
+        // 動態產生「服事單位」Checkbox
         const serviceContainer = document.getElementById("checkbox-services");
         serviceContainer.innerHTML = "";
         const userServices = (response.service || "").split("、").map(s => s.trim());
@@ -120,6 +121,7 @@ function fetchUserData(uid, lineName) {
           serviceContainer.innerHTML = `<div class="col-12 text-muted" style="font-size: 0.8rem;">無可選擇的服事單位</div>`;
         }
 
+        // 動態產生「推播頻道」Checkbox
         const groupContainer = document.getElementById("checkbox-groups");
         groupContainer.innerHTML = "";
         const userGroups = (response.groups || "").split("、").map(g => g.trim());
@@ -160,7 +162,7 @@ function fetchUserData(uid, lineName) {
       switchPage(targetPage);
     })
     .catch(error => {
-      alert("🚨 資料庫連線失敗！\n" + error.message);
+      Swal.fire('錯誤', '資料庫連線失敗！<br>' + error.message, 'error');
       document.getElementById('loading').style.display = 'none';
     });
 }
@@ -171,7 +173,7 @@ function submitBinding() {
   const birthday = document.getElementById('bind-birthday').value;
 
   if (!name || !phone || !birthday) {
-    alert("⚠️ 為了維護教會資料完整性，請完整填寫真實姓名、電話與生日喔！");
+    Swal.fire('提醒', '請完整填寫真實姓名、電話與生日喔！', 'warning');
     return;
   }
 
@@ -192,15 +194,16 @@ function submitBinding() {
   .then(res => res.json())
   .then(res => {
     if(res.success) {
-      alert(res.message);
-      window.location.reload(); 
+      Swal.fire('綁定成功', res.message, 'success').then(() => {
+        window.location.reload(); 
+      });
     } else {
-      alert("⚠️ " + res.message);
+      Swal.fire('綁定失敗', res.message, 'error');
       btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊';
     }
   })
   .catch(error => {
-    alert("連線錯誤：" + error.message);
+    Swal.fire('連線錯誤', error.message, 'error');
     btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊';
   });
 }
@@ -234,15 +237,16 @@ function saveProfile() {
   .then(res => res.json())
   .then(res => {
     if(res.success) {
-      alert('✅ 資料已成功更新！');
-      window.location.reload(); 
+      Swal.fire('成功', '資料已成功更新！', 'success').then(() => {
+        window.location.reload(); 
+      });
     } else {
-      alert('錯誤：' + res.message);
+      Swal.fire('錯誤', res.message, 'error');
       btn.innerHTML = '儲存修改';
     }
   })
   .catch(err => {
-    alert("連線錯誤：" + err.message);
+    Swal.fire('連線錯誤', err.message, 'error');
     btn.innerHTML = '儲存修改';
   });
 }
@@ -291,12 +295,20 @@ function renderDonationChart() {
 }
 
 function applyFinanceAccess() { 
-  alert("已發送申請！請等候辦公室同工審核開通。"); 
+  Swal.fire('已送出', '已發送申請！請等候辦公室同工審核開通。', 'success'); 
 }
 
 function toggleFamilyView() { 
   const isChecked = document.getElementById('familySwitch').checked;
-  alert(isChecked ? "已切換至【全戶視角】" : "已切換至【個人視角】"); 
+  // 這種小開關使用滑出的 Toast 提示最不干擾使用者
+  Swal.fire({
+    title: isChecked ? '已切換至【全戶視角】' : '已切換至【個人視角】',
+    icon: 'success',
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000
+  });
 }
 
 function submitPrayer() {
@@ -305,7 +317,7 @@ function submitPrayer() {
   const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
   
   if(!target || !content) {
-    alert("請填寫代禱對象與內容！");
+    Swal.fire('提醒', '請填寫代禱對象與內容！', 'warning');
     return;
   }
   
@@ -326,16 +338,16 @@ function submitPrayer() {
   .then(res => res.json())
   .then(res => {
     if (res.success) {
-      alert('🙏 您的代禱事項已成功送出！');
+      Swal.fire('成功', '您的代禱事項已成功送出！', 'success');
       document.getElementById('prayerForm').reset();
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱';
     } else {
-      alert('系統錯誤：' + res.message);
+      Swal.fire('系統錯誤', res.message, 'error');
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
     }
   })
   .catch(err => {
-    alert("連線錯誤：" + err.message);
+    Swal.fire('連線錯誤', err.message, 'error');
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
   });
 }
@@ -365,7 +377,7 @@ function toggleProxyFields() {
 
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) {
-    alert("請先勾選同意收集資料聲明喔！");
+    Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning');
     return;
   }
   
@@ -379,7 +391,7 @@ function submitRegistration() {
     pName = document.getElementById('regParticipantName').value; 
     pPhone = document.getElementById('regParticipantPhone').value; 
     if (!pName) {
-      alert("請填寫「參與者真實姓名」！");
+      Swal.fire('提醒', '請填寫「參與者真實姓名」！', 'warning');
       return;
     } 
   }
@@ -389,7 +401,7 @@ function submitRegistration() {
     const idNumber = document.getElementById('regIdNumber').value; 
     const dob = document.getElementById('regDob').value; 
     if (!idNumber || !dob) {
-      alert("保險需填寫身分證與生日！");
+      Swal.fire('提醒', '保險需填寫身分證與生日！', 'warning');
       return;
     } 
     extraObj.身分證 = idNumber;
@@ -419,16 +431,16 @@ function submitRegistration() {
   .then(res => res.json())
   .then(res => {
     if (res.success) {
-      alert("🎉 " + res.message);
+      Swal.fire('報名成功', res.message, 'success');
       bootstrap.Modal.getInstance(document.getElementById('regModal')).hide();
       document.getElementById('regForm').reset(); 
     } else {
-      alert("⚠️ " + res.message);
+      Swal.fire('報名失敗', res.message, 'error');
     }
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
   })
   .catch(err => {
-    alert("連線錯誤：" + err.message);
+    Swal.fire('連線錯誤', err.message, 'error');
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
   });
 }
