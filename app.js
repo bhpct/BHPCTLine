@@ -101,9 +101,21 @@ function fetchUserData(uid, lineName) {
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
         
-        // 更新學習護照 (真實連動)
+        // 【新增】更新學習護照 (真實連動)
         document.getElementById("info-event-count").innerText = `${response.eventCount} 場`;
         document.getElementById("info-course-count").innerText = `${response.courseCount} 堂`;
+
+        // 【新增】如果都沒參加過，按鈕變成「首次報名」並跳轉
+        const historyBtn = document.getElementById("btn-spiritual-history");
+        if (response.eventCount === 0 && response.courseCount === 0) {
+          historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
+          historyBtn.className = 'btn btn-primary w-100 mt-3 shadow-sm';
+          historyBtn.onclick = function() { switchPage('events'); };
+        } else {
+          historyBtn.innerHTML = '展開我的屬靈履歷 (即將開放)';
+          historyBtn.className = 'btn btn-light w-100 mt-3 text-secondary border';
+          historyBtn.onclick = null;
+        }
 
         const serviceContainer = document.getElementById("checkbox-services");
         serviceContainer.innerHTML = "";
@@ -154,7 +166,7 @@ function fetchUserData(uid, lineName) {
         document.getElementById("bound-profile-view").style.display = "none";
       }
       
-      // 動態渲染活動列表
+      // 【新增】動態渲染活動列表
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
       if (response.activeEvents && response.activeEvents.length > 0) {
@@ -181,7 +193,7 @@ function fetchUserData(uid, lineName) {
       } else {
         eventListContainer.innerHTML = '<div class="text-center text-muted my-4">目前沒有開放報名的活動或課程。</div>';
       }
-      
+
       if(targetPage === 'finance') {
         document.getElementById('dynamicYear').innerText = response.sysYear; 
         document.getElementById('finance-locked').style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
@@ -396,7 +408,7 @@ function submitRegistration() {
     const idNumber = document.getElementById('regIdNumber').value; 
     const dob = document.getElementById('regDob').value; 
     if (!idNumber || !dob) {
-      Swal.fire('提醒', '保險需辦理，請確實填寫身分證與生日！', 'warning');
+      Swal.fire('提醒', '保險需填寫身分證與生日！', 'warning');
       return;
     } 
     extraObj.身分證 = idNumber;
