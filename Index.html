@@ -26,48 +26,78 @@
 
   <div class="church-header text-center mb-4">
     <h3 id="ui-userName">讀取中...</h3>
-    <span class="badge bg-warning text-dark mt-2" id="ui-userTier"><i class="fas fa-medal"></i> 驗證狀態</span>
+    <span class="badge bg-secondary text-white mt-2" id="ui-userTier" style="cursor: pointer; font-size:0.9rem;" onclick="new bootstrap.Modal(document.getElementById('tierInfoModal')).show()">
+      <i class="fas fa-medal"></i> 驗證狀態 <i class="fas fa-question-circle ms-1"></i>
+    </span>
   </div>
 
   <div class="container pb-5">
     
     <div id="page-profile" style="display: none;">
-      <div class="card p-4">
-        <h5 class="mb-3"><i class="fas fa-id-card text-primary"></i> 我的基本資料</h5>
-        <div class="row">
-          <div class="col-6">
-            <div class="info-label">聯絡電話</div>
-            <div class="info-value" id="info-phone">...</div>
+      
+      <div id="unbound-view" style="display:none;">
+        <div class="card p-4 border-0 shadow-sm" style="border-left: 5px solid #f39c12 !important;">
+          <div class="text-center mb-3">
+            <i class="fas fa-user-plus fa-3x text-warning mb-2"></i>
+            <h5 class="fw-bold">升級為 Tier 1 綁定用戶</h5>
+            <p class="text-muted mb-0" style="font-size:0.9rem;">請輸入您的資料進行實名綁定。<br>現有會友將自動連結，新朋友將為您建立專屬檔案！</p>
           </div>
-          <div class="col-6">
-            <div class="info-label">生日</div>
-            <div class="info-value" id="info-birthday">...</div>
+          <div class="mb-2">
+            <label class="form-label text-muted" style="font-size:0.85rem;">真實姓名 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="bind-name" placeholder="例：王大明">
           </div>
-          <div class="col-12">
-            <div class="info-label">服事單位</div>
-            <div class="info-value" id="info-service">...</div>
+          <div class="mb-2">
+            <label class="form-label text-muted" style="font-size:0.85rem;">聯絡電話 <span class="text-danger">*</span></label>
+            <input type="tel" class="form-control" id="bind-phone" placeholder="例：0912345678">
           </div>
-          <div class="col-12">
-            <div class="info-label">接收推播頻道 (團契/牧區)</div>
-            <div class="info-value text-primary" id="info-groups">...</div>
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size:0.85rem;">出生年月日 <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="bind-birthday">
           </div>
+          <button class="btn btn-warning w-100 rounded-pill py-2 text-dark fw-bold" onclick="submitBinding()">
+            <i class="fas fa-link"></i> 一鍵綁定 / 註冊
+          </button>
         </div>
-        <button class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-          <i class="fas fa-edit"></i> 修改資料與推播設定
-        </button>
       </div>
 
-      <div class="card p-4 mt-3">
-        <h5 class="mb-3"><i class="fas fa-passport text-success"></i> 我的參與護照</h5>
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span>累積參與活動：</span>
-          <span class="badge bg-success rounded-pill" style="font-size:1rem;">12 場</span>
+      <div id="bound-profile-view" style="display:none;">
+        <div class="card p-4">
+          <h5 class="mb-3"><i class="fas fa-id-card text-primary"></i> 我的基本資料</h5>
+          <div class="row">
+            <div class="col-6">
+              <div class="info-label">聯絡電話</div>
+              <div class="info-value" id="info-phone">...</div>
+            </div>
+            <div class="col-6">
+              <div class="info-label">生日</div>
+              <div class="info-value" id="info-birthday">...</div>
+            </div>
+            <div class="col-12">
+              <div class="info-label">服事單位</div>
+              <div class="info-value" id="info-service">...</div>
+            </div>
+            <div class="col-12">
+              <div class="info-label">接收推播頻道 (團契/牧區)</div>
+              <div class="info-value text-primary" id="info-groups">...</div>
+            </div>
+          </div>
+          <button class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+            <i class="fas fa-edit"></i> 修改資料與推播設定
+          </button>
         </div>
-        <div class="d-flex justify-content-between align-items-center">
-          <span>完成造就課程：</span>
-          <span class="badge bg-info rounded-pill" style="font-size:1rem;">3 堂</span>
+
+        <div class="card p-4 mt-3">
+          <h5 class="mb-3"><i class="fas fa-passport text-success"></i> 我的參與護照</h5>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>累積參與活動：</span>
+            <span class="badge bg-success rounded-pill" style="font-size:1rem;">12 場</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span>完成造就課程：</span>
+            <span class="badge bg-info rounded-pill" style="font-size:1rem;">3 堂</span>
+          </div>
+          <button class="btn btn-light w-100 mt-3 text-secondary border">展開我的屬靈履歷 (即將開放)</button>
         </div>
-        <button class="btn btn-light w-100 mt-3 text-secondary border">展開我的屬靈履歷 (即將開放)</button>
       </div>
     </div>
 
@@ -202,6 +232,36 @@
 
   </div> 
 
+  <div class="modal fade" id="tierInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold"><i class="fas fa-layer-group text-primary"></i> 系統權限分級說明</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item p-3">
+              <div class="fw-bold text-secondary mb-1"><i class="fas fa-user"></i> Tier 0 一般用戶</div>
+              <div class="text-muted" style="font-size:0.9rem;">未提供資料的訪客。僅能瀏覽公開頁面、接收教會一般資訊。</div>
+            </li>
+            <li class="list-group-item p-3">
+              <div class="fw-bold text-primary mb-1"><i class="fas fa-user-check"></i> Tier 1 綁定用戶</div>
+              <div class="text-muted" style="font-size:0.9rem;">完成手機自助綁定之會友/新朋友。解鎖專屬「活動報名」、「學習護照」、「活動護照」功能。</div>
+            </li>
+            <li class="list-group-item p-3">
+              <div class="fw-bold text-warning text-dark mb-1"><i class="fas fa-crown"></i> Tier 2 驗證用戶</div>
+              <div class="text-muted" style="font-size:0.9rem;">須至行政辦公室進行實體身分驗證。解鎖最高機密「個人與全戶財務奉獻」查詢權限。</div>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary w-100 rounded-pill" data-bs-dismiss="modal">我知道了</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border-radius: 15px;">
@@ -305,26 +365,19 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <script>
-    // 【終極防護】：攔截任何可能導致當機的隱形語法錯誤！
     window.onerror = function(msg, url, line) {
       alert("🚨 系統發生致命錯誤！請截圖回報給工程師。\n錯誤訊息：" + msg + "\n發生在第 " + line + " 行。");
     };
 
-    // ====== 系統常數設定區 ======
     let currentUID = ""; 
     let globalUserName = "未綁定會友"; 
     
-    // 【重要】：請將此處替換為您的真實 LIFF ID
     const myLiffId = '2009444508-qaGGdlps';
-    
-    // 【重要】：請將此處替換為您從 GAS 取得的 API 網址 (結尾是 /exec)
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
     
-    // 從網址上抓取 ?page= 參數 (取代原本的 <?= targetPage ?>)
     const urlParams = new URLSearchParams(window.location.search);
     const targetPage = urlParams.get('page') || "profile";
 
-    // 1. 網頁載入時啟動 LIFF 引擎
     document.addEventListener("DOMContentLoaded", function() {
       document.getElementById('loading').style.display = 'flex';
       
@@ -334,11 +387,9 @@
         return;
       }
 
-      // 初始化 LIFF
       liff.init({ liffId: myLiffId })
         .then(() => {
           if (!liff.isLoggedIn()) {
-            // 電腦版防封殺：改為顯示一顆登入按鈕，並使用 top.location 強制跳轉
             document.getElementById('loading').innerHTML = `
               <div class="text-center px-4">
                 <i class="fab fa-line fa-4x text-success mb-3"></i>
@@ -350,7 +401,6 @@
               </div>
             `;
           } else {
-            // 成功登入！取得真實的 LINE 帳號資料
             liff.getProfile().then(profile => {
               currentUID = profile.userId;         
               const lineName = profile.displayName;
@@ -362,24 +412,36 @@
           }
         })
         .catch((err) => {
-          alert('🚨 錯誤：LIFF 啟動失敗！請檢查 LIFF ID 設定。\n' + err.message);
+          alert('🚨 錯誤：LIFF 啟提失敗！請檢查 LIFF ID 設定。\n' + err.message);
           document.getElementById('loading').style.display = 'none';
         });
     });
 
-    // 2. 向資料庫 API 索取個人資料 (使用 fetch 取代 google.script.run)
+    // 2. 向資料庫索取個人資料
     function fetchUserData(uid, lineName) {
-      // 呼叫 GET API
       fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
         .then(response => response.json())
         .then(response => {
           document.getElementById('loading').style.display = 'none'; 
           
           if(response.found) {
-            // 資料庫有這個人 (已綁定)
+            // 【已綁定：Tier 1 或 Tier 2】
             globalUserName = response.name; 
             document.getElementById("ui-userName").innerText = response.name + "，平安！";
-            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-crown"></i> ' + response.tier;
+            
+            // 轉換顯示美美的徽章
+            let tierName = "";
+            let tierBadge = "";
+            if (response.tier === 'Tier 2') {
+              tierName = "Tier 2 驗證用戶";
+              tierBadge = "bg-warning text-dark";
+            } else {
+              tierName = "Tier 1 綁定用戶";
+              tierBadge = "bg-primary text-white";
+            }
+            document.getElementById("ui-userTier").className = "badge mt-2 " + tierBadge;
+            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-medal"></i> ' + tierName + ' <i class="fas fa-question-circle ms-1"></i>';
+
             document.getElementById("info-phone").innerText = response.phone || "未填寫";
             document.getElementById("info-birthday").innerText = response.birthday || "未填寫";
             document.getElementById("info-service").innerText = response.service;
@@ -387,28 +449,29 @@
             
             document.getElementById("input-phone").value = response.phone;
             document.getElementById("input-birthday").value = response.birthday;
+
+            // 顯示個人資料，隱藏綁定視圖
+            document.getElementById("bound-profile-view").style.display = "block";
+            document.getElementById("unbound-view").style.display = "none";
           } else {
-            // 資料庫找不到這個人 (未綁定)
+            // 【未綁定：Tier 0】
             globalUserName = lineName;
             document.getElementById("ui-userName").innerText = lineName + "，您好！";
-            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-exclamation-circle"></i> 尚未綁定會友';
-            document.getElementById("info-phone").innerText = "您的專屬 UID：";
             
-            document.getElementById("info-birthday").innerHTML = `
-              <div class="p-2 bg-light border rounded text-danger text-center font-monospace" style="user-select: all; word-break: break-all;">
-                ${uid}
-              </div>
-            `;
-            document.getElementById("info-service").innerText = "👉 請長按複製上方紅字 UID 交給辦公室進行綁定";
-            document.getElementById("info-groups").innerText = "未綁定";
-            document.querySelector('.btn-outline-primary').style.display = 'none';
+            document.getElementById("ui-userTier").className = "badge mt-2 bg-secondary text-white";
+            document.getElementById("ui-userTier").innerHTML = '<i class="fas fa-user"></i> Tier 0 一般用戶 <i class="fas fa-question-circle ms-1"></i>';
+            
+            // 顯示綁定視圖，隱藏個人資料
+            document.getElementById("unbound-view").style.display = "block";
+            document.getElementById("bound-profile-view").style.display = "none";
           }
           
+          // 財務權限控管 (僅 Tier 2 可見)
           if(targetPage === 'finance') {
             document.getElementById('dynamicYear').innerText = response.sysYear; 
-            document.getElementById('finance-locked').style.display = response.tier === 'Tier 1' || !response.found ? 'block' : 'none';
-            document.getElementById('finance-unlocked').style.display = response.tier === 'Tier 1' || !response.found ? 'none' : 'block';
-            if(response.tier !== 'Tier 1' && response.found) renderDonationChart();
+            document.getElementById('finance-locked').style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
+            document.getElementById('finance-unlocked').style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
+            if(response.tier === 'Tier 2' && response.found) renderDonationChart();
           }
 
           const pages = ['profile', 'finance', 'prayer', 'events'];
@@ -424,203 +487,113 @@
         });
     }
 
-    // 3. 儲存個人資料 (使用 fetch POST)
-    function saveProfile() {
-      const btn = document.querySelector('#editProfileModal .btn-primary');
-      const newPhone = document.getElementById('input-phone').value;
-      const newBirthday = document.getElementById('input-birthday').value;
-      
-      let newGroupsArray = [];
-      document.querySelectorAll('#checkbox-groups input[type="checkbox"]:checked').forEach(chk => newGroupsArray.push(chk.value));
-      const newGroupsStr = newGroupsArray.join('、');
+    // 【新增】送出自助綁定 / 註冊
+    function submitBinding() {
+      const name = document.getElementById('bind-name').value.trim();
+      const phone = document.getElementById('bind-phone').value.trim();
+      const birthday = document.getElementById('bind-birthday').value;
 
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 儲存中...';
-      
+      if (!name || !phone || !birthday) {
+        alert("⚠️ 為了維護教會資料完整性，請完整填寫真實姓名、電話與生日喔！");
+        return;
+      }
+
+      const btn = document.querySelector('#unbound-view .btn-warning');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...';
+
       fetch(GAS_URL, {
         method: 'POST',
         body: JSON.stringify({
-          action: 'saveProfile',
+          action: 'bindUser',
           uid: currentUID,
-          phone: newPhone,
-          birthday: newBirthday,
-          groups: newGroupsStr
+          lineName: globalUserName, 
+          realName: name,
+          phone: phone,
+          birthday: birthday
         })
       })
       .then(res => res.json())
       .then(res => {
         if(res.success) {
-          alert('✅ 資料已成功更新！');
+          alert(res.message);
           window.location.reload(); 
         } else {
-          alert('錯誤：' + res.message);
-          btn.innerHTML = '儲存修改';
+          alert("⚠️ " + res.message);
+          btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊';
         }
       })
       .catch(error => {
         alert("連線錯誤：" + error.message);
-        btn.innerHTML = '儲存修改';
+        btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊';
       });
     }
 
-    // 4. 畫圓餅圖與開通申請
+    function saveProfile() {
+      const btn = document.querySelector('#editProfileModal .btn-primary');
+      const newPhone = document.getElementById('input-phone').value;
+      const newBirthday = document.getElementById('input-birthday').value;
+      let newGroupsArray = [];
+      document.querySelectorAll('#checkbox-groups input[type="checkbox"]:checked').forEach(chk => newGroupsArray.push(chk.value));
+      const newGroupsStr = newGroupsArray.join('、');
+      
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 儲存中...';
+      
+      fetch(GAS_URL, {
+        method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: newPhone, birthday: newBirthday, groups: newGroupsStr })
+      }).then(res => res.json()).then(res => {
+        if(res.success) { alert('✅ 資料已成功更新！'); window.location.reload(); } else { alert('錯誤：' + res.message); btn.innerHTML = '儲存修改'; }
+      }).catch(err => { alert("連線錯誤：" + err.message); btn.innerHTML = '儲存修改'; });
+    }
+
     function renderDonationChart() {
       const ctx = document.getElementById('donationChart').getContext('2d');
-      const dataValues = [22100, 7800, 2600]; 
-      const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
-
-      new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'],
-          datasets: [{
-            data: dataValues, 
-            backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'],
-            borderWidth: 0
-          }]
-        },
-        options: { 
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw; 
-                  const percentage = Math.round((value / totalAmount) * 100); 
-                  return `${label}: $ ${value.toLocaleString()} (${percentage}%)`;
-                }
-              }
-            }
-          }, cutout: '70%' 
-        }
-      });
+      const dataValues = [22100, 7800, 2600]; const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
+      new Chart(ctx, { type: 'doughnut', data: { labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], datasets: [{ data: dataValues, backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(context) { return `${context.label || ''}: $ ${context.raw.toLocaleString()} (${Math.round((context.raw / totalAmount) * 100)}%)`; } } } }, cutout: '70%' } });
     }
 
-    function applyFinanceAccess() {
-      alert("已發送申請！請等候辦公室同工審核開通。");
-    }
+    function applyFinanceAccess() { alert("已發送申請！請等候辦公室同工審核開通。"); }
+    function toggleFamilyView() { alert(document.getElementById('familySwitch').checked ? "已切換至【全戶視角】" : "已切換至【個人視角】"); }
 
-    function toggleFamilyView() {
-      const isChecked = document.getElementById('familySwitch').checked;
-      alert(isChecked ? "已切換至【全戶視角】" : "已切換至【個人視角】");
-    }
-
-    // 5. 送出代禱 (使用 fetch POST)
     function submitPrayer() {
       const target = document.getElementById('prayer-target').value;
       const content = document.getElementById('prayer-content').value;
       const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
-      
       if(!target || !content) { alert("請填寫代禱對象與內容！"); return; }
       
-      const btn = document.querySelector('#page-prayer .btn-primary');
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
-      
+      const btn = document.querySelector('#page-prayer .btn-primary'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
       fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'submitPrayer',
-          uid: currentUID,
-          userName: globalUserName,
-          target: target,
-          content: content,
-          isPublic: isPublic
-        })
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          alert('🙏 您的代禱事項已成功送出！牧者與同工會為您守望。');
-          document.getElementById('prayerForm').reset();
-          btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱';
-        } else {
-          alert('系統發生錯誤：' + res.message);
-          btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
-        }
-      })
-      .catch(error => {
-        alert("連線錯誤：" + error.message);
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
-      });
+        method: 'POST', body: JSON.stringify({ action: 'submitPrayer', uid: currentUID, userName: globalUserName, target: target, content: content, isPublic: isPublic })
+      }).then(res => res.json()).then(res => {
+        if (res.success) { alert('🙏 您的代禱事項已成功送出！'); document.getElementById('prayerForm').reset(); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱'; } else { alert('系統錯誤：' + res.message); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出'; }
+      }).catch(err => { alert("連線錯誤：" + err.message); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出'; });
     }
 
-    // 6. 一鍵報名系統 (使用 fetch POST)
     function openRegModal(eventId, eventName, allowProxy, requireExtraInfo) {
-      document.getElementById('regEventId').value = eventId;
-      document.getElementById('regEventName').innerText = eventName;
-      
+      document.getElementById('regEventId').value = eventId; document.getElementById('regEventName').innerText = eventName;
       const proxyOption = document.getElementById('opt-proxy');
       if (allowProxy) { proxyOption.style.display = 'block'; } else { proxyOption.style.display = 'none'; document.getElementById('regProxyType').value = 'self'; }
-      
       document.getElementById('extraInfoSection').style.display = requireExtraInfo ? 'block' : 'none';
-      toggleProxyFields(); 
-      document.getElementById('regAgree').checked = false;
+      toggleProxyFields(); document.getElementById('regAgree').checked = false;
       new bootstrap.Modal(document.getElementById('regModal')).show();
     }
-
-    function toggleProxyFields() {
-      const type = document.getElementById('regProxyType').value;
-      document.getElementById('proxyFields').style.display = (type === 'proxy') ? 'block' : 'none';
-    }
-
+    function toggleProxyFields() { document.getElementById('proxyFields').style.display = (document.getElementById('regProxyType').value === 'proxy') ? 'block' : 'none'; }
+    
     function submitRegistration() {
       if (!document.getElementById('regAgree').checked) { alert("請先勾選同意收集資料聲明喔！"); return; }
+      const eventId = document.getElementById('regEventId').value; const isProxy = (document.getElementById('regProxyType').value === 'proxy');
+      let pName = globalUserName, pPhone = document.getElementById('info-phone').innerText; 
+      if (isProxy) { pName = document.getElementById('regParticipantName').value; pPhone = document.getElementById('regParticipantPhone').value; if (!pName) { alert("請填寫「參與者真實姓名」！"); return; } }
+      let extraObj = {};
+      if (document.getElementById('extraInfoSection').style.display !== 'none') { const idNumber = document.getElementById('regIdNumber').value; const dob = document.getElementById('regDob').value; if (!idNumber || !dob) { alert("保險需填寫身分證與生日！"); return; } extraObj.身分證 = idNumber; extraObj.生日 = dob; }
+      if (document.getElementById('regMemo').value) extraObj.備註 = document.getElementById('regMemo').value;
       
-      const eventId = document.getElementById('regEventId').value;
-      const isProxy = (document.getElementById('regProxyType').value === 'proxy');
-      
-      let participantName = globalUserName; 
-      let participantPhone = document.getElementById('info-phone').innerText; 
-
-      if (isProxy) {
-        participantName = document.getElementById('regParticipantName').value;
-        participantPhone = document.getElementById('regParticipantPhone').value;
-        if (!participantName) { alert("代為報名請務必填寫「參與者真實姓名」！"); return; }
-      }
-
-      let extraInfoObj = {};
-      const idNumber = document.getElementById('regIdNumber').value;
-      const dob = document.getElementById('regDob').value;
-      const memo = document.getElementById('regMemo').value;
-      
-      if (document.getElementById('extraInfoSection').style.display !== 'none') {
-        if (!idNumber || !dob) { alert("本活動需辦理保險，請確實填寫身分證字號與出生年月日！"); return; }
-        extraInfoObj.身分證 = idNumber;
-        extraInfoObj.生日 = dob;
-      }
-      if (memo) extraInfoObj.備註 = memo;
-      
-      const extraInfoStr = Object.keys(extraInfoObj).length > 0 ? JSON.stringify(extraInfoObj) : "";
-
-      const btn = document.querySelector('#regModal .btn-primary');
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...';
-      
+      const btn = document.querySelector('#regModal .btn-primary'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
       fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'submitRegistration',
-          eventId: eventId,
-          uid: currentUID,
-          isProxy: isProxy,
-          participantName: participantName,
-          participantPhone: participantPhone,
-          extraInfoStr: extraInfoStr
-        })
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          alert("🎉 " + res.message);
-          bootstrap.Modal.getInstance(document.getElementById('regModal')).hide();
-          document.getElementById('regForm').reset(); 
-        } else {
-          alert("⚠️ " + res.message);
-        }
+        method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: eventId, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) })
+      }).then(res => res.json()).then(res => {
+        if (res.success) { alert("🎉 " + res.message); bootstrap.Modal.getInstance(document.getElementById('regModal')).hide(); document.getElementById('regForm').reset(); } else { alert("⚠️ " + res.message); }
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
-      })
-      .catch(error => {
-        alert("連線錯誤：" + error.message);
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名';
-      });
+      }).catch(err => { alert("連線錯誤：" + err.message); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; });
     }
   </script>
 </body>
