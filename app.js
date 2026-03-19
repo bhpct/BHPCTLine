@@ -5,7 +5,6 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
-// 系統常數
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
@@ -51,6 +50,33 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// ================= 新增：頁面切換邏輯 =================
+function switchPage(pageId) {
+  // 1. 隱藏所有頁面區塊，移除所有按鈕的 active 狀態
+  const pages = ['profile', 'finance', 'prayer', 'events'];
+  pages.forEach(p => {
+    if (document.getElementById('page-' + p)) {
+      document.getElementById('page-' + p).style.display = 'none';
+    }
+    if (document.getElementById('nav-' + p)) {
+      document.getElementById('nav-' + p).classList.remove('active');
+    }
+  });
+
+  // 2. 顯示目標頁面，將點擊的按鈕設為 active
+  if (document.getElementById('page-' + pageId)) {
+    document.getElementById('page-' + pageId).style.display = 'block';
+  }
+  if (document.getElementById('nav-' + pageId)) {
+    document.getElementById('nav-' + pageId).classList.add('active');
+  }
+
+  // 3. 如果切換到奉獻頁面，且權限允許，則渲染圖表
+  if (pageId === 'finance' && document.getElementById('finance-unlocked').style.display === 'block') {
+    renderDonationChart();
+  }
+}
+
 function fetchUserData(uid, lineName) {
   fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
     .then(response => response.json())
@@ -75,7 +101,6 @@ function fetchUserData(uid, lineName) {
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
 
-        // 動態產生「服事單位」Checkbox (預設未選，Opt-in)
         const serviceContainer = document.getElementById("checkbox-services");
         serviceContainer.innerHTML = "";
         const userServices = (response.service || "").split("、").map(s => s.trim());
@@ -95,7 +120,6 @@ function fetchUserData(uid, lineName) {
           serviceContainer.innerHTML = `<div class="col-12 text-muted" style="font-size: 0.8rem;">無可選擇的服事單位</div>`;
         }
 
-        // 動態產生「推播頻道」Checkbox
         const groupContainer = document.getElementById("checkbox-groups");
         groupContainer.innerHTML = "";
         const userGroups = (response.groups || "").split("、").map(g => g.trim());
@@ -130,17 +154,10 @@ function fetchUserData(uid, lineName) {
         document.getElementById('dynamicYear').innerText = response.sysYear; 
         document.getElementById('finance-locked').style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
         document.getElementById('finance-unlocked').style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
-        if(response.tier === 'Tier 2' && response.found) {
-          renderDonationChart();
-        }
       }
 
-      const pages = ['profile', 'finance', 'prayer', 'events'];
-      pages.forEach(p => {
-        if(document.getElementById('page-' + p)) {
-          document.getElementById('page-' + p).style.display = (p === targetPage) ? 'block' : 'none';
-        }
-      });
+      // 呼叫切換頁面函數 (取代原本的寫死 forEach)
+      switchPage(targetPage);
     })
     .catch(error => {
       alert("🚨 資料庫連線失敗！\n" + error.message);
@@ -231,11 +248,20 @@ function saveProfile() {
 }
 
 function renderDonationChart() {
-  const ctx = document.getElementById('donationChart').getContext('2d');
+  // 如果畫布被隱藏，Chart.js 可能會算錯尺寸，因此只在顯示時繪製
+  const canvas = document.getElementById('donationChart');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
   const dataValues = [22100, 7800, 2600]; 
   const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
   
-  new Chart(ctx, { 
+  // 避免重複渲染造成重疊
+  if (window.myDonationChart) {
+    window.myDonationChart.destroy();
+  }
+
+  window.myDonationChart = new Chart(ctx, { 
     type: 'doughnut', 
     data: { 
       labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], 
