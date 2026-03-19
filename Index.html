@@ -259,7 +259,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border-radius: 15px;">
         <div class="modal-header bg-light">
-          <h5 class="modal-title">修改資料與推播設定</h5>
+          <h5 class="modal-title">修改資料與設定</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -272,8 +272,16 @@
               <label class="form-label">生日</label>
               <input type="date" class="form-control" id="input-birthday">
             </div>
+            
             <hr>
-            <label class="form-label text-primary fw-bold"><i class="fas fa-bell"></i> 我想接收以下單位的最新消息：</label>
+            <label class="form-label text-success fw-bold"><i class="fas fa-hands-helping"></i> 我的服事單位：</label>
+            <div class="form-text mb-2">請勾選您目前參與的服事團隊。</div>
+            <div id="checkbox-services" class="row px-2 mb-3">
+              <div class="col-12 text-muted" style="font-size: 0.8rem;">載入中...</div>
+            </div>
+
+            <hr>
+            <label class="form-label text-primary fw-bold"><i class="fas fa-bell"></i> 我想接收以下消息：</label>
             <div class="form-text mb-2">勾選後，當該單位有活動時您將會收到 LINE 專屬通知。</div>
             <div id="checkbox-groups" class="row px-2">
               <div class="col-12 text-muted" style="font-size: 0.8rem;">載入中...</div>
