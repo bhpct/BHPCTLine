@@ -1,12 +1,14 @@
 window.onerror = function(msg, url, line) {
-  // 嚴重錯誤保留傳統 alert 確保一定能看到
-  alert("🚨 系統發生致命錯誤！請截圖回報給工程師。\n錯誤訊息：" + msg + "\n發生在第 " + line + " 行。");
+  if (typeof Swal !== 'undefined') {
+    Swal.fire('系統錯誤', `請截圖回報。<br><span style="font-size:0.8rem;color:red;">${msg}<br>行數：${line}</span>`, 'error');
+  } else {
+    alert("🚨 系統發生致命錯誤！\n錯誤訊息：" + msg + "\n發生在第 " + line + " 行。");
+  }
 };
 
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
-// 系統常數
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
@@ -52,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// 頁面切換邏輯
 function switchPage(pageId) {
   const pages = ['profile', 'finance', 'prayer', 'events'];
   pages.forEach(p => {
@@ -71,7 +72,6 @@ function switchPage(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
   }
 
-  // 如果切換到奉獻頁面，且權限允許，則渲染圖表
   if (pageId === 'finance' && document.getElementById('finance-unlocked').style.display === 'block') {
     renderDonationChart();
   }
@@ -100,8 +100,11 @@ function fetchUserData(uid, lineName) {
         
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
+        
+        // 更新學習護照 (真實連動)
+        document.getElementById("info-event-count").innerText = `${response.eventCount} 場`;
+        document.getElementById("info-course-count").innerText = `${response.courseCount} 堂`;
 
-        // 動態產生「服事單位」Checkbox
         const serviceContainer = document.getElementById("checkbox-services");
         serviceContainer.innerHTML = "";
         const userServices = (response.service || "").split("、").map(s => s.trim());
@@ -121,7 +124,6 @@ function fetchUserData(uid, lineName) {
           serviceContainer.innerHTML = `<div class="col-12 text-muted" style="font-size: 0.8rem;">無可選擇的服事單位</div>`;
         }
 
-        // 動態產生「推播頻道」Checkbox
         const groupContainer = document.getElementById("checkbox-groups");
         groupContainer.innerHTML = "";
         const userGroups = (response.groups || "").split("、").map(g => g.trim());
@@ -152,13 +154,40 @@ function fetchUserData(uid, lineName) {
         document.getElementById("bound-profile-view").style.display = "none";
       }
       
+      // 動態渲染活動列表
+      const eventListContainer = document.getElementById("event-list");
+      eventListContainer.innerHTML = "";
+      if (response.activeEvents && response.activeEvents.length > 0) {
+        response.activeEvents.forEach(ev => {
+          let isCourse = ev.category.includes('課程');
+          let badgeStyle = isCourse ? 'background-color:#9b59b6;' : '';
+          let badgeClass = isCourse ? '' : 'bg-primary';
+          let borderStyle = isCourse ? 'border-left: 5px solid #9b59b6 !important;' : 'border-left: 5px solid #3498db !important;';
+          let btnClass = isCourse ? 'btn-outline-primary' : 'btn-primary';
+
+          let html = `
+          <div class="card p-3 shadow-sm border-0 mb-3" style="${borderStyle}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge mb-2 ${badgeClass}" style="${badgeStyle}">${ev.category}</span>
+                <h5 class="fw-bold mb-1 text-dark">${ev.name}</h5>
+                <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> ${ev.date}</div>
+              </div>
+              <button class="btn ${btnClass} btn-sm rounded-pill px-3 mt-2" onclick="openRegModal('${ev.id}', '${ev.name}', ${ev.allowProxy}, ${ev.requireExtraInfo})">報名</button>
+            </div>
+          </div>`;
+          eventListContainer.innerHTML += html;
+        });
+      } else {
+        eventListContainer.innerHTML = '<div class="text-center text-muted my-4">目前沒有開放報名的活動或課程。</div>';
+      }
+      
       if(targetPage === 'finance') {
         document.getElementById('dynamicYear').innerText = response.sysYear; 
         document.getElementById('finance-locked').style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
         document.getElementById('finance-unlocked').style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
       }
 
-      // 載入完成後，自動切換到目標頁面
       switchPage(targetPage);
     })
     .catch(error => {
@@ -173,12 +202,12 @@ function submitBinding() {
   const birthday = document.getElementById('bind-birthday').value;
 
   if (!name || !phone || !birthday) {
-    Swal.fire('提醒', '請完整填寫真實姓名、電話與生日喔！', 'warning');
+    Swal.fire('提醒', '為了維護教會資料完整性，請完整填寫真實姓名、電話與生日喔！', 'warning');
     return;
   }
 
   const btn = document.querySelector('#unbound-view .btn-warning');
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
 
   fetch(GAS_URL, {
     method: 'POST',
@@ -194,9 +223,7 @@ function submitBinding() {
   .then(res => res.json())
   .then(res => {
     if(res.success) {
-      Swal.fire('綁定成功', res.message, 'success').then(() => {
-        window.location.reload(); 
-      });
+      Swal.fire('綁定成功', res.message, 'success').then(() => { window.location.reload(); });
     } else {
       Swal.fire('綁定失敗', res.message, 'error');
       btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊';
@@ -237,9 +264,7 @@ function saveProfile() {
   .then(res => res.json())
   .then(res => {
     if(res.success) {
-      Swal.fire('成功', '資料已成功更新！', 'success').then(() => {
-        window.location.reload(); 
-      });
+      Swal.fire('成功', '資料已成功更新！', 'success').then(() => { window.location.reload(); });
     } else {
       Swal.fire('錯誤', res.message, 'error');
       btn.innerHTML = '儲存修改';
@@ -254,42 +279,24 @@ function saveProfile() {
 function renderDonationChart() {
   const canvas = document.getElementById('donationChart');
   if (!canvas) return;
-  
   const ctx = canvas.getContext('2d');
   const dataValues = [22100, 7800, 2600]; 
   const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
   
-  if (window.myDonationChart) {
-    window.myDonationChart.destroy();
-  }
+  if (window.myDonationChart) { window.myDonationChart.destroy(); }
 
   window.myDonationChart = new Chart(ctx, { 
     type: 'doughnut', 
     data: { 
       labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], 
-      datasets: [{ 
-        data: dataValues, 
-        backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], 
-        borderWidth: 0 
-      }] 
+      datasets: [{ data: dataValues, backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], borderWidth: 0 }] 
     }, 
     options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { 
-        legend: { position: 'bottom' }, 
-        tooltip: { 
-          callbacks: { 
-            label: function(context) { 
-              const label = context.label || '';
-              const value = context.raw;
-              const percentage = Math.round((value / totalAmount) * 100);
-              return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; 
-            } 
-          } 
-        } 
-      }, 
-      cutout: '70%' 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(context) { 
+        const label = context.label || ''; const value = context.raw; const percentage = Math.round((value / totalAmount) * 100);
+        return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; 
+      }}}} , cutout: '70%' 
     } 
   });
 }
@@ -300,14 +307,9 @@ function applyFinanceAccess() {
 
 function toggleFamilyView() { 
   const isChecked = document.getElementById('familySwitch').checked;
-  // 這種小開關使用滑出的 Toast 提示最不干擾使用者
   Swal.fire({
     title: isChecked ? '已切換至【全戶視角】' : '已切換至【個人視角】',
-    icon: 'success',
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000
+    icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000
   });
 }
 
@@ -326,14 +328,7 @@ function submitPrayer() {
   
   fetch(GAS_URL, {
     method: 'POST', 
-    body: JSON.stringify({ 
-      action: 'submitPrayer', 
-      uid: currentUID, 
-      userName: globalUserName, 
-      target: target, 
-      content: content, 
-      isPublic: isPublic 
-    })
+    body: JSON.stringify({ action: 'submitPrayer', uid: currentUID, userName: globalUserName, target: target, content: content, isPublic: isPublic })
   })
   .then(res => res.json())
   .then(res => {
@@ -401,7 +396,7 @@ function submitRegistration() {
     const idNumber = document.getElementById('regIdNumber').value; 
     const dob = document.getElementById('regDob').value; 
     if (!idNumber || !dob) {
-      Swal.fire('提醒', '保險需填寫身分證與生日！', 'warning');
+      Swal.fire('提醒', '保險需辦理，請確實填寫身分證與生日！', 'warning');
       return;
     } 
     extraObj.身分證 = idNumber;
@@ -418,15 +413,7 @@ function submitRegistration() {
   
   fetch(GAS_URL, {
     method: 'POST', 
-    body: JSON.stringify({ 
-      action: 'submitRegistration', 
-      eventId: eventId, 
-      uid: currentUID, 
-      isProxy: isProxy, 
-      participantName: pName, 
-      participantPhone: pPhone, 
-      extraInfoStr: JSON.stringify(extraObj) 
-    })
+    body: JSON.stringify({ action: 'submitRegistration', eventId: eventId, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) })
   })
   .then(res => res.json())
   .then(res => {
