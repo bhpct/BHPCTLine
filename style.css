@@ -45,6 +45,7 @@ body {
   align-items: center; 
 }
 
+/* ================= 底部導覽列 ================= */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -81,4 +82,15 @@ body {
 .nav-item.active {
   color: #2c3e50;
   font-weight: bold;
+}
+
+/* ================= 響應式微調 (RWD) ================= */
+/* 針對手機螢幕 (寬度小於 768px)，將學習歷程 Modal 的右側分隔線改為下方分隔線 */
+@media (max-width: 767.98px) {
+  .modal-body .border-end {
+    border-right: none !important;
+    border-bottom: 1px solid #dee2e6 !important;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
 }
