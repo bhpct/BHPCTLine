@@ -245,15 +245,30 @@
   </div>
 
   <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content" style="border-radius: 15px;">
         <div class="modal-header bg-light">
           <h5 class="modal-title fw-bold text-primary"><i class="fas fa-book-open"></i> 我的學習歷程</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body p-0">
-          <ul class="list-group list-group-flush" id="history-list">
-            </ul>
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-5 text-center border-end">
+              <img src="一領一掛圖門徒培育系統.jpg" class="img-fluid mb-3" style="max-height: 250px; opacity: 0.9;" alt="一領一門徒培育系統">
+              <h6 class="fw-bold text-muted mb-2">門徒均衡度分析</h6>
+              <div style="position: relative; height:200px; width:100%">
+                <canvas id="radarChart"></canvas>
+              </div>
+              <div class="alert alert-light p-2 mt-2" style="font-size: 0.8rem;">
+                <i class="fas fa-info-circle"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。
+              </div>
+            </div>
+            <div class="col-md-7">
+              <h6 class="fw-bold text-dark mb-3"><i class="fas fa-history"></i> 出席歷史明細</h6>
+              <ul class="list-group list-group-flush" id="history-list" style="font-size: 0.9rem;">
+                </ul>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary w-100 rounded-pill" data-bs-dismiss="modal">關閉</button>
@@ -261,7 +276,6 @@
       </div>
     </div>
   </div>
-
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border-radius: 15px;">
