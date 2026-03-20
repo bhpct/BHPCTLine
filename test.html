@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>門徒培育系統 - 視覺與雷達圖完美對位測試</title>
+  <title>門徒培育系統 - 視覺完美對位測試</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -14,7 +14,7 @@
 <body>
 
 <div class="container">
-  <h4 class="text-center text-primary fw-bold mb-5">門徒培育系統 - 視覺完美對位預覽 (上, 右, 下, 左)</h4>
+  <h4 class="text-center text-primary fw-bold mb-5">門徒培育系統 - 視覺與雷達圖完美對位預覽</h4>
   
   <div class="row justify-content-center">
     
@@ -22,48 +22,46 @@
       <div class="preview-card text-center h-100">
         <h5 class="fw-bold mb-4" style="color: #2c3e50;">一領一 門徒培育系統</h5>
         
-        <svg viewBox="0 0 400 400" width="100%" height="auto" style="max-width: 380px; filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));">
+        <svg viewBox="0 0 600 600" width="100%" height="auto" style="max-width: 450px; filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));">
           <defs>
             <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
             <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2ecc71"/><stop offset="100%" stop-color="#218838"/></linearGradient>
             <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#d68910"/></linearGradient>
             <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
             
-            <path id="arrow_shape" d="M -25 -50 L -25 -95 L -45 -95 L 0 -160 L 45 -95 L 25 -95 L 25 -50 Z" />
+            <path id="arrow_shape" d="M -20 -60 L -20 -130 L -40 -130 L 0 -190 L 40 -130 L 20 -130 L 20 -60 Z" />
           </defs>
 
-          <g transform="translate(200,200)">
+          <g transform="translate(300,300)">
             
-            <circle cx="0" cy="0" r="130" fill="rgba(44, 62, 80, 0.05)" stroke="#fff" stroke-width="2"/>
-            <text x="0" y="-120" font-size="12" font-weight="bold" fill="rgba(44, 62, 80, 0.5)" text-anchor="middle">門徒培育場</text>
+            <circle cx="0" cy="0" r="145" fill="rgba(44, 62, 80, 0.04)" stroke="#e0e0e0" stroke-width="2"/>
             
-            <g id="growth_disciple_icon" transform="scale(1.2)">
-              <circle cx="0" cy="-20" r="10" fill="#2c3e50"/> <path d="M -15 10 Q 0 -5, 15 10 V -15 Q 0 -25, -15 -15 Z" fill="#2c3e50"/> 
-              <path d="M -5 15 L 0 25 L 5 15" fill="none" stroke="#2c3e50" stroke-width="2"/>
-            </g>
-
-            <circle cx="0" cy="0" r="35" fill="#fff" stroke="#2c3e50" stroke-width="2"/>
-
             <use href="#arrow_shape" fill="url(#gradRed)" />
-            <circle cx="0" cy="-90" r="30" fill="#fff" stroke="#c0392b" stroke-width="4"/>
-            <text x="0" y="-83" font-size="20" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text>
-            <text x="0" y="-170" font-size="14" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
+            <circle cx="0" cy="-120" r="35" fill="#fff" stroke="#c0392b" stroke-width="4"/>
+            <text x="0" y="-112" font-size="22" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text>
+            <text x="0" y="-205" font-size="16" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
 
             <use href="#arrow_shape" fill="url(#gradGreen)" transform="rotate(90)" />
-            <circle cx="90" cy="0" r="30" fill="#fff" stroke="#218838" stroke-width="4"/>
-            <text x="90" y="7" font-size="20" font-weight="bold" fill="#218838" text-anchor="middle">造就</text>
-            <text x="160" y="5" font-size="14" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
+            <circle cx="120" cy="0" r="35" fill="#fff" stroke="#218838" stroke-width="4"/>
+            <text x="120" y="8" font-size="22" font-weight="bold" fill="#218838" text-anchor="middle">造就</text>
+            <text x="205" y="6" font-size="16" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
 
             <use href="#arrow_shape" fill="url(#gradOrange)" transform="rotate(180)" />
-            <circle cx="0" cy="90" r="30" fill="#fff" stroke="#d68910" stroke-width="4"/>
-            <text x="0" y="97" font-size="20" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text>
-            <text x="0" y="180" font-size="14" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
+            <circle cx="0" cy="120" r="35" fill="#fff" stroke="#d68910" stroke-width="4"/>
+            <text x="0" y="128" font-size="22" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text>
+            <text x="0" y="215" font-size="16" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
 
             <use href="#arrow_shape" fill="url(#gradPurple)" transform="rotate(270)" />
-            <circle cx="-90" cy="0" r="30" fill="#fff" stroke="#8e44ad" stroke-width="4"/>
-            <text x="-90" y="7" font-size="20" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text>
-            <text x="-160" y="5" font-size="14" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
+            <circle cx="-120" cy="0" r="35" fill="#fff" stroke="#8e44ad" stroke-width="4"/>
+            <text x="-120" y="8" font-size="22" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text>
+            <text x="-205" y="6" font-size="16" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
             
+            <circle cx="0" cy="0" r="50" fill="#fff" stroke="#2c3e50" stroke-width="3"/>
+            
+            <g transform="translate(0, -5)">
+              <circle cx="0" cy="-15" r="12" fill="#2c3e50"/> <path d="M -18 12 C -18 -5, 18 -5, 18 12 Z" fill="#2c3e50"/> <text x="0" y="32" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">門徒培育</text>
+            </g>
+
           </g>
         </svg>
 
@@ -72,7 +70,7 @@
 
     <div class="col-md-6 col-lg-5">
       <div class="preview-card text-center h-100">
-        <h5 class="fw-bold mb-4" style="color: #2c3e50;">門徒均衡度分析 (上, 右, 下, 左)</h5>
+        <h5 class="fw-bold mb-4" style="color: #2c3e50;">門徒均衡度分析</h5>
         <div style="position: relative; height: 320px; width: 100%;">
           <canvas id="radarChart"></canvas>
         </div>
@@ -83,39 +81,40 @@
 </div>
 
 <script>
-  // 雷達圖繪製邏輯
   document.addEventListener("DOMContentLoaded", function() {
     const ctx = document.getElementById('radarChart').getContext('2d');
     
-    // 模擬使用者資料
+    // 模擬會友資料
     const mockData = {
-      '服事': 5, // 服事課程/參與事奉 (Red)
-      '造就': 8, // 信徒課程/靈命培育 (Green)
-      '尋羊': 3, // 一般活動/建立關係 (Orange)
-      '見證': 6  // 福音活動/宣揚福音 (Purple)
+      '服事': 5, 
+      '造就': 8, 
+      '尋羊': 3, 
+      '見證': 6  
     };
 
-    // 【完全對位核心】
-    // Chart.js 0度是正上方 A 順時針畫 A 陣列必須是：[上 A 右 A 下 A 左]
-    const labels = [
-      '服事课程 (參與事奉)', 
-      '造就课程 (靈命培育)', 
-      '尋羊活动 (建立關係)', 
-      '見證活动 (宣揚福音)'
+    // 【修改重點】外圍標籤 (Labels) 不加括弧，保持版面乾淨
+    const shortLabels = ['服事課程', '信徒課程', '一般活動', '福音活動'];
+    
+    // 定義完整的提示文字 (Tooltips)，當點擊色點時才顯示
+    const fullTooltips = [
+      '服事課程 (參與事奉)', 
+      '信徒課程 (靈命培育)', 
+      '一般活動 (建立關係)', 
+      '福音活動 (宣揚福音)'
     ];
+
     const values = [mockData['服事'], mockData['造就'], mockData['尋羊'], mockData['見證']];
 
     new Chart(ctx, {
       type: 'radar',
       data: {
-        labels: labels,
+        labels: shortLabels, // 圖表外圍使用短標籤
         datasets: [{
           label: '參與次數',
           data: values,
           backgroundColor: 'rgba(52, 152, 219, 0.2)',
           borderColor: '#3498db',
           borderWidth: 2,
-          // 設定頂點專屬顏色 (紅 A 綠 A 橘 A 紫)
           pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'],
           pointBorderColor: '#fff',
           pointRadius: 6,
@@ -127,13 +126,12 @@
         maintainAspectRatio: false,
         scales: {
           r: {
-            startAngle: 0, // 確保正上方是第一個資料點
+            startAngle: 0, 
             angleLines: { color: 'rgba(0, 0, 0, 0.15)' },
             grid: { color: 'rgba(0, 0, 0, 0.1)' },
             pointLabels: {
               font: { size: 14, family: '微軟正黑體', weight: 'bold' },
               color: function(context) {
-                // 文字配合四大顏色
                 const colors = ['#dc3545', '#28a745', '#f39c12', '#9b59b6'];
                 return colors[context.index];
               }
@@ -142,7 +140,19 @@
           }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            // 【修改重點】自訂 Tooltip 內容，讓滑鼠移過去時顯示完整文字
+            callbacks: {
+              title: function(tooltipItems) {
+                // 回傳完整文字 (包含括弧)
+                return fullTooltips[tooltipItems[0].dataIndex];
+              },
+              label: function(context) {
+                return `已參與：${context.raw} 次`;
+              }
+            }
+          }
         }
       }
     });
