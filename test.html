@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>門徒培育系統 - 視覺測試</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #f0f2f5; padding: 20px; font-family: '微軟正黑體', sans-serif; }
+    .preview-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h4 class="text-center text-primary fw-bold mb-4">門徒培育系統 - 視覺與雷達圖預覽</h4>
+  
+  <div class="row justify-content-center">
+    
+    <div class="col-md-6 col-lg-5">
+      <div class="preview-card text-center">
+        <h5 class="fw-bold mb-4" style="color: #2c3e50;">一領一 門徒培育系統</h5>
+        
+        <svg viewBox="0 0 400 400" width="100%" height="auto" style="max-width: 350px; filter: drop-shadow(0px 6px 8px rgba(0,0,0,0.15));">
+          <defs>
+            <path id="arrow" d="M -25 -60 L -25 -110 L -45 -110 L 0 -170 L 45 -110 L 25 -110 L 25 -60 Z" />
+            <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
+            <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2ecc71"/><stop offset="100%" stop-color="#218838"/></linearGradient>
+            <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#d68910"/></linearGradient>
+            <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
+          </defs>
+
+          <g transform="translate(200,200)">
+            
+            <use href="#arrow" fill="url(#gradRed)" />
+            <circle cx="0" cy="-100" r="32" fill="#fff" stroke="#c0392b" stroke-width="4"/>
+            <text x="0" y="-93" font-size="20" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text>
+            <text x="0" y="-180" font-size="14" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
+
+            <use href="#arrow" fill="url(#gradGreen)" transform="rotate(90)" />
+            <circle cx="100" cy="0" r="32" fill="#fff" stroke="#218838" stroke-width="4"/>
+            <text x="100" y="7" font-size="20" font-weight="bold" fill="#218838" text-anchor="middle">造就</text>
+            <text x="180" y="5" font-size="14" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
+
+            <use href="#arrow" fill="url(#gradOrange)" transform="rotate(180)" />
+            <circle cx="0" cy="100" r="32" fill="#fff" stroke="#d68910" stroke-width="4"/>
+            <text x="0" y="107" font-size="20" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text>
+            <text x="0" y="190" font-size="14" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
+
+            <use href="#arrow" fill="url(#gradPurple)" transform="rotate(270)" />
+            <circle cx="-100" cy="0" r="32" fill="#fff" stroke="#8e44ad" stroke-width="4"/>
+            <text x="-100" y="7" font-size="20" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text>
+            <text x="-180" y="5" font-size="14" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
+
+            <circle cx="0" cy="0" r="45" fill="#fff" stroke="#2c3e50" stroke-width="4"/>
+            <text x="0" y="-5" font-size="18" font-weight="bold" fill="#2c3e50" text-anchor="middle">門徒</text>
+            <text x="0" y="18" font-size="18" font-weight="bold" fill="#2c3e50" text-anchor="middle">培育</text>
+          </g>
+        </svg>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-5">
+      <div class="preview-card">
+        <h5 class="fw-bold mb-4 text-center" style="color: #2c3e50;">門徒均衡度分析</h5>
+        <div style="position: relative; height: 320px; width: 100%;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 雷達圖繪製邏輯
+  document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    
+    // 模擬會友的參與次數資料
+    const mockData = {
+      '服事': 5, 
+      '造就': 8, 
+      '尋羊': 3, 
+      '見證': 6
+    };
+
+    // 【圖表對位邏輯】
+    // Chart.js 的雷達圖預設 0 度是「正上方」，然後「順時針」畫。
+    // 因此陣列順序必須嚴格設定為：[上, 右, 下, 左]
+    const labels = ['服事 (參與事奉)', '造就 (靈命培育)', '尋羊 (建立關係)', '見證 (宣揚福音)'];
+    const values = [mockData['服事'], mockData['造就'], mockData['尋羊'], mockData['見證']];
+
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '參與次數',
+          data: values,
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          borderColor: '#3498db',
+          borderWidth: 2,
+          // 設定頂點的專屬顏色 (紅, 綠, 橘, 紫)
+          pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'],
+          pointBorderColor: '#fff',
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            startAngle: 0, // 確保從正上方開始繪製
+            angleLines: { color: 'rgba(0, 0, 0, 0.15)' },
+            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+            pointLabels: {
+              font: { size: 13, family: '微軟正黑體', weight: 'bold' },
+              color: function(context) {
+                // 讓圖表外圍的文字也配合四大顏色
+                const colors = ['#dc3545', '#28a745', '#f39c12', '#9b59b6'];
+                return colors[context.index];
+              }
+            },
+            ticks: { display: false, stepSize: 2 } // 隱藏生硬的數字，只保留網格
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
