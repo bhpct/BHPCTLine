@@ -255,54 +255,57 @@
           <div class="row">
             <div class="col-md-5 text-center border-end">
               
+              <h5 class="fw-bold mb-3" style="color: #2c3e50;">一領一 門徒培育系統</h5>
+              
               <div class="mb-4 d-flex justify-content-center">
-                <svg viewBox="0 0 250 300" xmlns="http://www.w3.org/2000/svg" style="max-width: 200px; width: 100%; height: auto; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));">
-                  <text x="125" y="40" font-family="'微軟正黑體', sans-serif" font-size="22" fill="#2c3e50" font-weight="bold" text-anchor="middle">門徒培育系統</text>
-                  
-                  <g transform="translate(125,175)">
-                    <defs>
-                      <path id="rhombus" d="M 0 -105 L 105 0 L 0 105 L -105 0 Z" />
-                      <mask id="crossMask">
-                        <rect x="-110" y="-110" width="220" height="220" fill="white" />
-                        <rect x="-6" y="-70" width="12" height="140" fill="black" rx="2"/>
-                        <rect x="-70" y="-6" width="140" height="12" fill="black" rx="2"/>
-                      </mask>
-                    </defs>
-
-                    <path d="M 0 0 L 105 0 L 0 -105 Z" fill="#9b59b6" />
-                    <path d="M 0 0 L 105 0 L 0 105 Z" fill="#f39c12" />
-                    <path d="M 0 0 L -105 0 L 0 105 Z" fill="#28a745" />
-                    <path d="M 0 0 L -105 0 L 0 -105 Z" fill="#dc3545" />
-
-                    <use xlink:href="#rhombus" fill="white" mask="url(#crossMask)" />
+                <svg viewBox="0 0 600 600" width="100%" height="auto" style="max-width: 450px; filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));">
+                  <defs>
+                    <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
+                    <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2ecc71"/><stop offset="100%" stop-color="#218838"/></linearGradient>
+                    <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#d68910"/></linearGradient>
+                    <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
+                    <path id="arrow_shape" d="M -20 -60 L -20 -130 L -40 -130 L 0 -190 L 40 -130 L 20 -130 L 20 -60 Z" />
+                  </defs>
+        
+                  <g transform="translate(300,300)">
+                    <circle cx="0" cy="0" r="145" fill="rgba(44, 62, 80, 0.04)" stroke="#e0e0e0" stroke-width="2"/>
                     
-                    <use xlink:href="#rhombus" fill="none" stroke="#e0e0e0" stroke-width="1" />
-
-                    <text x="72" y="75" transform="rotate(-45)" font-family="'微軟正黑體', sans-serif" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">見證</text>
-                    <text x="72" y="90" transform="rotate(-45)" font-family="'微軟正黑體', sans-serif" font-size="12" fill="#fff" text-anchor="middle">宣揚福音</text>
-            
-                    <text x="72" y="-55" transform="rotate(45)" font-family="'微軟正黑體', sans-serif" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">尋羊</text>
-                    <text x="72" y="-40" transform="rotate(45)" font-family="'微軟正黑體', sans-serif" font-size="12" fill="#fff" text-anchor="middle">建立關係</text>
-            
-                    <text x="-72" y="-55" transform="rotate(-45)" font-family="'微軟正黑體', sans-serif" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">造就</text>
-                    <text x="-72" y="-40" transform="rotate(-45)" font-family="'微軟正黑體', sans-serif" font-size="12" fill="#fff" text-anchor="middle">靈命培育</text>
-            
-                    <text x="-72" y="75" transform="rotate(45)" font-family="'微軟正黑體', sans-serif" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">服事</text>
-                    <text x="-72" y="90" transform="rotate(45)" font-family="'微軟正黑體', sans-serif" font-size="12" fill="#fff" text-anchor="middle">參與事奉</text>
-            
-                    <circle cx="0" cy="0" r="22" fill="#ffffff" stroke="#e0e0e0" stroke-width="1"/>
-                    <rect x="-4" y="-12" width="8" height="24" fill="#2c3e50" rx="1"/>
-                    <rect x="-10" y="-4" width="20" height="8" fill="#2c3e50" rx="1"/>
+                    <use href="#arrow_shape" fill="url(#gradRed)" />
+                    <circle cx="0" cy="-120" r="35" fill="#fff" stroke="#c0392b" stroke-width="4"/>
+                    <text x="0" y="-112" font-size="22" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text>
+                    <text x="0" y="-205" font-size="16" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
+        
+                    <use href="#arrow_shape" fill="url(#gradGreen)" transform="rotate(90)" />
+                    <circle cx="120" cy="0" r="35" fill="#fff" stroke="#218838" stroke-width="4"/>
+                    <text x="120" y="8" font-size="22" font-weight="bold" fill="#218838" text-anchor="middle">造就</text>
+                    <text x="205" y="6" font-size="16" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
+        
+                    <use href="#arrow_shape" fill="url(#gradOrange)" transform="rotate(180)" />
+                    <circle cx="0" cy="120" r="35" fill="#fff" stroke="#d68910" stroke-width="4"/>
+                    <text x="0" y="128" font-size="22" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text>
+                    <text x="0" y="215" font-size="16" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
+        
+                    <use href="#arrow_shape" fill="url(#gradPurple)" transform="rotate(270)" />
+                    <circle cx="-120" cy="0" r="35" fill="#fff" stroke="#8e44ad" stroke-width="4"/>
+                    <text x="-120" y="8" font-size="22" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text>
+                    <text x="-205" y="6" font-size="16" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
+                    
+                    <circle cx="0" cy="0" r="50" fill="#fff" stroke="#2c3e50" stroke-width="3"/>
+                    <g transform="translate(0, -5)">
+                      <circle cx="0" cy="-15" r="12" fill="#2c3e50"/>
+                      <path d="M -18 12 C -18 -5, 18 -5, 18 12 Z" fill="#2c3e50"/>
+                      <text x="0" y="32" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">門徒培育</text>
+                    </g>
                   </g>
                 </svg>
               </div>
 
               <h6 class="fw-bold text-muted mb-2">門徒均衡度分析</h6>
-              <div style="position: relative; height:200px; width:100%">
+              <div style="position: relative; height:220px; width:100%">
                 <canvas id="radarChart"></canvas>
               </div>
-              <div class="alert alert-light p-2 mt-2 text-start" style="font-size: 0.8rem;">
-                <i class="fas fa-info-circle text-primary"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。
+              <div class="alert alert-light p-2 mt-3 text-start" style="font-size: 0.8rem;">
+                <i class="fas fa-info-circle text-primary"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。點擊端點可查看詳細說明。
               </div>
             </div>
             
