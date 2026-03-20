@@ -16,21 +16,21 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetPage = urlParams.get('page') || "profile";
 
 // ==========================================
-// 定義類別顏色與概念對應字典 
+// 定義類別顏色與概念對應字典 (確保符合圖片對位)
 // ==========================================
 const categoryConfig = {
-  // 第一象限 (右上)：見證 (Purple)
+  // 左上象限 (TL)：服事 (Red) #dc3545
+  '服事者課程': {概念: '服事', 顏色: '#dc3545'},
+  '司會訓練': {概念: '服事', 顏色: '#dc3545'},
+  // 右上象限 (TR)：見證 (Purple) #9b59b6
   '福音活動': {概念: '見證', 顏色: '#9b59b6'},
   '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'},
-  // 第二象限 (右下)：尋羊 (Orange)
+  // 右下象限 (BR)：尋羊 (Orange) #f39c12
   '一般活動': {概念: '尋羊', 顏色: '#f39c12'},
   '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  // 第三象限 (左下)：造就 (Green)
+  // 左下象限 (BL)：造就 (Green) #28a745
   '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
-  '聖經課程': {概念: '造就', 顏色: '#28a745'},
-  // 第四象限 (左上)：服事 (Red)
-  '服事者課程': {概念: '服事', 顏色: '#dc3545'},
-  '司會訓練': {概念: '服事', 顏色: '#dc3545'}
+  '聖經課程': {概念: '造就', 顏色: '#28a745'}
 };
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -130,10 +130,11 @@ function fetchUserData(uid, lineName) {
         historyContainer.innerHTML = "";
         
         // 準備雷達圖統計資料 (初始分數為 0)
-        let radarData = { '見證': 0, '尋羊': 0, '造就': 0, '服事': 0 };
+        let radarData = { '服事': 0, '見證': 0, '尋羊': 0, '造就': 0 };
 
         if (response.attendedHistory && response.attendedHistory.length > 0) {
             response.attendedHistory.forEach(ev => {
+                // 根據設定檔決定顏色和類別
                 let config = categoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
                 let badgeColor = config.顏色;
                 
@@ -155,10 +156,12 @@ function fetchUserData(uid, lineName) {
                 historyContainer.innerHTML += html;
             });
 
+            // 觸發繪製雷達圖 (方位已對齊圖片)
             renderRadarChart(radarData);
+
         } else {
             historyContainer.innerHTML = '<li class="list-group-item text-center text-muted py-4">尚無出席紀錄，繼續加油！</li>';
-            renderRadarChart(radarData); 
+            renderRadarChart(radarData); // 0 分的雷達圖
         }
 
         // 動態切換學習護照區塊的按鈕
@@ -216,10 +219,12 @@ function fetchUserData(uid, lineName) {
           groupContainer.innerHTML = `<div class="col-12 text-muted" style="font-size: 0.8rem;">目前無開放訂閱的頻道</div>`;
         }
 
+        // 顯示個人資料
         document.getElementById("bound-profile-view").style.display = "block";
         document.getElementById("unbound-view").style.display = "none";
 
       } else {
+        // === 未綁定會友 ===
         globalUserName = lineName;
         document.getElementById("ui-userName").innerText = lineName + "，您好！";
         document.getElementById("ui-userTier").className = "badge mt-2 bg-secondary text-white";
@@ -310,7 +315,7 @@ function fetchUserData(uid, lineName) {
 }
 
 // ==========================================
-// 【大升級】繪製屬靈履歷雷達圖 (完美對齊 SVG 象限)
+// 【大升級】繪製屬靈履歷雷達圖 (完美旋轉並對齊圖片方位)
 // ==========================================
 function renderRadarChart(data) {
   const canvas = document.getElementById('radarChart');
@@ -321,10 +326,11 @@ function renderRadarChart(data) {
     window.myRadarChart.destroy();
   }
 
-  // 為了與上方 SVG 的四個象限 (右上、右下、左下、左上) 完美對應
-  // 我們按順時針順序排好陣列，並且在設定中把 startAngle 設為 45 度！
-  const labels = ['見證 (紫)', '尋羊 (橘)', '造就 (綠)', '服事 (紅)'];
-  const values = [data['見證'] || 0, data['尋羊'] || 0, data['造就'] || 0, data['服事'] || 0];
+  // 【方位對位核心】：為了與圖片和下方 SVG 十字架完美對應
+  // 我們按 逆時針方向 準備陣列：左上、右上、右下、左下 A
+  // 並且在設定中把 startAngle 設為 45 度！
+  const labels = ['服事 (紅)', '見證 (紫)', '尋羊 (橘)', '造就 (綠)'];
+  const values = [data['服事'] || 0, data['見證'] || 0, data['尋羊'] || 0, data['造就'] || 0];
 
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
@@ -335,7 +341,7 @@ function renderRadarChart(data) {
         data: values,
         backgroundColor: 'rgba(52, 152, 219, 0.2)',
         borderColor: '#3498db',
-        pointBackgroundColor: ['#9b59b6', '#f39c12', '#28a745', '#dc3545'],
+        pointBackgroundColor: ['#dc3545', '#9b59b6', '#f39c12', '#28a745'],
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
         pointHoverBorderColor: '#3498db'
@@ -346,12 +352,12 @@ function renderRadarChart(data) {
       maintainAspectRatio: false,
       scales: {
         r: {
-          // 【關鍵魔法】逆時針旋轉一個維度，讓四個角變成正方形，完美對齊上方的 SVG 十字架！
+          // 【關鍵魔法】：原本雷達圖頂點是菱形 A 設為 45 度讓它旋轉 A 變成一個正方形均衡佈局 A 完美對齊十字架象限 A
           startAngle: 45, 
           angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
           grid: { color: 'rgba(0, 0, 0, 0.1)' },
           pointLabels: { font: { size: 10, family: '微軟正黑體' } },
-          ticks: { display: false, stepSize: 1 } 
+          ticks: { display: false, stepSize: 1 } // 隱藏數值標籤 A 均衡網格
         }
       },
       plugins: {
