@@ -16,21 +16,21 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetPage = urlParams.get('page') || "profile";
 
 // ==========================================
-// 定義類別顏色與概念對應字典 (用於雷達圖分析與學習歷程)
+// 定義類別顏色與概念對應字典 
 // ==========================================
 const categoryConfig = {
-  // 一般活動 -> 尋羊 (橘色)
+  // 第一象限 (右上)：見證 (Purple)
+  '福音活動': {概念: '見證', 顏色: '#9b59b6'},
+  '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'},
+  // 第二象限 (右下)：尋羊 (Orange)
   '一般活動': {概念: '尋羊', 顏色: '#f39c12'},
   '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  // 信徒課程 -> 造就 (綠色)
+  // 第三象限 (左下)：造就 (Green)
   '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
   '聖經課程': {概念: '造就', 顏色: '#28a745'},
-  // 服事課程 -> 服事 (紅色)
+  // 第四象限 (左上)：服事 (Red)
   '服事者課程': {概念: '服事', 顏色: '#dc3545'},
-  '司會訓練': {概念: '服事', 顏色: '#dc3545'},
-  // 福音活動 -> 見證 (紫色)
-  '福音活動': {概念: '見證', 顏色: '#9b59b6'},
-  '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
+  '司會訓練': {概念: '服事', 顏色: '#dc3545'}
 };
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -129,15 +129,12 @@ function fetchUserData(uid, lineName) {
         const historyContainer = document.getElementById("history-list");
         historyContainer.innerHTML = "";
         
-        // 準備雷達圖統計資料 (四個面向的初始分數為 0)
-        let radarData = {
-          '尋羊': 0, '造就': 0, '服事': 0, '見證': 0
-        };
+        // 準備雷達圖統計資料 (初始分數為 0)
+        let radarData = { '見證': 0, '尋羊': 0, '造就': 0, '服事': 0 };
 
         if (response.attendedHistory && response.attendedHistory.length > 0) {
             response.attendedHistory.forEach(ev => {
-                // 根據設定檔決定顏色和類別
-                let config = categoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'}; // 找不到對應，預設歸類為尋羊(橘色)
+                let config = categoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
                 let badgeColor = config.顏色;
                 
                 // 累積雷達圖分數
@@ -158,15 +155,13 @@ function fetchUserData(uid, lineName) {
                 historyContainer.innerHTML += html;
             });
 
-            // 觸發繪製雷達圖
             renderRadarChart(radarData);
-
         } else {
             historyContainer.innerHTML = '<li class="list-group-item text-center text-muted py-4">尚無出席紀錄，繼續加油！</li>';
-            renderRadarChart(radarData); // 0 分的雷達圖
+            renderRadarChart(radarData); 
         }
 
-        // 動態切換學習護照區塊的按鈕：如果完全沒紀錄也沒報名，引導去活動頁面
+        // 動態切換學習護照區塊的按鈕
         const historyBtn = document.getElementById("btn-spiritual-history");
         if (response.eventCount === 0 && response.courseCount === 0 && (!response.registeredEvents || response.registeredEvents.length === 0)) {
           historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
@@ -177,14 +172,12 @@ function fetchUserData(uid, lineName) {
         } else {
           historyBtn.innerHTML = '<i class="fas fa-book-open"></i> 展開我的學習歷程';
           historyBtn.className = 'btn btn-outline-primary w-100 mt-3 rounded-pill';
-          historyBtn.onclick = null; // 移除跳轉事件
+          historyBtn.onclick = null; 
           historyBtn.setAttribute('data-bs-toggle', 'modal');
           historyBtn.setAttribute('data-bs-target', '#historyModal');
         }
 
-        // ==========================================
-        // 動態產生「修改資料」的 Checkbox
-        // ==========================================
+        // 動態產生 Checkbox
         const serviceContainer = document.getElementById("checkbox-services");
         serviceContainer.innerHTML = "";
         const userServices = (response.service || "").split("、").map(s => s.trim());
@@ -223,12 +216,10 @@ function fetchUserData(uid, lineName) {
           groupContainer.innerHTML = `<div class="col-12 text-muted" style="font-size: 0.8rem;">目前無開放訂閱的頻道</div>`;
         }
 
-        // 顯示個人資料
         document.getElementById("bound-profile-view").style.display = "block";
         document.getElementById("unbound-view").style.display = "none";
 
       } else {
-        // === 未綁定會友 ===
         globalUserName = lineName;
         document.getElementById("ui-userName").innerText = lineName + "，您好！";
         document.getElementById("ui-userTier").className = "badge mt-2 bg-secondary text-white";
@@ -237,9 +228,7 @@ function fetchUserData(uid, lineName) {
         document.getElementById("bound-profile-view").style.display = "none";
       }
       
-      // ==========================================
-      // 動態渲染「已經報名」活動列表 (含取消功能)
-      // ==========================================
+      // 動態渲染「已經報名」活動列表
       const regEventListContainer = document.getElementById("registered-event-list");
       regEventListContainer.innerHTML = "";
 
@@ -248,7 +237,6 @@ function fetchUserData(uid, lineName) {
           let config = categoryConfig[ev.category] || {顏色: '#6c757d'};
           let badgeColor = config.顏色;
           
-          // 判斷是否可取消報名
           let cancelIcon = '';
           if (ev.canCancel) {
             cancelIcon = `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')"></i>`;
@@ -275,12 +263,10 @@ function fetchUserData(uid, lineName) {
         });
         document.getElementById("registered-view").style.display = "block";
       } else {
-        document.getElementById("registered-view").style.display = "none"; // 無報名紀錄則整塊隱藏
+        document.getElementById("registered-view").style.display = "none";
       }
 
-      // ==========================================
       // 動態渲染「開放報名」活動列表
-      // ==========================================
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
 
@@ -309,7 +295,6 @@ function fetchUserData(uid, lineName) {
         eventListContainer.innerHTML = '<div class="text-center text-muted my-4">目前沒有開放報名的活動或課程。</div>';
       }
 
-      // 檢查財務權限
       if(targetPage === 'finance') {
         document.getElementById('dynamicYear').innerText = response.sysYear; 
         document.getElementById('finance-locked').style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
@@ -324,7 +309,9 @@ function fetchUserData(uid, lineName) {
     });
 }
 
-// 繪製屬靈履歷雷達圖
+// ==========================================
+// 【大升級】繪製屬靈履歷雷達圖 (完美對齊 SVG 象限)
+// ==========================================
 function renderRadarChart(data) {
   const canvas = document.getElementById('radarChart');
   if (!canvas) return;
@@ -334,9 +321,10 @@ function renderRadarChart(data) {
     window.myRadarChart.destroy();
   }
 
-  // 對應：'見證' (紫), '服事' (紅), '造就' (綠), '尋羊' (橘)
-  const labels = ['宣揚福音 (見證)', '參與事奉 (服事)', '靈命培育 (造就)', '建立關係 (尋羊)'];
-  const values = [data['見證'], data['服事'], data['造就'], data['尋羊']];
+  // 為了與上方 SVG 的四個象限 (右上、右下、左下、左上) 完美對應
+  // 我們按順時針順序排好陣列，並且在設定中把 startAngle 設為 45 度！
+  const labels = ['見證 (紫)', '尋羊 (橘)', '造就 (綠)', '服事 (紅)'];
+  const values = [data['見證'] || 0, data['尋羊'] || 0, data['造就'] || 0, data['服事'] || 0];
 
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
@@ -347,7 +335,7 @@ function renderRadarChart(data) {
         data: values,
         backgroundColor: 'rgba(52, 152, 219, 0.2)',
         borderColor: '#3498db',
-        pointBackgroundColor: ['#9b59b6', '#dc3545', '#28a745', '#f39c12'],
+        pointBackgroundColor: ['#9b59b6', '#f39c12', '#28a745', '#dc3545'],
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
         pointHoverBorderColor: '#3498db'
@@ -358,10 +346,12 @@ function renderRadarChart(data) {
       maintainAspectRatio: false,
       scales: {
         r: {
+          // 【關鍵魔法】逆時針旋轉一個維度，讓四個角變成正方形，完美對齊上方的 SVG 十字架！
+          startAngle: 45, 
           angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
           grid: { color: 'rgba(0, 0, 0, 0.1)' },
           pointLabels: { font: { size: 10, family: '微軟正黑體' } },
-          ticks: { display: false, stepSize: 1 } // 隱藏數值標籤，依步長繪製網格
+          ticks: { display: false, stepSize: 1 } 
         }
       },
       plugins: {
@@ -571,7 +561,7 @@ function submitRegistration() {
     const idNumber = document.getElementById('regIdNumber').value; 
     const dob = document.getElementById('regDob').value; 
     if (!idNumber || !dob) {
-      Swal.fire('提醒', '保險需辦理，請確實填寫身分證與生日！', 'warning');
+      Swal.fire('提醒', '保險需填寫身分證與生日！', 'warning');
       return;
     } 
     extraObj.身分證 = idNumber;
@@ -609,7 +599,6 @@ function submitRegistration() {
   });
 }
 
-// 【新增】取消報名 API 呼叫
 function cancelRegistration(regId, eventName) {
   Swal.fire({
     title: '確定取消報名嗎？',
