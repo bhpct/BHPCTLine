@@ -181,13 +181,13 @@
     <div id="page-events" style="display: none;">
       
       <div id="registered-view" class="card p-4 mt-3 bg-white border-0 shadow-sm" style="border-radius: 15px; border-left: 5px solid #28a745 !important; display: none;">
-        <h5 class="mb-2 text-success fw-bold"><i class="fas fa-clipboard-check"></i> 已經報名</h5>
+        <h5 class="mb-2 text-success fw-bold"><i class="fas fa-clipboard-check"></i> 已經報名活動/課程</h5>
         <div id="registered-event-list">
           <div class="text-center text-muted my-2" style="font-size:0.9rem;">讀取中...</div>
         </div>
       </div>
 
-      <div class="card p-4 mt-4 bg-light border-0 shadow-sm" style="border-radius: 15px;">
+      <div class="card p-4 mt-4 bg-white border-0 shadow-sm" style="border-radius: 15px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
         <h5 class="mb-1 text-primary fw-bold"><i class="fas fa-calendar-alt"></i> 開放報名清單</h5>
         <p class="text-muted mb-0" style="font-size: 0.9rem;">點擊報名，輕鬆參與教會生活</p>
       </div>
@@ -248,22 +248,49 @@
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content" style="border-radius: 15px;">
         <div class="modal-header bg-light">
-          <h5 class="modal-title fw-bold text-primary"><i class="fas fa-book-open"></i> 我的學習歷程</h5>
+          <h5 class="modal-title fw-bold text-primary"><i class="fas fa-book-open"></i> 我的學習歷程 (屬靈履歷)</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body p-4">
           <div class="row">
             <div class="col-md-5 text-center border-end">
-              <img src="一領一掛圖門徒培育系統.jpg" class="img-fluid mb-3" style="max-height: 250px; opacity: 0.9;" alt="一領一門徒培育系統">
+              
+              <div class="mb-4 d-flex justify-content-center">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 200px; width: 100%; height: auto; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));">
+                  <g transform="translate(100,100)">
+                    <path d="M 0 0 L 0 -90 A 90 90 0 0 1 90 0 Z" fill="#9b59b6" stroke="#fff" stroke-width="2"/>
+                    <text x="45" y="-40" font-family="'微軟正黑體', sans-serif" font-size="14" fill="#fff" font-weight="bold" text-anchor="middle">見證</text>
+                    <text x="45" y="-22" font-family="'微軟正黑體', sans-serif" font-size="10" fill="#fff" text-anchor="middle">宣揚福音</text>
+            
+                    <path d="M 0 0 L 90 0 A 90 90 0 0 1 0 90 Z" fill="#f39c12" stroke="#fff" stroke-width="2"/>
+                    <text x="45" y="32" font-family="'微軟正黑體', sans-serif" font-size="14" fill="#fff" font-weight="bold" text-anchor="middle">尋羊</text>
+                    <text x="45" y="50" font-family="'微軟正黑體', sans-serif" font-size="10" fill="#fff" text-anchor="middle">建立關係</text>
+            
+                    <path d="M 0 0 L 0 90 A 90 90 0 0 1 -90 0 Z" fill="#28a745" stroke="#fff" stroke-width="2"/>
+                    <text x="-45" y="32" font-family="'微軟正黑體', sans-serif" font-size="14" fill="#fff" font-weight="bold" text-anchor="middle">造就</text>
+                    <text x="-45" y="50" font-family="'微軟正黑體', sans-serif" font-size="10" fill="#fff" text-anchor="middle">靈命培育</text>
+            
+                    <path d="M 0 0 L -90 0 A 90 90 0 0 1 0 -90 Z" fill="#dc3545" stroke="#fff" stroke-width="2"/>
+                    <text x="-45" y="-40" font-family="'微軟正黑體', sans-serif" font-size="14" fill="#fff" font-weight="bold" text-anchor="middle">服事</text>
+                    <text x="-45" y="-22" font-family="'微軟正黑體', sans-serif" font-size="10" fill="#fff" text-anchor="middle">參與事奉</text>
+            
+                    <circle cx="0" cy="0" r="22" fill="#ffffff" stroke="#fff" stroke-width="2"/>
+                    <rect x="-4" y="-12" width="8" height="24" fill="#2c3e50" rx="1"/>
+                    <rect x="-10" y="-4" width="20" height="8" fill="#2c3e50" rx="1"/>
+                  </g>
+                </svg>
+              </div>
+
               <h6 class="fw-bold text-muted mb-2">門徒均衡度分析</h6>
               <div style="position: relative; height:200px; width:100%">
                 <canvas id="radarChart"></canvas>
               </div>
-              <div class="alert alert-light p-2 mt-2" style="font-size: 0.8rem;">
-                <i class="fas fa-info-circle"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。
+              <div class="alert alert-light p-2 mt-2 text-start" style="font-size: 0.8rem;">
+                <i class="fas fa-info-circle text-primary"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。
               </div>
             </div>
-            <div class="col-md-7">
+            
+            <div class="col-md-7 mt-4 mt-md-0">
               <h6 class="fw-bold text-dark mb-3"><i class="fas fa-history"></i> 出席歷史明細</h6>
               <ul class="list-group list-group-flush" id="history-list" style="font-size: 0.9rem;">
                 </ul>
@@ -276,6 +303,7 @@
       </div>
     </div>
   </div>
+
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border-radius: 15px;">
