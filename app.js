@@ -16,21 +16,21 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetPage = urlParams.get('page') || "profile";
 
 // ==========================================
-// 定義類別顏色與概念對應字典 (已將「一般活動」修改為「聯誼活動」)
+// 定義類別顏色與概念對應字典 (已全面替換為「聯誼活動」)
 // ==========================================
 const categoryConfig = {
-  // 左上象限 (TL) 對應 SVG (上)：服事 (Red)
+  // 左上象限 (TL) 對應雷達圖 (上)：服事 (Red)
   '服事者課程': {概念: '服事', 顏色: '#dc3545'},
   '司會訓練': {概念: '服事', 顏色: '#dc3545'},
-  // 右上象限 (TR) 對應 SVG (紫)：見證 (Purple)
-  '福音活動': {概念: '見證', 顏色: '#9b59b6'},
-  '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'},
-  // 右下象限 (BR) 對應 SVG (下)：尋羊 (Orange)
-  '聯誼活動': {概念: '尋羊', 顏色: '#f39c12'},  // 【替換】聯誼活動
-  '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  // 左下象限 (BL) 對應 SVG (右)：造就 (Green)
+  // 右上象限 (TR) 對應雷達圖 (右)：造就 (Green)  <-- 對齊圖片右方
   '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
-  '聖經課程': {概念: '造就', 顏色: '#28a745'}
+  '聖經課程': {概念: '造就', 顏色: '#28a745'},
+  // 右下象限 (BR) 對應雷達圖 (下)：尋羊 (Orange)
+  '聯誼活動': {概念: '尋羊', 顏色: '#f39c12'},  
+  '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
+  // 左下象限 (BL) 對應雷達圖 (左)：見證 (Purple) <-- 對齊圖片左方
+  '福音活動': {概念: '見證', 顏色: '#9b59b6'},
+  '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
 };
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -123,11 +123,10 @@ function fetchUserData(uid, lineName) {
         document.getElementById("info-event-count").innerText = `${response.eventCount} 場`;
         document.getElementById("info-course-count").innerText = `${response.courseCount} 堂`;
 
-        // 渲染學習歷程清單 (時間軸) 與 雷達圖分析
+        // 渲染學習歷程清單
         const historyContainer = document.getElementById("history-list");
         historyContainer.innerHTML = "";
         
-        // 準備雷達圖統計資料 (初始分數為 0)
         let radarData = { '服事': 0, '造就': 0, '尋羊': 0, '見證': 0 };
 
         if (response.attendedHistory && response.attendedHistory.length > 0) {
@@ -159,7 +158,6 @@ function fetchUserData(uid, lineName) {
             renderRadarChart(radarData); 
         }
 
-        // 動態切換學習護照區塊的按鈕
         const historyBtn = document.getElementById("btn-spiritual-history");
         if (response.eventCount === 0 && response.courseCount === 0 && (!response.registeredEvents || response.registeredEvents.length === 0)) {
           historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
@@ -225,7 +223,6 @@ function fetchUserData(uid, lineName) {
         document.getElementById("bound-profile-view").style.display = "none";
       }
       
-      // 動態渲染「已經報名」活動列表
       const regEventListContainer = document.getElementById("registered-event-list");
       regEventListContainer.innerHTML = "";
 
@@ -263,7 +260,6 @@ function fetchUserData(uid, lineName) {
         document.getElementById("registered-view").style.display = "none";
       }
 
-      // 動態渲染「開放報名」活動列表
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
 
@@ -307,7 +303,7 @@ function fetchUserData(uid, lineName) {
 }
 
 // ==========================================
-// 【大升級】繪製屬靈履歷雷達圖 (對位與簡潔版)
+// 繪製屬靈履歷雷達圖 (防塌陷 + 精準對位版)
 // ==========================================
 function renderRadarChart(data) {
   const canvas = document.getElementById('radarChart');
@@ -318,10 +314,8 @@ function renderRadarChart(data) {
     window.myRadarChart.destroy();
   }
 
-  // 確保順序對應 SVG: [上, 右, 下, 左]
-  // 顯示的簡潔標籤
+  // 確保順序對應: [上, 右, 下, 左]
   const shortLabels = ['服事課程', '信徒課程', '聯誼活動', '福音活動'];
-  // 滑鼠移過去顯示的完整提示
   const fullTooltips = [
     '服事課程 (參與事奉)', 
     '信徒課程 (靈命培育)', 
@@ -329,6 +323,7 @@ function renderRadarChart(data) {
     '福音活動 (宣揚福音)'
   ];
 
+  // 取得數據
   const values = [data['服事'] || 0, data['造就'] || 0, data['尋羊'] || 0, data['見證'] || 0];
 
   window.myRadarChart = new Chart(ctx, {
@@ -352,7 +347,10 @@ function renderRadarChart(data) {
       maintainAspectRatio: false,
       scales: {
         r: {
-          startAngle: 0, // 正上方開始繪製
+          startAngle: 0, 
+          // 【關鍵防塌陷魔法】強制設定最小值與建議最大值，就算數據全是 0，網格依然漂亮展開！
+          min: 0,
+          suggestedMax: 5,
           angleLines: { color: 'rgba(0, 0, 0, 0.15)' },
           grid: { color: 'rgba(0, 0, 0, 0.1)' },
           pointLabels: { 
@@ -362,7 +360,7 @@ function renderRadarChart(data) {
               return colors[context.index];
             }
           },
-          ticks: { display: false, stepSize: 2 } 
+          ticks: { display: false, stepSize: 1 } 
         }
       },
       plugins: {
