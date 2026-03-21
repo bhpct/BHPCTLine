@@ -9,6 +9,7 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
+// 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
@@ -22,13 +23,13 @@ const categoryConfig = {
   // 左上象限 (TL) 對應雷達圖 (上)：服事 (Red)
   '服事者課程': {概念: '服事', 顏色: '#dc3545'},
   '司會訓練': {概念: '服事', 顏色: '#dc3545'},
-  // 右上象限 (TR) 對應雷達圖 (右)：造就 (Green)  <-- 對齊圖片右方
+  // 右上象限 (TR) 對應雷達圖 (右)：造就 (Green)
   '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
   '聖經課程': {概念: '造就', 顏色: '#28a745'},
   // 右下象限 (BR) 對應雷達圖 (下)：尋羊 (Orange)
   '聯誼活動': {概念: '尋羊', 顏色: '#f39c12'},  
   '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  // 左下象限 (BL) 對應雷達圖 (左)：見證 (Purple) <-- 對齊圖片左方
+  // 左下象限 (BL) 對應雷達圖 (左)：見證 (Purple)
   '福音活動': {概念: '見證', 顏色: '#9b59b6'},
   '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
 };
@@ -260,6 +261,9 @@ function fetchUserData(uid, lineName) {
         document.getElementById("registered-view").style.display = "none";
       }
 
+      // ==========================================
+      // 【更新】動態渲染「開放報名」活動列表 (含倒數、名額、邀請)
+      // ==========================================
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
 
@@ -268,18 +272,46 @@ function fetchUserData(uid, lineName) {
           let config = categoryConfig[ev.category] || {顏色: '#3498db'};
           let badgeColor = config.顏色;
 
+          // 計算倒數天數
+          let countdownHtml = '';
+          if (ev.regEndDate) {
+            let diff = ev.regEndDate - new Date().getTime();
+            if (diff > 0) {
+              let days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+              if (days <= 1) {
+                countdownHtml = `<div class="text-danger fw-bold mb-1" style="font-size: 0.8rem; animation: pulse 2s infinite;"><i class="fas fa-exclamation-circle"></i> 今日截止</div>`;
+              } else {
+                countdownHtml = `<div class="text-danger fw-bold mb-1" style="font-size: 0.8rem;"><i class="fas fa-hourglass-half"></i> 剩餘 ${days} 天</div>`;
+              }
+            }
+          }
+
+          // 判斷剩餘名額
+          let spotsHtml = '';
+          if (ev.remainingSpots !== null && ev.remainingSpots !== undefined) {
+            spotsHtml = `<span class="badge bg-danger ms-2 align-middle" style="font-size:0.75rem;"><i class="fas fa-fire"></i> 剩 ${ev.remainingSpots} 名</span>`;
+          }
+
           let html = `
           <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid ${badgeColor} !important;">
             <div class="d-flex justify-content-between align-items-start">
               <div>
                 <span class="badge mb-2" style="background-color: ${badgeColor};">${ev.category}</span>
-                <h5 class="fw-bold mb-1 text-dark">${ev.name}</h5>
+                <h5 class="fw-bold mb-1 text-dark">${ev.name} ${spotsHtml}</h5>
                 <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> ${ev.date}</div>
               </div>
-              <button class="btn btn-sm rounded-pill px-3 mt-2 text-white" style="background-color: ${badgeColor}; border:none;" 
-                onclick="openRegModal('${ev.id}', '${ev.name}', ${ev.allowProxy}, ${ev.requireExtraInfo})">
-                報名
-              </button>
+              <div class="text-end">
+                ${countdownHtml}
+                <button class="btn btn-sm rounded-pill px-4 text-white" style="background-color: ${badgeColor}; border:none;" 
+                  onclick="openRegModal('${ev.id}', '${ev.name}', ${ev.allowProxy}, ${ev.requireExtraInfo})">
+                  報名
+                </button>
+                <div class="mt-2">
+                  <a href="#" onclick="shareToLine('${ev.name}', '${ev.id}')" class="share-line-btn">
+                    <i class="fab fa-line fa-lg"></i> 邀請朋友
+                  </a>
+                </div>
+              </div>
             </div>
           </div>`;
           eventListContainer.innerHTML += html;
@@ -314,7 +346,6 @@ function renderRadarChart(data) {
     window.myRadarChart.destroy();
   }
 
-  // 確保順序對應: [上, 右, 下, 左]
   const shortLabels = ['服事課程', '信徒課程', '聯誼活動', '福音活動'];
   const fullTooltips = [
     '服事課程 (參與事奉)', 
@@ -323,7 +354,6 @@ function renderRadarChart(data) {
     '福音活動 (宣揚福音)'
   ];
 
-  // 取得數據
   const values = [data['服事'] || 0, data['造就'] || 0, data['尋羊'] || 0, data['見證'] || 0];
 
   window.myRadarChart = new Chart(ctx, {
@@ -336,7 +366,7 @@ function renderRadarChart(data) {
         backgroundColor: 'rgba(52, 152, 219, 0.2)',
         borderColor: '#3498db',
         borderWidth: 2,
-        pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], // 紅, 綠, 橘, 紫
+        pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], 
         pointBorderColor: '#fff',
         pointRadius: 6,
         pointHoverRadius: 8
@@ -348,7 +378,6 @@ function renderRadarChart(data) {
       scales: {
         r: {
           startAngle: 0, 
-          // 【關鍵防塌陷魔法】強制設定最小值與建議最大值，就算數據全是 0，網格依然漂亮展開！
           min: 0,
           suggestedMax: 5,
           angleLines: { color: 'rgba(0, 0, 0, 0.15)' },
@@ -378,6 +407,16 @@ function renderRadarChart(data) {
       }
     }
   });
+}
+
+// ==========================================
+// LINE 邀請分享功能
+// ==========================================
+function shareToLine(eventName, eventId) {
+  const myLiffUrl = `https://liff.line.me/${myLiffId}?page=events`;
+  const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
+  const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+  window.open(lineUrl, '_blank');
 }
 
 function submitBinding() {
@@ -497,6 +536,9 @@ function toggleFamilyView() {
   });
 }
 
+// ==========================================
+// 【更新】代禱送出並觸發神聖動畫
+// ==========================================
 function submitPrayer() {
   const target = document.getElementById('prayer-target').value;
   const content = document.getElementById('prayer-content').value;
@@ -517,9 +559,8 @@ function submitPrayer() {
   .then(res => res.json())
   .then(res => {
     if (res.success) {
-      Swal.fire('成功', '您的代禱事項已成功送出！', 'success');
-      document.getElementById('prayerForm').reset();
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱';
+      playPrayerAnimation(content); // 觸發神聖動畫
     } else {
       Swal.fire('系統錯誤', res.message, 'error');
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
@@ -529,6 +570,47 @@ function submitPrayer() {
     Swal.fire('連線錯誤', err.message, 'error');
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
   });
+}
+
+// 執行代禱神聖動畫
+function playPrayerAnimation(inputText) {
+  const overlay = document.getElementById('ritual-overlay');
+  const textElement = document.getElementById('ritual-prayer-text');
+  const doveIcon = document.getElementById('ritual-dove');
+  const scripture = document.getElementById('ritual-scripture');
+
+  textElement.innerText = `"${inputText}"`;
+  
+  // 移除動畫 Class 以便重新觸發
+  textElement.classList.remove('anim-text');
+  doveIcon.classList.remove('anim-dove');
+  scripture.classList.remove('scripture-show');
+  
+  void textElement.offsetWidth; // 重繪 DOM
+  
+  overlay.style.display = 'flex';
+  setTimeout(() => { overlay.style.opacity = 1; }, 50);
+
+  // 開始 10 秒鐘的神聖動畫
+  setTimeout(() => {
+    textElement.classList.add('anim-text');
+    doveIcon.classList.add('anim-dove');
+    scripture.classList.add('scripture-show');
+  }, 100);
+
+  setTimeout(() => {
+    overlay.style.opacity = 0;
+    setTimeout(() => { 
+      overlay.style.display = 'none'; 
+      document.getElementById('prayerForm').reset(); 
+      Swal.fire({
+        title: '奉耶穌基督的名祈禱，阿們！',
+        text: '您的代禱事項已成功送出，將由牧者同工代禱。',
+        icon: 'success',
+        confirmButtonColor: '#0d6efd'
+      });
+    }, 1500);
+  }, 10500);
 }
 
 function openRegModal(eventId, eventName, allowProxy, requireExtraInfo) {
