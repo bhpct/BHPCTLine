@@ -77,21 +77,28 @@
                 <option value="proxy" id="opt-proxy">👥 為親友/長輩/孩童代為報名</option>
               </select>
             </div>
-            <div id="proxyFields" class="p-3 bg-light rounded mb-3" style="display: none; border-left: 3px solid #f39c12;">
+            
+            <div class="p-3 bg-light rounded mb-3" style="border-left: 3px solid #0d6efd;" id="participantFields">
               <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">參與者真實姓名 <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="regParticipantName"></div>
-              <div><label class="form-label text-muted" style="font-size:0.9rem;">聯絡電話 (選填)</label><input type="tel" class="form-control form-control-sm" id="regParticipantPhone"></div>
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">聯絡電話 <span class="text-danger">*</span></label><input type="tel" class="form-control form-control-sm" id="regParticipantPhone"></div>
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">出生年月日 <span class="text-danger" id="req-bday" style="display:none;">*</span></label><input type="date" class="form-control form-control-sm" id="regParticipantBirthday"></div>
             </div>
+
             <div id="extraInfoSection" style="display: none;">
-              <hr><h6 class="text-danger fw-bold"><i class="fas fa-shield-alt"></i> 保險與特殊需求</h6><div class="alert alert-warning p-2" style="font-size: 0.85rem;">⚠️ 本活動需辦理平安險，請確實填寫以下資料。</div>
+              <hr><h6 class="text-danger fw-bold"><i class="fas fa-shield-alt"></i> 保險與特殊需求</h6><div class="alert alert-warning p-2" style="font-size: 0.85rem;">⚠️ 本活動需辦理平安險，請確實填寫身分證字號與生日。</div>
               <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">身分證字號 <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="regIdNumber"></div>
-              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">出生年月日 <span class="text-danger">*</span></label><input type="date" class="form-control form-control-sm" id="regDob"></div>
               <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">特殊需求備註 (選填)</label><input type="text" class="form-control form-control-sm" id="regMemo"></div>
             </div>
           </form>
         </div>
         <div class="modal-footer flex-column border-0 pt-0">
-          <div class="form-check w-100 mb-2"><input class="form-check-input" type="checkbox" id="regAgree" required><label class="form-check-label text-muted" for="regAgree" style="font-size: 0.8rem;">我同意教會收集上述資料用於活動聯繫與保險辦理。</label></div>
-          <button type="button" class="btn btn-primary w-100 rounded-pill py-2 mb-2" onclick="submitRegistration()"><i class="fas fa-paper-plane"></i> 確定送出報名</button>
+          <div class="form-check w-100 mb-3 p-3 rounded shadow-sm" style="background-color: #fff3cd; border: 1px solid #ffe69c;">
+            <input class="form-check-input ms-1" type="checkbox" id="regAgree" required style="transform: scale(1.4); margin-top: 0.2rem; cursor: pointer;">
+            <label class="form-check-label fw-bold ms-3" for="regAgree" style="font-size: 0.9rem; color: #d35400; cursor: pointer;">
+              我同意教會收集上述資料用於活動聯繫<span class="text-danger text-decoration-underline">或保險辦理</span>。
+            </label>
+          </div>
+          <button type="button" class="btn btn-primary w-100 rounded-pill py-2 mb-2 fw-bold" onclick="submitRegistration()"><i class="fas fa-paper-plane"></i> 確定送出報名</button>
         </div>
       </div>
     </div>
