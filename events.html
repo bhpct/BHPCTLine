@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* 【大升級】動態多選方塊的專屬樣式，讓手機點擊範圍更大更明顯 */
+    /* 動態多選方塊的專屬樣式 */
     .dynamic-checkbox-group {
       display: flex;
       flex-wrap: wrap;
@@ -18,14 +18,14 @@
       background-color: #fff;
       border: 1px solid #ced4da;
       border-radius: 8px;
-      padding: 8px 12px 8px 30px; /* 增加左側內距給核取方塊空間 */
+      padding: 8px 12px 8px 30px; 
       margin-bottom: 0;
-      flex: 1 1 calc(50% - 10px); /* 兩欄排版 */
+      flex: 1 1 calc(50% - 10px); 
       box-sizing: border-box;
     }
     .dynamic-checkbox-group .form-check-input {
       margin-top: 0.25rem;
-      margin-left: -1.25rem; /* 將核取方塊往左拉 */
+      margin-left: -1.25rem; 
       transform: scale(1.2);
       cursor: pointer;
     }
@@ -42,6 +42,28 @@
     .dynamic-checkbox-group .form-check-input:checked {
       background-color: #9b59b6;
       border-color: #9b59b6;
+    }
+
+    /* 【新增】五星回饋問卷專屬樣式 */
+    .star-rating {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: center;
+      gap: 10px;
+    }
+    .star-rating input {
+      display: none;
+    }
+    .star-rating label {
+      font-size: 2.5rem;
+      color: #ddd;
+      cursor: pointer;
+      transition: color 0.2s ease-in-out;
+    }
+    .star-rating input:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #f1c40f;
     }
   </style>
 </head>
@@ -172,6 +194,45 @@
             </label>
           </div>
           <button type="button" class="btn btn-primary w-100 rounded-pill py-2 mb-2 fw-bold" onclick="submitRegistration()"><i class="fas fa-paper-plane"></i> 確定送出報名</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-dark"><i class="fas fa-star text-warning"></i> 課程/活動回饋</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center p-4">
+          <h6 class="fw-bold mb-1 text-primary" id="fbEventName">活動名稱</h6>
+          <p class="text-muted mb-4" style="font-size: 0.9rem;">您的寶貴意見是同工們最大的鼓勵！</p>
+          
+          <form id="feedbackForm">
+            <input type="hidden" id="fbRegId">
+            <input type="hidden" id="fbEventId">
+            
+            <div class="mb-4">
+              <label class="form-label fw-bold d-block text-dark">您對本次活動的整體感受？</label>
+              <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5"><label for="star5"><i class="fas fa-star"></i></label>
+                <input type="radio" id="star4" name="rating" value="4"><label for="star4"><i class="fas fa-star"></i></label>
+                <input type="radio" id="star3" name="rating" value="3"><label for="star3"><i class="fas fa-star"></i></label>
+                <input type="radio" id="star2" name="rating" value="2"><label for="star2"><i class="fas fa-star"></i></label>
+                <input type="radio" id="star1" name="rating" value="1"><label for="star1"><i class="fas fa-star"></i></label>
+              </div>
+            </div>
+
+            <div class="text-start">
+              <label class="form-label fw-bold text-dark mb-2" style="font-size: 0.95rem;">具體回饋或其他建議 (選填)</label>
+              <textarea class="form-control" id="fbContent" rows="4" placeholder="請寫下您的感動、收穫，或需要改善的地方..." style="border-radius: 10px; resize: none;"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer border-0 bg-light">
+          <button type="button" class="btn btn-warning w-100 rounded-pill py-2 fw-bold text-dark shadow-sm" onclick="submitFeedbackModal()"><i class="fas fa-paper-plane"></i> 送出回饋</button>
         </div>
       </div>
     </div>
