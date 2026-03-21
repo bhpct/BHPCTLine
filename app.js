@@ -9,27 +9,20 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 let currentUserData = null; 
-// 【新增】全域變數：儲存當前所有開放報名的活動，供 Modal 隨時查詢使用
 let globalActiveEvents = []; 
-// 【新增】用來接收後台動態傳來的分類與色碼設定
 let dynamicCategoryConfig = {};
 
-// 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
-// 【快取設定】
 const CACHE_PREFIX = 'church_data_';
-const CACHE_TTL = 10 * 60 * 1000; // 10 分鐘快取
+const CACHE_TTL = 10 * 60 * 1000; 
 
 window.triggerLineLogin = function() {
   const cleanUrl = window.location.origin + window.location.pathname;
   liff.login({ redirectUri: cleanUrl });
 };
 
-// ==========================================
-// 【大升級 1】自動偵測網址並點亮導覽列圖示
-// ==========================================
 function setActiveNav() {
   const path = window.location.pathname;
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -49,9 +42,6 @@ function setActiveNav() {
   }
 }
 
-// ==========================================
-// 【大升級 2】防呆裝甲 (安全填值函數)
-// ==========================================
 function safeSetText(id, text) {
   const el = document.getElementById(id);
   if (el) el.innerText = text;
@@ -66,7 +56,7 @@ function safeSetVal(id, val) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-  setActiveNav(); // 網頁載入時自動亮燈
+  setActiveNav(); 
   
   const loadingEl = document.getElementById('loading');
   if (loadingEl) loadingEl.style.display = 'flex';
@@ -159,7 +149,6 @@ function fetchUserData(uid, lineName) {
 function renderUI(response, lineName) {
   currentUserData = response;
   globalActiveEvents = response.activeEvents || []; 
-  // 接收後台傳來的動態分類與色碼
   dynamicCategoryConfig = response.categoryConfig || {};
   
   if(response.found) {
@@ -187,20 +176,31 @@ function renderUI(response, lineName) {
     const historyContainer = document.getElementById("history-list");
     if (historyContainer) {
       historyContainer.innerHTML = "";
-      // 預設改為 1 分，配合圖表 min: 0，讓起步有漂亮的基礎方塊
       let radarData = { '服事': 1, '造就': 1, '尋羊': 1, '見證': 1 };
 
       if (response.attendedHistory && response.attendedHistory.length > 0) {
           response.attendedHistory.forEach(ev => {
               let config = dynamicCategoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
               if (radarData[config.概念] !== undefined) radarData[config.概念] += 1;
+              
+              // 【大升級】學習歷程區塊：若活動已結束且未填問卷，顯示「⭐ 填寫回饋」按鈕
+              let fbBtnHtml = "";
+              if (ev.feedbackStatus === "未填寫" && ev.regId && ev.eventId) {
+                  fbBtnHtml = `<div class="mt-2 text-end"><button class="btn btn-sm btn-outline-warning rounded-pill fw-bold" onclick="openFeedbackModal('${ev.regId}', '${ev.eventId}', '${ev.name}')"><i class="fas fa-star"></i> 填寫回饋</button></div>`;
+              } else if (ev.feedbackStatus === "已填寫") {
+                  fbBtnHtml = `<div class="mt-2 text-end text-success" style="font-size:0.8rem;"><i class="fas fa-check-circle"></i> 已完成回饋</div>`;
+              }
+
               historyContainer.innerHTML += `
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
-                <div>
-                  <div class="fw-bold text-dark">${ev.name}</div>
-                  <div class="text-muted mt-1" style="font-size: 0.8rem;"><i class="far fa-calendar-check"></i> 參與日期：${ev.eventDate}</div>
+              <li class="list-group-item px-0 py-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-bold text-dark">${ev.name}</div>
+                    <div class="text-muted mt-1" style="font-size: 0.8rem;"><i class="far fa-calendar-check"></i> 參與日期：${ev.eventDate}</div>
+                  </div>
+                  <span class="badge rounded-pill" style="background-color: ${config.顏色}; font-weight: normal;">${ev.category}</span>
                 </div>
-                <span class="badge rounded-pill" style="background-color: ${config.顏色}; font-weight: normal;">${ev.category}</span>
+                ${fbBtnHtml}
               </li>`;
           });
           renderRadarChart(radarData);
@@ -284,16 +284,26 @@ function renderUI(response, lineName) {
       response.registeredEvents.forEach(ev => {
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#6c757d'};
         
-        let cancelIcon = ev.canCancel 
-            ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')" title="取消報名"></i>` 
-            : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.4;" title="已過取消期限，請洽辦公室"></i>`;
-        
-        let statusIcon = '';
-        if (ev.hasFee && ev.payStatus !== '已繳費') {
-            statusIcon = `<div class="text-center mb-2" onclick="Swal.fire('繳費提醒', '本活動需收取 ${ev.feeAmount} 元。<br>請盡速繳交以完成報名手續。', 'info')"><i class="fas fa-check-circle fa-2x text-secondary" style="cursor:pointer;" title="尚未繳費"></i><div style="font-size:0.7rem; color:#6c757d;">待繳費</div></div>`;
+        // 【大升級】報名清單的時間狀態感知器
+        let actionAreaHtml = '';
+
+        if (ev.timingStatus === "進行中") {
+            // 活動進行中，顯示強烈的打卡按鈕
+            actionAreaHtml = `<button class="btn btn-success btn-sm rounded-pill shadow-sm fw-bold px-3 py-2" onclick="checkInEvent('${ev.regId}', '${ev.name}')"><i class="fas fa-map-marker-alt"></i> 點我簽到</button>`;
         } else {
-            let txt = ev.hasFee ? "已繳費" : "報名成功";
-            statusIcon = `<div class="text-center mb-2"><i class="fas fa-check-circle fa-2x text-success"></i><div style="font-size:0.7rem; color:#28a745;">${txt}</div></div>`;
+            // 活動未開始或已結束，顯示原本的繳費狀態與取消按鈕
+            let cancelIcon = ev.canCancel 
+                ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')" title="取消報名"></i>` 
+                : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.4;" title="已過取消期限，請洽辦公室"></i>`;
+            
+            let statusIcon = '';
+            if (ev.hasFee && ev.payStatus !== '已繳費') {
+                statusIcon = `<div class="text-center mb-2" onclick="Swal.fire('繳費提醒', '本活動需收取 ${ev.feeAmount} 元。<br>請盡速繳交以完成報名手續。', 'info')"><i class="fas fa-check-circle fa-2x text-secondary" style="cursor:pointer;" title="尚未繳費"></i><div style="font-size:0.7rem; color:#6c757d;">待繳費</div></div>`;
+            } else {
+                let txt = ev.hasFee ? "已繳費" : "報名成功";
+                statusIcon = `<div class="text-center mb-2"><i class="fas fa-check-circle fa-2x text-success"></i><div style="font-size:0.7rem; color:#28a745;">${txt}</div></div>`;
+            }
+            actionAreaHtml = `${statusIcon}${cancelIcon}`;
         }
 
         regEventListContainer.innerHTML += `
@@ -305,8 +315,7 @@ function renderUI(response, lineName) {
             <div class="text-secondary mt-1" style="font-size: 0.8rem;"><span class="badge bg-light text-dark border">${ev.regType}</span> 參與者: ${ev.participantName}</div>
           </div>
           <div class="d-flex flex-column align-items-center justify-content-center">
-            ${statusIcon}
-            ${cancelIcon}
+            ${actionAreaHtml}
           </div>
         </div>`;
       });
@@ -418,7 +427,6 @@ function renderRadarChart(data) {
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
     data: { labels: shortLabels, datasets: [{ label: '參與次數', data: values, backgroundColor: 'rgba(52, 152, 219, 0.2)', borderColor: '#3498db', borderWidth: 2, pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], pointBorderColor: '#fff', pointRadius: 6, pointHoverRadius: 8 }] },
-    // 【大修改】將 min 改為 0，搭配基礎分數 1 分，呈現漂亮的起步擴張圖形
     options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 0, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
   });
 }
@@ -529,12 +537,10 @@ function openRegModal(eventId) {
   const fieldsArea = document.getElementById('dynamicFieldsArea');
   fieldsArea.innerHTML = ''; 
 
-  // 【大升級】動態表單智能解析器 (支援單選 `:` 與 多選 `-`)
   if (evt.customForm && evt.customForm.trim() !== '') {
       const forms = evt.customForm.split('|');
       forms.forEach((f) => {
           if (f.includes(':')) {
-              // 處理單選 (下拉選單)
               const parts = f.split(':');
               if(parts.length === 2) {
                   const qName = parts[0].trim();
@@ -549,7 +555,6 @@ function openRegModal(eventId) {
                   fieldsArea.innerHTML += selectHtml;
               }
           } else if (f.includes('-')) {
-              // 處理多選 (核取方塊群組)
               const parts = f.split('-');
               if(parts.length === 2) {
                   const qName = parts[0].trim();
@@ -610,14 +615,12 @@ function submitRegistration() {
 
   let extraObj = {};
   
-  // 抓取單選答案
   document.querySelectorAll('.dynamic-select').forEach(selectEl => {
       const qName = selectEl.getAttribute('data-qname');
       const ans = selectEl.value;
       extraObj[qName] = ans;
   });
 
-  // 【新增】抓取多選答案，並用逗號組裝起來
   let checkMap = {};
   document.querySelectorAll('.dynamic-checkbox:checked').forEach(chkEl => {
       const qName = chkEl.getAttribute('data-qname');
@@ -695,4 +698,82 @@ function cancelRegistration(regId, eventName) {
       fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'cancelRegistrationUser', regId: regId, uid: currentUID }) }).then(res => res.json()).then(res => { if (res.success) { clearCache(); Swal.fire('已取消', res.message, 'success').then(() => { window.location.reload(); }); } else { Swal.fire('錯誤', res.message, 'error'); } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); });
     }
   });
+}
+
+// ==========================================
+// 【新增】打卡簽到與問卷回饋專用函數
+// ==========================================
+function checkInEvent(regId, eventName) {
+    Swal.fire({
+        title: '確認簽到',
+        html: `您即將進行 <b>${eventName}</b> 的數位簽到。<br>簽到後即代表您已出席。`,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        confirmButtonText: '確定簽到',
+        cancelButtonText: '稍後再簽'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: '處理中', text: '正在寫入簽到紀錄...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkInUser', regId: regId, uid: currentUID }) })
+            .then(res => res.json())
+            .then(res => { 
+                if (res.success) { 
+                    clearCache(); 
+                    Swal.fire('簽到成功', res.message, 'success').then(() => { window.location.reload(); }); 
+                } else { 
+                    Swal.fire('錯誤', res.message, 'error'); 
+                } 
+            }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); });
+        }
+    });
+}
+
+function openFeedbackModal(regId, eventId, eventName) {
+    document.getElementById('fbRegId').value = regId;
+    document.getElementById('fbEventId').value = eventId;
+    document.getElementById('fbEventName').innerText = eventName;
+    document.getElementById('feedbackForm').reset();
+    new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+}
+
+function submitFeedbackModal() {
+    const regId = document.getElementById('fbRegId').value;
+    const eventId = document.getElementById('fbEventId').value;
+    const feedbackText = document.getElementById('fbContent').value.trim();
+    
+    let stars = 0;
+    const starRadios = document.getElementsByName('rating');
+    for (let i = 0; i < starRadios.length; i++) {
+        if (starRadios[i].checked) {
+            stars = parseInt(starRadios[i].value, 10);
+            break;
+        }
+    }
+
+    if (stars === 0) {
+        Swal.fire('提醒', '請先點選星星給予評分喔！', 'warning');
+        return;
+    }
+
+    const btn = document.querySelector('#feedbackModal .btn-warning');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
+
+    fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'submitFeedback', regId: regId, uid: currentUID, eventId: eventId, stars: stars, feedbackText: feedbackText }) 
+    })
+    .then(res => res.json()).then(res => {
+        if (res.success) {
+            clearCache();
+            bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+            Swal.fire('非常感謝', res.message, 'success').then(() => { window.location.reload(); });
+        } else {
+            Swal.fire('錯誤', res.message, 'error');
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋';
+        }
+    }).catch(err => { 
+        Swal.fire('連線錯誤', err.message, 'error'); 
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋'; 
+    });
 }
