@@ -283,7 +283,7 @@ function renderUI(response, lineName) {
     regEventListContainer.innerHTML = "";
     if (response.registeredEvents && response.registeredEvents.length > 0) {
       response.registeredEvents.forEach(ev => {
-        // 【修改】呼叫動態變數
+        // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#6c757d'};
         
         let cancelIcon = ev.canCancel 
@@ -325,7 +325,7 @@ function renderUI(response, lineName) {
     eventListContainer.innerHTML = "";
     if (response.activeEvents && response.activeEvents.length > 0) {
       response.activeEvents.forEach(ev => {
-        // 【修改】呼叫動態變數
+        // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#3498db'};
         let countdownHtml = '';
         if (ev.regEndDate) {
@@ -380,6 +380,16 @@ function renderUI(response, lineName) {
     else targetPage = 'profile'; 
   }
   switchPage(targetPage);
+
+  // ==========================================
+  // 【新增寫入】深度連結自動觸發器 (等待 0.3 秒，讓 Modal 可正常彈出)
+  // ==========================================
+  const targetEventId = urlParams.get('eventId');
+  if (targetEventId && targetPage === 'events') {
+    setTimeout(() => {
+      openEventDetail(targetEventId);
+    }, 300);
+  }
 }
 
 function switchPage(pageId) {
@@ -414,13 +424,13 @@ function renderRadarChart(data) {
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
     data: { labels: shortLabels, datasets: [{ label: '參與次數', data: values, backgroundColor: 'rgba(52, 152, 219, 0.2)', borderColor: '#3498db', borderWidth: 2, pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], pointBorderColor: '#fff', pointRadius: 6, pointHoverRadius: 8 }] },
-    // 【修改】把雷達圖的 min 改為 1
     options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 1, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
   });
 }
 
 function shareToLine(eventName, eventId) {
-  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events`;
+  // 【新增寫入】分享時附帶 eventId 參數
+  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events&eventId=${eventId}`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
 }
