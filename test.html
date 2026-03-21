@@ -27,7 +27,7 @@
       transform: translate(-50%, -50%);
     }
     
-    /* 【修改】祈禱文字：更大、初始顏色為深色 */
+    /* 【修改重點 1】祈禱文字：更大、初始顏色為深色 */
     .prayer-text-display {
       font-size: 1.8rem; font-weight: bold; font-style: italic; 
       max-width: 85%; margin: 0 auto;
@@ -36,7 +36,7 @@
       opacity: 1; transform: scale(1);
     }
     
-    /* 【修改】巨型白鴿 Icon */
+    /* 【修改重點 2】巨型白鴿 Icon */
     .dove-icon {
       font-size: 14rem; color: white; /* 尺寸大幅提升 */
       filter: drop-shadow(0 0 30px rgba(255,255,255,1));
@@ -54,30 +54,32 @@
     }
     
     /* ==========================================
-       【精雕細琢】動畫時序控制 - 總時長 8.5 秒
+       【精雕細琢】動畫時序控制 - 總時長 10 秒
        ========================================== */
     
-    /* 1. 文字動畫：黑轉白 (1.2s) -> 緩慢縮小被吸收 (1.2s) */
-    .anim-text { animation: textTransformAndShrink 8.5s forwards; }
+    /* 1. 文字動畫：黑轉白 (2s) -> 緩慢縮小被吸收 (1.2s) */
+    .anim-text { animation: textTransformAndShrink 10s forwards; }
     @keyframes textTransformAndShrink {
       0%   { transform: scale(1); color: #1a2a3a; text-shadow: none; opacity: 1; }
-      14%  { transform: scale(1); color: #ffffff; text-shadow: 0 0 15px #fff; opacity: 1; } /* 0s - 1.2s: 黑轉白 */
-      28%  { transform: scale(0.2); color: #ffffff; opacity: 0; } /* 1.2s - 2.4s: 緩慢縮小至消失 (耗時 1.2 秒) */
+      20%  { transform: scale(1); color: #1a2a3a; text-shadow: none; opacity: 1; } /* 0s - 2.0s: 黑灰文字 */
+      30%  { transform: scale(1); color: #ffffff; text-shadow: 0 0 15px #fff; opacity: 1; } /* 2.0s - 3.0s: 黑轉白 (耗時 1 秒) */
+      42%  { transform: scale(0.2); color: #ffffff; opacity: 0; } /* 3.0s - 4.2s: 緩慢縮小至消失 (耗時 1.2 秒) */
       100% { transform: scale(0.2); opacity: 0; }
     }
 
     /* 2. 巨型白鴿動畫：包覆文字 -> 停留 -> 緩緩飛昇變小 */
-    .anim-dove { animation: doveEmbraceAndFly 8.5s forwards; }
+    .anim-dove { animation: doveEmbraceAndFly 10s forwards; }
     @keyframes doveEmbraceAndFly {
-      0%, 10%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } /* 0-0.8s: 等待文字變白 */
-      25%, 40%  { opacity: 1; transform: translate(-50%, -50%) scale(1); } /* 2.1s - 3.4s: 完全顯現，溫柔包覆縮小的文字 */
-      85%, 100% { opacity: 0; transform: translate(-50%, -85vh) scale(0.05); } /* 7.2s: 帶著禱告飛向光明深處 */
+      0%, 42%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } /* 0-4.2s: 等待文字變白並縮小 */
+      52%, 60%  { opacity: 1; transform: translate(-50%, -50%) scale(1); } /* 4.2s - 5.2s appear, then stay briefly until 6.0s */
+      90%, 100% { opacity: 0; transform: translate(-50%, -85vh) scale(0.05); } /* 6.0s - 9.0s: 帶著禱告飛向光明深處 */
     }
     
     /* 3. 經文浮現動畫：在白鴿飛昇途中浮現 */
-    .scripture-show { animation: fadeUpIn 3s 4s forwards; }
+    .scripture-show { animation: fadeUpIn 10s forwards; }
     @keyframes fadeUpIn {
-      to { opacity: 1; transform: translateY(0); }
+      0%, 60% { opacity: 0; transform: translateY(20px); }
+      80%, 100% { opacity: 1; transform: translateY(0); }
     }
 
     /* 邀請朋友按鈕 */
@@ -102,10 +104,10 @@
 </div>
 
 <div class="container mt-4">
-  <h4 class="text-center fw-bold mb-4 text-primary">進階功能與神聖動畫測試區</h4>
+  <h4 class="text-center fw-bold mb-4 text-primary">UI / UX 與神聖動畫測試區 (一般活動已全面改為聯誼活動)</h4>
 
   <div class="card p-4 mb-5">
-    <h5 class="mb-3 fw-bold text-dark"><i class="fas fa-praying-hands text-primary"></i> 測試【飛鴿代禱】細膩動畫</h5>
+    <h5 class="mb-3 fw-bold text-dark"><i class="fas fa-praying-hands text-primary"></i> 測試代禱儀式感【黑轉白 & 緩慢飛鴿】細膩動畫</h5>
     <textarea class="form-control mb-3" id="test-prayer-input" rows="3" placeholder="請輸入您需要代禱的事項..."></textarea>
     <button class="btn btn-primary rounded-pill py-2" onclick="testSubmitPrayer()">送出代禱</button>
   </div>
@@ -142,13 +144,24 @@
 </div>
 
 <script>
+  // ==========================================
+  // 功能 1：LINE 邀請朋友實作
+  // ==========================================
   function shareToLine(eventName, eventId) {
+    // 假設這是您的 LIFF 網址
     const myLiffUrl = "https://liff.line.me/2009444508-qaGGdlps?page=events";
     const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
+    
+    // 使用 encodeURIComponent 確保中文網址正確轉換
     const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+    
+    // 開啟 LINE App
     window.open(lineUrl, '_blank');
   }
 
+  // ==========================================
+  // 【修改重點】功能 2：飛鴿代禱動畫實作 (細膩時序)
+  // ==========================================
   function testSubmitPrayer() {
     const inputText = document.getElementById('test-prayer-input').value;
     if (!inputText) {
@@ -156,12 +169,13 @@
       return;
     }
 
+    // 1. 抓取 DOM 元素
     const overlay = document.getElementById('ritual-overlay');
     const textElement = document.getElementById('ritual-prayer-text');
     const doveIcon = document.getElementById('ritual-dove');
     const scripture = document.getElementById('ritual-scripture');
 
-    // 1. 初始化狀態與文字
+    // 2. 初始化狀態與文字
     textElement.innerText = `"${inputText}"`;
     
     // 移除動畫 Class 以便重新觸發
@@ -169,27 +183,28 @@
     doveIcon.classList.remove('anim-dove');
     scripture.classList.remove('scripture-show');
     
-    // 強制重繪 DOM
+    // 強制重繪 DOM (Reflow)
     void textElement.offsetWidth; 
     
     // 顯示神聖光芒遮罩
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.style.opacity = 1; }, 50);
 
-    // 2. 加上動畫 Class，開始 8.5 秒鐘的神聖動畫
+    // 3. 加上動畫 Class，開始 10 秒鐘的神聖動畫
     setTimeout(() => {
       textElement.classList.add('anim-text');
       doveIcon.classList.add('anim-dove');
       scripture.classList.add('scripture-show');
     }, 100);
 
-    // 3. 動畫結束，顯示結尾禱告詞
+    // 4. 動畫結束 (10.5 秒)，隱藏遮罩，顯示結尾禱告詞
     setTimeout(() => {
       overlay.style.opacity = 0;
       setTimeout(() => { 
         overlay.style.display = 'none'; 
-        document.getElementById('test-prayer-input').value = ''; 
+        document.getElementById('test-prayer-input').value = ''; // 清空輸入框
         
+        // 正式且完整的結尾禱告詞
         Swal.fire({
           title: '奉耶穌基督的名祈禱，阿們！',
           text: '您的代禱事項已成功送出，將由牧者同工代禱。',
@@ -197,7 +212,7 @@
           confirmButtonColor: '#0d6efd'
         });
       }, 1500);
-    }, 9000);
+    }, 10500); // 增加總停留時間
   }
 </script>
 
