@@ -9,15 +9,13 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
+// 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
 const urlParams = new URLSearchParams(window.location.search);
 const targetPage = urlParams.get('page') || "profile";
 
-// ==========================================
-// 定義類別顏色與概念對應字典 (已全面替換為「聯誼活動」)
-// ==========================================
 const categoryConfig = {
   '服事者課程': {概念: '服事', 顏色: '#dc3545'},
   '司會訓練': {概念: '服事', 顏色: '#dc3545'},
@@ -27,6 +25,12 @@ const categoryConfig = {
   '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
   '福音活動': {概念: '見證', 顏色: '#9b59b6'},
   '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
+};
+
+// 【關鍵修復】乾淨網址登入器：切除所有 ? 參數，完美吻合 LINE 白名單
+window.triggerLineLogin = function() {
+  const cleanUrl = window.location.origin + window.location.pathname;
+  liff.login({ redirectUri: cleanUrl });
 };
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -41,13 +45,12 @@ document.addEventListener("DOMContentLoaded", function() {
   liff.init({ liffId: myLiffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
-        // 【修復】強制鎖定 redirectUri 為官方 LIFF 網址，徹底解決 400 Bad Request
         document.getElementById('loading').innerHTML = `
           <div class="text-center px-4">
             <i class="fab fa-line fa-4x text-success mb-3"></i>
             <h4 class="fw-bold mb-3 text-dark">等待登入驗證</h4>
             <p class="text-muted mb-4" style="font-size:0.95rem;">為了確保會友資料安全，<br>請點擊下方按鈕授權 LINE 登入。</p>
-            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="liff.login({ redirectUri: 'https://liff.line.me/' + myLiffId });">
+            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="triggerLineLogin();">
               <i class="fas fa-sign-in-alt"></i> 點此授權登入
             </button>
           </div>
