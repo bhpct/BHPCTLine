@@ -12,6 +12,17 @@
 </head>
 <body>
 
+  <div id="ritual-overlay">
+    <div class="ritual-content" id="ritual-anim-container">
+      <div class="prayer-text-display" id="ritual-prayer-text">"主啊，求您保守..."</div>
+      <i class="fas fa-dove dove-icon" id="ritual-dove"></i>
+    </div>
+    <div class="scripture-text" id="ritual-scripture">
+      「聖靈親自用說不出來的歎息<br>替我們禱告。」<br>
+      <span style="font-size: 1.1rem; font-weight: normal; margin-top: 15px; display: inline-block;">— 羅馬書 8:26 —</span>
+    </div>
+  </div>
+
   <div id="loading" style="display: none;">
     <div class="spinner-border text-primary" role="status"></div>
     <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
@@ -158,7 +169,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label text-muted">代禱內容 <span class="text-danger">*</span></label>
-            <textarea class="form-control" id="prayer-content" rows="5" placeholder="請盡量具體描述需要代禱的事項..." required></textarea>
+            <textarea class="form-control" id="prayer-content" rows="5" placeholder="請輸入您需要代禱的事項..." required></textarea>
           </div>
           <div class="mb-4 p-3 bg-light rounded">
             <label class="form-label text-muted fw-bold mb-2">公開意願設定</label>
