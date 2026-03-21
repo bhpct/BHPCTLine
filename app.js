@@ -11,6 +11,8 @@ let globalUserName = "未綁定會友";
 let currentUserData = null; 
 // 【新增】全域變數：儲存當前所有開放報名的活動，供 Modal 隨時查詢使用
 let globalActiveEvents = []; 
+// 【新增】用來接收後台動態傳來的分類與色碼設定
+let dynamicCategoryConfig = {};
 
 // 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
@@ -19,17 +21,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-
 // 【快取設定】
 const CACHE_PREFIX = 'church_data_';
 const CACHE_TTL = 10 * 60 * 1000; // 10 分鐘快取
-
-const categoryConfig = {
-  '服事者課程': {概念: '服事', 顏色: '#dc3545'},
-  '司會訓練': {概念: '服事', 顏色: '#dc3545'},
-  '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
-  '聖經課程': {概念: '造就', 顏色: '#28a745'},
-  '聯誼活動': {概念: '尋羊', 顏色: '#f39c12'},  
-  '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  '福音活動': {概念: '見證', 顏色: '#9b59b6'},
-  '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
-};
 
 window.triggerLineLogin = function() {
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -167,8 +158,9 @@ function fetchUserData(uid, lineName) {
 
 function renderUI(response, lineName) {
   currentUserData = response;
-  // 【新增】將活動存入全域，方便點擊時查詢
   globalActiveEvents = response.activeEvents || []; 
+  // 【新增】接收後台傳來的動態分類與色碼
+  dynamicCategoryConfig = response.categoryConfig || {};
   
   if(response.found) {
     globalUserName = response.name; 
@@ -195,11 +187,13 @@ function renderUI(response, lineName) {
     const historyContainer = document.getElementById("history-list");
     if (historyContainer) {
       historyContainer.innerHTML = "";
-      let radarData = { '服事': 0, '造就': 0, '尋羊': 0, '見證': 0 };
+      // 【修改】預設改為 1 分，讓雷達圖起步有基礎圖形
+      let radarData = { '服事': 1, '造就': 1, '尋羊': 1, '見證': 1 };
 
       if (response.attendedHistory && response.attendedHistory.length > 0) {
           response.attendedHistory.forEach(ev => {
-              let config = categoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
+              // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
+              let config = dynamicCategoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
               if (radarData[config.概念] !== undefined) radarData[config.概念] += 1;
               historyContainer.innerHTML += `
               <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
@@ -289,14 +283,13 @@ function renderUI(response, lineName) {
     regEventListContainer.innerHTML = "";
     if (response.registeredEvents && response.registeredEvents.length > 0) {
       response.registeredEvents.forEach(ev => {
-        let config = categoryConfig[ev.category] || {顏色: '#6c757d'};
+        // 【修改】呼叫動態變數
+        let config = dynamicCategoryConfig[ev.category] || {顏色: '#6c757d'};
         
-        // 【新增 1】四段式狀態：取消按鈕 (紅叉或灰叉)
         let cancelIcon = ev.canCancel 
             ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')" title="取消報名"></i>` 
             : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.4;" title="已過取消期限，請洽辦公室"></i>`;
         
-        // 【新增 2】四段式狀態：繳費狀態按鈕 (綠勾或灰勾)
         let statusIcon = '';
         if (ev.hasFee && ev.payStatus !== '已繳費') {
             statusIcon = `<div class="text-center mb-2" onclick="Swal.fire('繳費提醒', '本活動需收取 ${ev.feeAmount} 元。<br>請盡速繳交以完成報名手續。', 'info')"><i class="fas fa-check-circle fa-2x text-secondary" style="cursor:pointer;" title="尚未繳費"></i><div style="font-size:0.7rem; color:#6c757d;">待繳費</div></div>`;
@@ -332,7 +325,8 @@ function renderUI(response, lineName) {
     eventListContainer.innerHTML = "";
     if (response.activeEvents && response.activeEvents.length > 0) {
       response.activeEvents.forEach(ev => {
-        let config = categoryConfig[ev.category] || {顏色: '#3498db'};
+        // 【修改】呼叫動態變數
+        let config = dynamicCategoryConfig[ev.category] || {顏色: '#3498db'};
         let countdownHtml = '';
         if (ev.regEndDate) {
           let diff = ev.regEndDate - new Date().getTime();
@@ -343,7 +337,6 @@ function renderUI(response, lineName) {
         }
         let spotsHtml = (ev.remainingSpots !== null && ev.remainingSpots !== undefined) ? `<span class="badge bg-danger ms-2 align-middle" style="font-size:0.75rem;"><i class="fas fa-fire"></i> 剩 ${ev.remainingSpots} 名</span>` : '';
 
-        // 【新增 3】把活動區塊加上 onclick="openEventDetail" 觸發海報視窗，報名按鈕改用傳遞 ID 尋找
         eventListContainer.innerHTML += `
         <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid ${config.顏色} !important;">
           <div class="d-flex justify-content-between align-items-start">
@@ -421,7 +414,8 @@ function renderRadarChart(data) {
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
     data: { labels: shortLabels, datasets: [{ label: '參與次數', data: values, backgroundColor: 'rgba(52, 152, 219, 0.2)', borderColor: '#3498db', borderWidth: 2, pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], pointBorderColor: '#fff', pointRadius: 6, pointHoverRadius: 8 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 0, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
+    // 【修改】把雷達圖的 min 改為 1
+    options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 1, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
   });
 }
 
@@ -477,16 +471,12 @@ function playPrayerAnimation(inputText) {
   setTimeout(() => { overlay.style.opacity = 0; setTimeout(() => { overlay.style.display = 'none'; document.getElementById('prayerForm').reset(); Swal.fire({ title: '奉耶穌基督的名祈禱，阿們！', text: '您的代禱事項已成功送出，將由牧者同工代禱。', icon: 'success', confirmButtonColor: '#0d6efd' }); }, 1500); }, 10500);
 }
 
-// ==========================================
-// 【大升級 4】全新函數：打開活動詳情與海報
-// ==========================================
 function openEventDetail(eventId) {
   const evt = globalActiveEvents.find(e => e.id === eventId);
   if (!evt) return;
 
   document.getElementById('detailEventName').innerText = evt.name;
   
-  // 處理海報圖片
   const posterImg = document.getElementById('detailPoster');
   if (evt.posterUrl && evt.posterUrl.trim() !== '') {
       posterImg.src = evt.posterUrl;
@@ -498,14 +488,12 @@ function openEventDetail(eventId) {
 
   document.getElementById('detailCategory').innerText = evt.category;
   
-  // 處理收費資訊
   let feeText = (evt.feeAmount && evt.feeAmount > 0) ? `${evt.feeName}: ${evt.feeAmount}元` : "免費活動";
   document.getElementById('detailFee').innerText = feeText;
   
   document.getElementById('detailDate').innerText = evt.date;
   document.getElementById('detailDescription').innerText = evt.description || "尚無詳細說明。";
 
-  // 綁定註冊按鈕，點擊後關閉詳情 Modal 並開啟報名 Modal
   document.getElementById('btn-detail-register').onclick = function() {
       bootstrap.Modal.getInstance(document.getElementById('eventDetailModal')).hide();
       openRegModal(eventId);
@@ -514,9 +502,6 @@ function openEventDetail(eventId) {
   new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
 }
 
-// ==========================================
-// 【大升級 5】改寫報名表單：支援動態下拉選單生成
-// ==========================================
 function openRegModal(eventId) {
   const evt = globalActiveEvents.find(e => e.id === eventId);
   if(!evt) return;
@@ -536,13 +521,11 @@ function openRegModal(eventId) {
   const reqBday = document.getElementById('req-bday');
   if(reqBday) reqBday.style.display = evt.requireExtraInfo ? 'inline' : 'none';
 
-  // --- 動態表單生成魔法 ---
   const container = document.getElementById('dynamicFormContainer');
   const fieldsArea = document.getElementById('dynamicFieldsArea');
-  fieldsArea.innerHTML = ''; // 清空舊的選項
+  fieldsArea.innerHTML = ''; 
 
   if (evt.customForm && evt.customForm.trim() !== '') {
-      // 範例字串："便當:葷,素|衣服尺寸:S,M,L"
       const forms = evt.customForm.split('|');
       forms.forEach((f) => {
           const parts = f.split(':');
@@ -583,9 +566,6 @@ function toggleProxyFields() {
   }
 }
 
-// ==========================================
-// 【大升級 6】送出報名：抓取動態表單選項
-// ==========================================
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
   
@@ -599,7 +579,6 @@ function submitRegistration() {
 
   let extraObj = {};
   
-  // 【新增】自動抓取畫面上所有的動態下拉選單答案
   document.querySelectorAll('.dynamic-select').forEach(selectEl => {
       const qName = selectEl.getAttribute('data-qname');
       const ans = selectEl.value;
