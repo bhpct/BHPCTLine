@@ -159,7 +159,7 @@ function fetchUserData(uid, lineName) {
 function renderUI(response, lineName) {
   currentUserData = response;
   globalActiveEvents = response.activeEvents || []; 
-  // 【新增】接收後台傳來的動態分類與色碼
+  // 接收後台傳來的動態分類與色碼
   dynamicCategoryConfig = response.categoryConfig || {};
   
   if(response.found) {
@@ -187,12 +187,11 @@ function renderUI(response, lineName) {
     const historyContainer = document.getElementById("history-list");
     if (historyContainer) {
       historyContainer.innerHTML = "";
-      // 【修改】預設改為 1 分，讓雷達圖起步有基礎圖形
+      // 預設改為 1 分，配合圖表 min: 0，讓起步有漂亮的基礎方塊
       let radarData = { '服事': 1, '造就': 1, '尋羊': 1, '見證': 1 };
 
       if (response.attendedHistory && response.attendedHistory.length > 0) {
           response.attendedHistory.forEach(ev => {
-              // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
               let config = dynamicCategoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
               if (radarData[config.概念] !== undefined) radarData[config.概念] += 1;
               historyContainer.innerHTML += `
@@ -283,7 +282,6 @@ function renderUI(response, lineName) {
     regEventListContainer.innerHTML = "";
     if (response.registeredEvents && response.registeredEvents.length > 0) {
       response.registeredEvents.forEach(ev => {
-        // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#6c757d'};
         
         let cancelIcon = ev.canCancel 
@@ -325,7 +323,6 @@ function renderUI(response, lineName) {
     eventListContainer.innerHTML = "";
     if (response.activeEvents && response.activeEvents.length > 0) {
       response.activeEvents.forEach(ev => {
-        // 【修改】呼叫動態變數 dynamicCategoryConfig 取代寫死陣列
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#3498db'};
         let countdownHtml = '';
         if (ev.regEndDate) {
@@ -381,9 +378,6 @@ function renderUI(response, lineName) {
   }
   switchPage(targetPage);
 
-  // ==========================================
-  // 【新增寫入】深度連結自動觸發器 (等待 0.3 秒，讓 Modal 可正常彈出)
-  // ==========================================
   const targetEventId = urlParams.get('eventId');
   if (targetEventId && targetPage === 'events') {
     setTimeout(() => {
@@ -424,12 +418,12 @@ function renderRadarChart(data) {
   window.myRadarChart = new Chart(ctx, {
     type: 'radar',
     data: { labels: shortLabels, datasets: [{ label: '參與次數', data: values, backgroundColor: 'rgba(52, 152, 219, 0.2)', borderColor: '#3498db', borderWidth: 2, pointBackgroundColor: ['#dc3545', '#28a745', '#f39c12', '#9b59b6'], pointBorderColor: '#fff', pointRadius: 6, pointHoverRadius: 8 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 1, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
+    // 【大修改】將 min 改為 0，搭配基礎分數 1 分，呈現漂亮的起步擴張圖形
+    options: { responsive: true, maintainAspectRatio: false, scales: { r: { startAngle: 0, min: 0, suggestedMax: 5, angleLines: { color: 'rgba(0, 0, 0, 0.15)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' }, pointLabels: { font: { size: 14, family: '微軟正黑體', weight: 'bold' }, color: function(context) { return ['#dc3545', '#28a745', '#f39c12', '#9b59b6'][context.index]; } }, ticks: { display: false, stepSize: 1 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: function(tooltipItems) { return fullTooltips[tooltipItems[0].dataIndex]; }, label: function(context) { return `已參與：${context.raw} 次`; } } } } }
   });
 }
 
 function shareToLine(eventName, eventId) {
-  // 【新增寫入】分享時附帶 eventId 參數
   const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events&eventId=${eventId}`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
@@ -535,21 +529,48 @@ function openRegModal(eventId) {
   const fieldsArea = document.getElementById('dynamicFieldsArea');
   fieldsArea.innerHTML = ''; 
 
+  // 【大升級】動態表單智能解析器 (支援單選 `:` 與 多選 `-`)
   if (evt.customForm && evt.customForm.trim() !== '') {
       const forms = evt.customForm.split('|');
       forms.forEach((f) => {
-          const parts = f.split(':');
-          if(parts.length === 2) {
-              const qName = parts[0].trim();
-              const opts = parts[1].split(',').map(o => o.trim());
-              
-              let selectHtml = `<div class="mb-2">
-                <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
-                <select class="form-select form-select-sm dynamic-select" data-qname="${qName}">`;
-              opts.forEach(o => { selectHtml += `<option value="${o}">${o}</option>`; });
-              selectHtml += `</select></div>`;
-              
-              fieldsArea.innerHTML += selectHtml;
+          if (f.includes(':')) {
+              // 處理單選 (下拉選單)
+              const parts = f.split(':');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  
+                  let selectHtml = `<div class="mb-2">
+                    <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
+                    <select class="form-select form-select-sm dynamic-select" data-qname="${qName}">`;
+                  opts.forEach(o => { selectHtml += `<option value="${o}">${o}</option>`; });
+                  selectHtml += `</select></div>`;
+                  
+                  fieldsArea.innerHTML += selectHtml;
+              }
+          } else if (f.includes('-')) {
+              // 處理多選 (核取方塊群組)
+              const parts = f.split('-');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  
+                  let checkHtml = `<div class="mb-2">
+                    <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
+                    <div class="dynamic-checkbox-group">`;
+                  
+                  opts.forEach((o, idx) => {
+                      const cId = `chk-${qName}-${idx}`;
+                      checkHtml += `
+                        <div class="form-check">
+                          <input class="form-check-input dynamic-checkbox" type="checkbox" value="${o}" id="${cId}" data-qname="${qName}">
+                          <label class="form-check-label" for="${cId}">${o}</label>
+                        </div>`;
+                  });
+                  checkHtml += `</div></div>`;
+                  
+                  fieldsArea.innerHTML += checkHtml;
+              }
           }
       });
       container.style.display = 'block';
@@ -589,11 +610,24 @@ function submitRegistration() {
 
   let extraObj = {};
   
+  // 抓取單選答案
   document.querySelectorAll('.dynamic-select').forEach(selectEl => {
       const qName = selectEl.getAttribute('data-qname');
       const ans = selectEl.value;
       extraObj[qName] = ans;
   });
+
+  // 【新增】抓取多選答案，並用逗號組裝起來
+  let checkMap = {};
+  document.querySelectorAll('.dynamic-checkbox:checked').forEach(chkEl => {
+      const qName = chkEl.getAttribute('data-qname');
+      const ans = chkEl.value;
+      if (!checkMap[qName]) checkMap[qName] = [];
+      checkMap[qName].push(ans);
+  });
+  for (let q in checkMap) {
+      extraObj[q] = checkMap[q].join(', ');
+  }
 
   if (pBday) extraObj.生日 = pBday; 
 
