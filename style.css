@@ -170,3 +170,64 @@ body {
 .share-line-btn:hover {
   color: #218838;
 }
+
+/* ==========================================
+   【大升級】動態多選方塊與五星問卷的專屬樣式
+   ========================================== */
+/* 動態多選方塊 (Checkbox) */
+.dynamic-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dynamic-checkbox-group .form-check {
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  padding: 8px 12px 8px 30px; 
+  margin-bottom: 0;
+  flex: 1 1 calc(50% - 10px); 
+  box-sizing: border-box;
+}
+.dynamic-checkbox-group .form-check-input {
+  margin-top: 0.25rem;
+  margin-left: -1.25rem; 
+  transform: scale(1.2);
+  cursor: pointer;
+}
+.dynamic-checkbox-group .form-check-label {
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  color: #495057;
+}
+.dynamic-checkbox-group .form-check-input:checked + .form-check-label {
+  color: #9b59b6;
+  font-weight: bold;
+}
+.dynamic-checkbox-group .form-check-input:checked {
+  background-color: #9b59b6;
+  border-color: #9b59b6;
+}
+
+/* 五星回饋問卷 (Star Rating) */
+.star-rating {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+  gap: 10px;
+}
+.star-rating input {
+  display: none;
+}
+.star-rating label {
+  font-size: 2.5rem;
+  color: #ddd;
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+  color: #f1c40f;
+}
