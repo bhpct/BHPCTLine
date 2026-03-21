@@ -8,8 +8,9 @@ window.onerror = function(msg, url, line) {
 
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
-// 【新增】用來儲存使用者的完整資料供報名使用
 let currentUserData = null; 
+// 【新增】全域變數：儲存當前所有開放報名的活動，供 Modal 隨時查詢使用
+let globalActiveEvents = []; 
 
 // 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
@@ -36,7 +37,7 @@ window.triggerLineLogin = function() {
 };
 
 // ==========================================
-// 【大升級 1】自動偵測網址並點亮導覽列圖示 (第二階段切割後生效)
+// 【大升級 1】自動偵測網址並點亮導覽列圖示
 // ==========================================
 function setActiveNav() {
   const path = window.location.pathname;
@@ -117,7 +118,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// 【新增】清除個人快取的函數
 function clearCache() {
   if (currentUID) {
     localStorage.removeItem(CACHE_PREFIX + currentUID);
@@ -125,7 +125,6 @@ function clearCache() {
   }
 }
 
-// 【重構】獲取資料邏輯：先查快取，沒有再 fetch
 function fetchUserData(uid, lineName) {
   const cacheKey = CACHE_PREFIX + uid;
   const cachedDataStr = localStorage.getItem(cacheKey);
@@ -166,12 +165,10 @@ function fetchUserData(uid, lineName) {
     });
 }
 
-// ==========================================
-// 【大升級 3】核心渲染邏輯 (加入安全防護罩)
-// ==========================================
 function renderUI(response, lineName) {
-  // 【新增】儲存全域資料，供報名表單自動帶入使用
   currentUserData = response;
+  // 【新增】將活動存入全域，方便點擊時查詢
+  globalActiveEvents = response.activeEvents || []; 
   
   if(response.found) {
     globalUserName = response.name; 
@@ -186,7 +183,6 @@ function renderUI(response, lineName) {
       uiUserTier.innerHTML = '<i class="fas fa-medal"></i> ' + tierName + ' <i class="fas fa-question-circle ms-1"></i>';
     }
 
-    // ====== 會友中心專屬 (首頁) ======
     safeSetText("info-phone", response.phone || "未填寫");
     safeSetText("info-birthday", response.birthday || "未填寫");
     safeSetText("info-service", response.service || "未設定");
@@ -226,8 +222,7 @@ function renderUI(response, lineName) {
       if (response.eventCount === 0 && response.courseCount === 0 && (!response.registeredEvents || response.registeredEvents.length === 0)) {
         historyBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> 首次報名';
         historyBtn.className = 'btn btn-primary w-100 mt-3 shadow-sm rounded-pill';
-        // 第一階段(未切割)保留單頁切換，第二階段會改為 href跳轉
-        historyBtn.onclick = function() { switchPage('events'); }; 
+        historyBtn.onclick = function() { window.location.href = 'events.html'; }; 
         historyBtn.removeAttribute('data-bs-toggle');
         historyBtn.removeAttribute('data-bs-target');
       } else {
@@ -273,7 +268,6 @@ function renderUI(response, lineName) {
     if (unboundView) unboundView.style.display = "none";
 
   } else {
-    // 【修改】未綁定時也記錄基本 Tier 0 資料，供報名表單安全帶入使用
     currentUserData = { found: false, name: lineName, phone: "", birthday: "", tier: "Tier 0", groups: "", service: "" };
     
     globalUserName = lineName;
@@ -296,7 +290,21 @@ function renderUI(response, lineName) {
     if (response.registeredEvents && response.registeredEvents.length > 0) {
       response.registeredEvents.forEach(ev => {
         let config = categoryConfig[ev.category] || {顏色: '#6c757d'};
-        let cancelIcon = ev.canCancel ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')"></i>` : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.3;" title="報名已截止，請聯繫辦公室"></i>`;
+        
+        // 【新增 1】四段式狀態：取消按鈕 (紅叉或灰叉)
+        let cancelIcon = ev.canCancel 
+            ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')" title="取消報名"></i>` 
+            : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.4;" title="已過取消期限，請洽辦公室"></i>`;
+        
+        // 【新增 2】四段式狀態：繳費狀態按鈕 (綠勾或灰勾)
+        let statusIcon = '';
+        if (ev.hasFee && ev.payStatus !== '已繳費') {
+            statusIcon = `<div class="text-center mb-2" onclick="Swal.fire('繳費提醒', '本活動需收取 ${ev.feeAmount} 元。<br>請盡速繳交以完成報名手續。', 'info')"><i class="fas fa-check-circle fa-2x text-secondary" style="cursor:pointer;" title="尚未繳費"></i><div style="font-size:0.7rem; color:#6c757d;">待繳費</div></div>`;
+        } else {
+            let txt = ev.hasFee ? "已繳費" : "報名成功";
+            statusIcon = `<div class="text-center mb-2"><i class="fas fa-check-circle fa-2x text-success"></i><div style="font-size:0.7rem; color:#28a745;">${txt}</div></div>`;
+        }
+
         regEventListContainer.innerHTML += `
         <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
           <div>
@@ -306,7 +314,8 @@ function renderUI(response, lineName) {
             <div class="text-secondary mt-1" style="font-size: 0.8rem;"><span class="badge bg-light text-dark border">${ev.regType}</span> 參與者: ${ev.participantName}</div>
           </div>
           <div class="d-flex flex-column align-items-center justify-content-center">
-            <span class="text-success mb-2"><i class="fas fa-check-circle fa-2x"></i></span>${cancelIcon}
+            ${statusIcon}
+            ${cancelIcon}
           </div>
         </div>`;
       });
@@ -334,17 +343,18 @@ function renderUI(response, lineName) {
         }
         let spotsHtml = (ev.remainingSpots !== null && ev.remainingSpots !== undefined) ? `<span class="badge bg-danger ms-2 align-middle" style="font-size:0.75rem;"><i class="fas fa-fire"></i> 剩 ${ev.remainingSpots} 名</span>` : '';
 
+        // 【新增 3】把活動區塊加上 onclick="openEventDetail" 觸發海報視窗，報名按鈕改用傳遞 ID 尋找
         eventListContainer.innerHTML += `
         <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid ${config.顏色} !important;">
           <div class="d-flex justify-content-between align-items-start">
-            <div>
+            <div onclick="openEventDetail('${ev.id}')" style="cursor:pointer; flex-grow: 1;">
               <span class="badge mb-2" style="background-color: ${config.顏色};">${ev.category}</span>
-              <h5 class="fw-bold mb-1 text-dark">${ev.name} ${spotsHtml}</h5>
+              <h5 class="fw-bold mb-1 text-primary text-decoration-underline" style="color:${config.顏色} !important;">${ev.name} ${spotsHtml}</h5>
               <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> ${ev.date}</div>
             </div>
-            <div class="text-end">
+            <div class="text-end ms-2">
               ${countdownHtml}
-              <button class="btn btn-sm rounded-pill px-4 text-white" style="background-color: ${config.顏色}; border:none;" onclick="openRegModal('${ev.id}', '${ev.name}', ${ev.allowProxy}, ${ev.requireExtraInfo})">報名</button>
+              <button class="btn btn-sm rounded-pill px-4 text-white" style="background-color: ${config.顏色}; border:none;" onclick="openRegModal('${ev.id}')">報名</button>
               <div class="mt-2"><a href="#" onclick="shareToLine('${ev.name}', '${ev.id}')" class="share-line-btn"><i class="fab fa-line fa-lg"></i> 邀請朋友</a></div>
             </div>
           </div>
@@ -355,7 +365,6 @@ function renderUI(response, lineName) {
     }
   }
 
-  // ====== 奉獻財務專屬 (finance.html) ======
   const financeUnlocked = document.getElementById('finance-unlocked');
   if (financeUnlocked) {
     safeSetText('dynamicYear', response.sysYear); 
@@ -367,7 +376,6 @@ function renderUI(response, lineName) {
     }
   }
 
-  // 【大升級】多頁面自動路由：優先看網址參數，沒有參數就看「檔名」
   const urlParams = new URLSearchParams(window.location.search);
   let targetPage = urlParams.get('page');
   
@@ -376,12 +384,11 @@ function renderUI(response, lineName) {
     if (path.includes('events.html')) targetPage = 'events';
     else if (path.includes('finance.html')) targetPage = 'finance';
     else if (path.includes('prayer.html')) targetPage = 'prayer';
-    else targetPage = 'profile'; // 預設首頁 index.html
+    else targetPage = 'profile'; 
   }
   switchPage(targetPage);
 }
 
-// 【第一階段保留】切換隱藏顯示邏輯 (第二階段會刪除)
 function switchPage(pageId) {
   const pages = ['profile', 'finance', 'prayer', 'events'];
   pages.forEach(p => {
@@ -401,12 +408,9 @@ function switchPage(pageId) {
   }
 }
 
-// ==========================================
-// 圖表與互動功能
-// ==========================================
 function renderRadarChart(data) {
   const canvas = document.getElementById('radarChart');
-  if (!canvas) return; // 防呆
+  if (!canvas) return; 
   const ctx = canvas.getContext('2d');
   
   if (window.myRadarChart) window.myRadarChart.destroy();
@@ -422,7 +426,6 @@ function renderRadarChart(data) {
 }
 
 function shareToLine(eventName, eventId) {
-  // 【雙重保險】加上 events.html 並且帶上 ?page=events
   const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
@@ -446,7 +449,7 @@ function saveProfile() {
 }
 
 function renderDonationChart() {
-  const canvas = document.getElementById('donationChart'); if (!canvas) return; // 防呆
+  const canvas = document.getElementById('donationChart'); if (!canvas) return; 
   const ctx = canvas.getContext('2d');
   const dataValues = [22100, 7800, 2600]; const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
   if (window.myDonationChart) window.myDonationChart.destroy();
@@ -467,7 +470,7 @@ function submitPrayer() {
 
 function playPrayerAnimation(inputText) {
   const overlay = document.getElementById('ritual-overlay'); const textElement = document.getElementById('ritual-prayer-text'); const doveIcon = document.getElementById('ritual-dove'); const scripture = document.getElementById('ritual-scripture');
-  if (!overlay) return; // 防呆
+  if (!overlay) return; 
   textElement.innerText = `"${inputText}"`; textElement.classList.remove('anim-text'); doveIcon.classList.remove('anim-dove'); scripture.classList.remove('scripture-show'); void textElement.offsetWidth; 
   overlay.style.display = 'flex'; setTimeout(() => { overlay.style.opacity = 1; }, 50);
   setTimeout(() => { textElement.classList.add('anim-text'); doveIcon.classList.add('anim-dove'); scripture.classList.add('scripture-show'); }, 100);
@@ -475,27 +478,93 @@ function playPrayerAnimation(inputText) {
 }
 
 // ==========================================
-// 【大升級 4】報名表單：自動帶入本人資料、清空與保險防呆
+// 【大升級 4】全新函數：打開活動詳情與海報
 // ==========================================
-function openRegModal(eventId, eventName, allowProxy, requireExtraInfo) {
-  document.getElementById('regEventId').value = eventId; 
-  document.getElementById('regEventName').innerText = eventName;
+function openEventDetail(eventId) {
+  const evt = globalActiveEvents.find(e => e.id === eventId);
+  if (!evt) return;
+
+  document.getElementById('detailEventName').innerText = evt.name;
+  
+  // 處理海報圖片
+  const posterImg = document.getElementById('detailPoster');
+  if (evt.posterUrl && evt.posterUrl.trim() !== '') {
+      posterImg.src = evt.posterUrl;
+      posterImg.style.display = 'block';
+  } else {
+      posterImg.style.display = 'none';
+      posterImg.src = '';
+  }
+
+  document.getElementById('detailCategory').innerText = evt.category;
+  
+  // 處理收費資訊
+  let feeText = (evt.feeAmount && evt.feeAmount > 0) ? `${evt.feeName}: ${evt.feeAmount}元` : "免費活動";
+  document.getElementById('detailFee').innerText = feeText;
+  
+  document.getElementById('detailDate').innerText = evt.date;
+  document.getElementById('detailDescription').innerText = evt.description || "尚無詳細說明。";
+
+  // 綁定註冊按鈕，點擊後關閉詳情 Modal 並開啟報名 Modal
+  document.getElementById('btn-detail-register').onclick = function() {
+      bootstrap.Modal.getInstance(document.getElementById('eventDetailModal')).hide();
+      openRegModal(eventId);
+  };
+
+  new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
+}
+
+// ==========================================
+// 【大升級 5】改寫報名表單：支援動態下拉選單生成
+// ==========================================
+function openRegModal(eventId) {
+  const evt = globalActiveEvents.find(e => e.id === eventId);
+  if(!evt) return;
+
+  document.getElementById('regEventId').value = evt.id; 
+  document.getElementById('regEventName').innerText = evt.name;
   
   const proxyOption = document.getElementById('opt-proxy');
-  if (allowProxy) { 
+  if (evt.allowProxy) { 
     proxyOption.style.display = 'block'; 
   } else { 
     proxyOption.style.display = 'none'; 
     document.getElementById('regProxyType').value = 'self'; 
   }
   
-  document.getElementById('extraInfoSection').style.display = requireExtraInfo ? 'block' : 'none';
-  
-  // 動態顯示「出生年月日」的必填紅色星號 (如果有保險)
+  document.getElementById('extraInfoSection').style.display = evt.requireExtraInfo ? 'block' : 'none';
   const reqBday = document.getElementById('req-bday');
-  if(reqBday) reqBday.style.display = requireExtraInfo ? 'inline' : 'none';
+  if(reqBday) reqBday.style.display = evt.requireExtraInfo ? 'inline' : 'none';
+
+  // --- 動態表單生成魔法 ---
+  const container = document.getElementById('dynamicFormContainer');
+  const fieldsArea = document.getElementById('dynamicFieldsArea');
+  fieldsArea.innerHTML = ''; // 清空舊的選項
+
+  if (evt.customForm && evt.customForm.trim() !== '') {
+      // 範例字串："便當:葷,素|衣服尺寸:S,M,L"
+      const forms = evt.customForm.split('|');
+      forms.forEach((f) => {
+          const parts = f.split(':');
+          if(parts.length === 2) {
+              const qName = parts[0].trim();
+              const opts = parts[1].split(',').map(o => o.trim());
+              
+              let selectHtml = `<div class="mb-2">
+                <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
+                <select class="form-select form-select-sm dynamic-select" data-qname="${qName}">`;
+              opts.forEach(o => { selectHtml += `<option value="${o}">${o}</option>`; });
+              selectHtml += `</select></div>`;
+              
+              fieldsArea.innerHTML += selectHtml;
+          }
+      });
+      container.style.display = 'block';
+  } else {
+      container.style.display = 'none';
+  }
   
-  toggleProxyFields(); // 觸發自動帶入本人資料
+  toggleProxyFields(); 
   document.getElementById('regAgree').checked = false;
   new bootstrap.Modal(document.getElementById('regModal')).show();
 }
@@ -504,12 +573,10 @@ function toggleProxyFields() {
   const isProxy = document.getElementById('regProxyType').value === 'proxy';
   
   if (!isProxy && currentUserData) {
-    // 【本人參加】：自動帶入全域儲存的資料
     document.getElementById('regParticipantName').value = currentUserData.name !== "未綁定會友" ? currentUserData.name : globalUserName;
     document.getElementById('regParticipantPhone').value = currentUserData.phone || "";
     document.getElementById('regParticipantBirthday').value = currentUserData.birthday || "";
   } else {
-    // 【代為報名】：清空所有欄位
     document.getElementById('regParticipantName').value = "";
     document.getElementById('regParticipantPhone').value = "";
     document.getElementById('regParticipantBirthday').value = "";
@@ -517,7 +584,7 @@ function toggleProxyFields() {
 }
 
 // ==========================================
-// 【大升級 5】送出報名：涵蓋個資校正與 Tier 0 一鍵升級漏斗
+// 【大升級 6】送出報名：抓取動態表單選項
 // ==========================================
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
@@ -531,7 +598,15 @@ function submitRegistration() {
   if (!pPhone) { Swal.fire('提醒', '請填寫「聯絡電話」！', 'warning'); return; } 
 
   let extraObj = {};
-  if (pBday) extraObj.生日 = pBday; // 只要有填生日就寫入 JSON 備註
+  
+  // 【新增】自動抓取畫面上所有的動態下拉選單答案
+  document.querySelectorAll('.dynamic-select').forEach(selectEl => {
+      const qName = selectEl.getAttribute('data-qname');
+      const ans = selectEl.value;
+      extraObj[qName] = ans;
+  });
+
+  if (pBday) extraObj.生日 = pBday; 
 
   const isExtraRequired = document.getElementById('extraInfoSection').style.display !== 'none';
   if (isExtraRequired) { 
@@ -552,10 +627,8 @@ function submitRegistration() {
       bootstrap.Modal.getInstance(document.getElementById('regModal')).hide(); 
       document.getElementById('regForm').reset(); 
 
-      // === 報名成功後的行銷漏斗與個資校正 ===
       if (!isProxy) {
         if (currentUserData.found) { 
-          // 【Tier 1】檢查資料是否異動
           if (pPhone !== currentUserData.phone || pBday !== currentUserData.birthday) {
             Swal.fire({
               title: '🎉 報名成功！',
@@ -563,27 +636,24 @@ function submitRegistration() {
               icon: 'success', showCancelButton: true, confirmButtonText: '一併校正', cancelButtonText: '暫不更新', confirmButtonColor: '#28a745'
             }).then((result) => {
               if (result.isConfirmed) {
-                // 背景呼叫更新 API
                 fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: pPhone, birthday: pBday, groups: currentUserData.groups, service: currentUserData.service }) })
                 .then(()=> { clearCache(); window.location.reload(); });
               } else { window.location.reload(); }
             });
-            return; // 提早結束
+            return; 
           }
         } else {
-          // 【Tier 0】引導無縫註冊
           Swal.fire({
             title: '🎉 報名成功！',
             html: '您目前尚未綁定會友資料。<br>是否使用剛剛填寫的資料，<b>一鍵免費升級為「綁定用戶」</b>？<br>未來報名不需重填，還可解鎖學習護照！',
             icon: 'success', showCancelButton: true, confirmButtonText: '一鍵升級', cancelButtonText: '下次再說', confirmButtonColor: '#f39c12'
           }).then((result) => {
             if (result.isConfirmed) {
-              // 背景呼叫綁定 API
               fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: pName, phone: pPhone, birthday: pBday }) })
               .then(()=> { clearCache(); window.location.reload(); });
             } else { window.location.reload(); }
           });
-          return; // 提早結束
+          return; 
         }
       }
 
