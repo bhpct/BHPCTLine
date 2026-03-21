@@ -8,6 +8,8 @@ window.onerror = function(msg, url, line) {
 
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
+// 【新增】用來儲存使用者的完整資料供報名使用
+let currentUserData = null; 
 
 // 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
@@ -168,6 +170,9 @@ function fetchUserData(uid, lineName) {
 // 【大升級 3】核心渲染邏輯 (加入安全防護罩)
 // ==========================================
 function renderUI(response, lineName) {
+  // 【新增】儲存全域資料，供報名表單自動帶入使用
+  currentUserData = response;
+  
   if(response.found) {
     globalUserName = response.name; 
     safeSetText("ui-userName", response.name + "，平安！");
@@ -268,7 +273,9 @@ function renderUI(response, lineName) {
     if (unboundView) unboundView.style.display = "none";
 
   } else {
-    // 未綁定
+    // 【修改】未綁定時也記錄基本 Tier 0 資料，供報名表單安全帶入使用
+    currentUserData = { found: false, name: lineName, phone: "", birthday: "", tier: "Tier 0", groups: "", service: "" };
+    
     globalUserName = lineName;
     safeSetText("ui-userName", lineName + "，您好！");
     const uiUserTier = document.getElementById("ui-userTier");
@@ -458,29 +465,125 @@ function playPrayerAnimation(inputText) {
   setTimeout(() => { overlay.style.opacity = 0; setTimeout(() => { overlay.style.display = 'none'; document.getElementById('prayerForm').reset(); Swal.fire({ title: '奉耶穌基督的名祈禱，阿們！', text: '您的代禱事項已成功送出，將由牧者同工代禱。', icon: 'success', confirmButtonColor: '#0d6efd' }); }, 1500); }, 10500);
 }
 
+// ==========================================
+// 【大升級 4】報名表單：自動帶入本人資料、清空與保險防呆
+// ==========================================
 function openRegModal(eventId, eventName, allowProxy, requireExtraInfo) {
-  document.getElementById('regEventId').value = eventId; document.getElementById('regEventName').innerText = eventName;
+  document.getElementById('regEventId').value = eventId; 
+  document.getElementById('regEventName').innerText = eventName;
+  
   const proxyOption = document.getElementById('opt-proxy');
-  if (allowProxy) { proxyOption.style.display = 'block'; } else { proxyOption.style.display = 'none'; document.getElementById('regProxyType').value = 'self'; }
-  document.getElementById('extraInfoSection').style.display = requireExtraInfo ? 'block' : 'none'; toggleProxyFields(); document.getElementById('regAgree').checked = false;
+  if (allowProxy) { 
+    proxyOption.style.display = 'block'; 
+  } else { 
+    proxyOption.style.display = 'none'; 
+    document.getElementById('regProxyType').value = 'self'; 
+  }
+  
+  document.getElementById('extraInfoSection').style.display = requireExtraInfo ? 'block' : 'none';
+  
+  // 動態顯示「出生年月日」的必填紅色星號 (如果有保險)
+  const reqBday = document.getElementById('req-bday');
+  if(reqBday) reqBday.style.display = requireExtraInfo ? 'inline' : 'none';
+  
+  toggleProxyFields(); // 觸發自動帶入本人資料
+  document.getElementById('regAgree').checked = false;
   new bootstrap.Modal(document.getElementById('regModal')).show();
 }
-function toggleProxyFields() { document.getElementById('proxyFields').style.display = (document.getElementById('regProxyType').value === 'proxy') ? 'block' : 'none'; }
 
+function toggleProxyFields() { 
+  const isProxy = document.getElementById('regProxyType').value === 'proxy';
+  
+  if (!isProxy && currentUserData) {
+    // 【本人參加】：自動帶入全域儲存的資料
+    document.getElementById('regParticipantName').value = currentUserData.name !== "未綁定會友" ? currentUserData.name : globalUserName;
+    document.getElementById('regParticipantPhone').value = currentUserData.phone || "";
+    document.getElementById('regParticipantBirthday').value = currentUserData.birthday || "";
+  } else {
+    // 【代為報名】：清空所有欄位
+    document.getElementById('regParticipantName').value = "";
+    document.getElementById('regParticipantPhone').value = "";
+    document.getElementById('regParticipantBirthday').value = "";
+  }
+}
+
+// ==========================================
+// 【大升級 5】送出報名：涵蓋個資校正與 Tier 0 一鍵升級漏斗
+// ==========================================
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
-  const isProxy = (document.getElementById('regProxyType').value === 'proxy'); let pName = isProxy ? document.getElementById('regParticipantName').value : globalUserName;
-  if (isProxy && !pName) { Swal.fire('提醒', '請填寫「參與者真實姓名」！', 'warning'); return; } 
-  let extraObj = {};
-  if (document.getElementById('extraInfoSection').style.display !== 'none') { 
-    if (!document.getElementById('regIdNumber').value || !document.getElementById('regDob').value) { Swal.fire('提醒', '保險需填寫身分證與生日！', 'warning'); return; } 
-    extraObj.身分證 = document.getElementById('regIdNumber').value; extraObj.生日 = document.getElementById('regDob').value; 
-  }
-  if (document.getElementById('regMemo').value) extraObj.備註 = document.getElementById('regMemo').value;
-  const btn = document.querySelector('#regModal .btn-primary'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
   
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: isProxy ? document.getElementById('regParticipantPhone').value : document.getElementById('info-phone').innerText, extraInfoStr: JSON.stringify(extraObj) }) })
-  .then(res => res.json()).then(res => { if (res.success) { clearCache(); Swal.fire('報名成功', res.message, 'success').then(() => { window.location.reload(); }); bootstrap.Modal.getInstance(document.getElementById('regModal')).hide(); document.getElementById('regForm').reset(); } else { Swal.fire('報名失敗', res.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; });
+  const isProxy = (document.getElementById('regProxyType').value === 'proxy'); 
+  let pName = document.getElementById('regParticipantName').value.trim();
+  let pPhone = document.getElementById('regParticipantPhone').value.trim();
+  let pBday = document.getElementById('regParticipantBirthday').value;
+
+  if (!pName) { Swal.fire('提醒', '請填寫「參與者真實姓名」！', 'warning'); return; } 
+  if (!pPhone) { Swal.fire('提醒', '請填寫「聯絡電話」！', 'warning'); return; } 
+
+  let extraObj = {};
+  if (pBday) extraObj.生日 = pBday; // 只要有填生日就寫入 JSON 備註
+
+  const isExtraRequired = document.getElementById('extraInfoSection').style.display !== 'none';
+  if (isExtraRequired) { 
+    const idNumber = document.getElementById('regIdNumber').value.trim();
+    if (!idNumber || !pBday) { Swal.fire('提醒', '辦理平安險需填寫「身分證與生日」！', 'warning'); return; } 
+    extraObj.身分證 = idNumber;
+  }
+  
+  if (document.getElementById('regMemo').value) extraObj.備註 = document.getElementById('regMemo').value;
+  
+  const btn = document.querySelector('#regModal .btn-primary'); 
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
+  
+  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
+  .then(res => res.json()).then(res => { 
+    if (res.success) { 
+      clearCache(); 
+      bootstrap.Modal.getInstance(document.getElementById('regModal')).hide(); 
+      document.getElementById('regForm').reset(); 
+
+      // === 報名成功後的行銷漏斗與個資校正 ===
+      if (!isProxy) {
+        if (currentUserData.found) { 
+          // 【Tier 1】檢查資料是否異動
+          if (pPhone !== currentUserData.phone || pBday !== currentUserData.birthday) {
+            Swal.fire({
+              title: '🎉 報名成功！',
+              html: '系統發現您的<b>電話或生日</b>與原紀錄不同。<br>是否要一併校正您的個人基本資料？',
+              icon: 'success', showCancelButton: true, confirmButtonText: '一併校正', cancelButtonText: '暫不更新', confirmButtonColor: '#28a745'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // 背景呼叫更新 API
+                fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: pPhone, birthday: pBday, groups: currentUserData.groups, service: currentUserData.service }) })
+                .then(()=> { clearCache(); window.location.reload(); });
+              } else { window.location.reload(); }
+            });
+            return; // 提早結束
+          }
+        } else {
+          // 【Tier 0】引導無縫註冊
+          Swal.fire({
+            title: '🎉 報名成功！',
+            html: '您目前尚未綁定會友資料。<br>是否使用剛剛填寫的資料，<b>一鍵免費升級為「綁定用戶」</b>？<br>未來報名不需重填，還可解鎖學習護照！',
+            icon: 'success', showCancelButton: true, confirmButtonText: '一鍵升級', cancelButtonText: '下次再說', confirmButtonColor: '#f39c12'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // 背景呼叫綁定 API
+              fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: pName, phone: pPhone, birthday: pBday }) })
+              .then(()=> { clearCache(); window.location.reload(); });
+            } else { window.location.reload(); }
+          });
+          return; // 提早結束
+        }
+      }
+
+      Swal.fire('報名成功', res.message, 'success').then(() => { window.location.reload(); }); 
+    } else { 
+      Swal.fire('報名失敗', res.message, 'error'); 
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; 
+    } 
+  }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; });
 }
 
 function cancelRegistration(regId, eventName) {
