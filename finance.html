@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>霧峰教會 - 財務查詢</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="loading" style="display: none;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
+  </div>
+
+  <div class="church-header text-center mb-4">
+    <h3 id="ui-userName">讀取中...</h3>
+    <span class="badge bg-secondary text-white mt-2" id="ui-userTier" style="cursor: pointer; font-size:0.9rem;" onclick="new bootstrap.Modal(document.getElementById('tierInfoModal')).show()">
+      <i class="fas fa-medal"></i> 驗證狀態 <i class="fas fa-question-circle ms-1"></i>
+    </span>
+  </div>
+
+  <div class="container pb-5">
+    <div id="page-finance" style="display: none;">
+      <div id="finance-locked" class="card p-5 text-center mt-3" style="display: block;">
+        <i class="fas fa-lock fa-4x text-secondary mb-3"></i>
+        <h4 class="text-dark">財務查詢權限未開通</h4>
+        <p class="text-muted mt-2">為保護教會財務隱私，查詢個人奉獻需經辦公室人工核對身分。<br>若您已完成基本綁定，請點擊下方按鈕申請開通。</p>
+        <button class="btn btn-primary mt-3 px-4 rounded-pill" onclick="applyFinanceAccess()">👉 點此申請開通財務權限</button>
+      </div>
+
+      <div id="finance-unlocked" style="display: none;">
+        <div class="card p-4 mt-3 bg-white border-0" style="border-left: 5px solid #28a745 !important;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0 text-success"><i class="fas fa-hand-holding-usd"></i> <span id="dynamicYear">...</span> 年度奉獻</h5>
+            <div class="form-check form-switch text-end" id="familySwitchContainer" style="display: block;">
+              <input class="form-check-input" type="checkbox" id="familySwitch" onchange="toggleFamilyView()">
+              <label class="form-check-label text-muted" for="familySwitch" style="font-size: 0.9rem;">全戶視角</label>
+            </div>
+          </div>
+          <div class="text-muted" style="font-size: 0.9rem;">本年度累積總額</div>
+          <h2 class="text-dark fw-bold mt-1">NT$ <span id="finance-total">32,500</span></h2>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h6 class="text-center text-muted mb-3">各項事工奉獻佔比</h6>
+          <div style="position: relative; height:250px; width:100%">
+            <canvas id="donationChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card p-3 mt-3 mb-5">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-list"></i> 逐筆明細</h6>            
+          </div>
+          <ul class="list-group list-group-flush" id="donation-list">
+            <li class="list-group-item text-center text-muted py-3">奉獻明細載入中...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div> 
+
+  <nav class="bottom-nav">
+    <a href="index.html?page=profile" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>我的</span></a>
+    <a href="finance.html?page=finance" class="nav-item" id="nav-finance"><i class="fas fa-hand-holding-usd"></i><span>奉獻</span></a>
+    <a href="prayer.html?page=prayer" class="nav-item" id="nav-prayer"><i class="fas fa-praying-hands"></i><span>代禱</span></a>
+    <a href="events.html?page=events" class="nav-item" id="nav-events"><i class="fas fa-calendar-alt"></i><span>活動</span></a>
+  </nav>
+
+  <div class="modal fade" id="tierInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light"><h5 class="modal-title fw-bold"><i class="fas fa-layer-group text-primary"></i> 系統權限分級說明</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item p-3"><div class="fw-bold text-secondary mb-1"><i class="fas fa-user"></i> Tier 0 一般用戶</div><div class="text-muted" style="font-size:0.9rem;">未提供資料的訪客。僅能瀏覽公開頁面、接收教會一般資訊。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold text-primary mb-1"><i class="fas fa-user-check"></i> Tier 1 綁定用戶</div><div class="text-muted" style="font-size:0.9rem;">完成手機自助綁定之會友/新朋友。解鎖專屬「活動報名」、「學習護照」等互動功能。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold mb-1" style="color: #f39c12 !important;"><i class="fas fa-crown"></i> Tier 2 驗證用戶</div><div class="text-muted" style="font-size:0.9rem;">須至行政辦公室進行實體身分驗證。解鎖最高機密「個人與全戶財務奉獻」查詢權限。</div></li>
+          </ul>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary w-100 rounded-pill" data-bs-dismiss="modal">我知道了</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="app.js"></script>
+</body>
+</html>
