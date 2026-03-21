@@ -414,7 +414,7 @@ function renderRadarChart(data) {
 }
 
 function shareToLine(eventName, eventId) {
-  const myLiffUrl = `https://liff.line.me/${myLiffId}?page=events`;
+  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
 }
