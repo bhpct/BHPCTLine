@@ -367,9 +367,17 @@ function renderUI(response, lineName) {
     }
   }
 
-  // 第一階段：因為還沒切割 HTML，需要依賴 switchPage 切換顯示區塊
+  // 【大升級】多頁面自動路由：優先看網址參數，沒有參數就看「檔名」
   const urlParams = new URLSearchParams(window.location.search);
-  const targetPage = urlParams.get('page') || "profile";
+  let targetPage = urlParams.get('page');
+  
+  if (!targetPage) {
+    const path = window.location.pathname;
+    if (path.includes('events.html')) targetPage = 'events';
+    else if (path.includes('finance.html')) targetPage = 'finance';
+    else if (path.includes('prayer.html')) targetPage = 'prayer';
+    else targetPage = 'profile'; // 預設首頁 index.html
+  }
   switchPage(targetPage);
 }
 
@@ -414,7 +422,8 @@ function renderRadarChart(data) {
 }
 
 function shareToLine(eventName, eventId) {
-  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html`;
+  // 【雙重保險】加上 events.html 並且帶上 ?page=events
+  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
 }
