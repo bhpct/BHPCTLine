@@ -210,24 +210,39 @@ body {
   border-color: #9b59b6;
 }
 
-/* 五星回饋問卷 (Star Rating) */
+/* ==========================================
+   五星回饋問卷 (Star Rating) 完美直覺版
+   ========================================== */
 .star-rating {
-  display: flex;
-  flex-direction: row-reverse;
+  display: inline-flex;
+  flex-direction: row-reverse; /* 讓 HTML 的 5~1 變成畫面上的 1~5 (左至右) */
   justify-content: center;
-  gap: 10px;
+  position: relative;
 }
-.star-rating input {
-  display: none;
+
+/* 1. 絕對隱藏醜醜的單選圓圈 */
+.star-rating input[type="radio"] {
+  display: none !important; 
 }
+
+/* 2. 預設星星樣式：黯淡灰色 */
 .star-rating label {
   font-size: 2.5rem;
-  color: #ddd;
+  color: #e4e5e9; 
   cursor: pointer;
-  transition: color 0.2s ease-in-out;
+  padding: 0 8px;
+  transition: all 0.2s ease-in-out;
 }
-.star-rating input:checked ~ label,
+
+/* 3. 魔法互動：點擊或滑過時，自己與左邊的星星一起變成耀眼黃色，並微幅放大 */
+.star-rating input[type="radio"]:checked ~ label,
 .star-rating label:hover,
 .star-rating label:hover ~ label {
-  color: #f1c40f;
+  color: #ffc107 !important; 
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+  transform: scale(1.1);
 }
