@@ -46,12 +46,13 @@ document.addEventListener("DOMContentLoaded", function() {
   liff.init({ liffId: myLiffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
+        // 【關鍵修復】將登入後的跳轉網址，強制綁定為官方 LIFF 網址，徹底解決 400 錯誤！
         document.getElementById('loading').innerHTML = `
           <div class="text-center px-4">
             <i class="fab fa-line fa-4x text-success mb-3"></i>
             <h4 class="fw-bold mb-3 text-dark">等待登入驗證</h4>
             <p class="text-muted mb-4" style="font-size:0.95rem;">為了確保會友資料安全，<br>請點擊下方按鈕授權 LINE 登入。</p>
-            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="liff.login({ redirectUri: window.location.href });">
+            <button class="btn btn-success w-100 py-2 rounded-pill shadow-sm" onclick="liff.login({ redirectUri: 'https://liff.line.me/' + myLiffId });">
               <i class="fas fa-sign-in-alt"></i> 點此授權登入
             </button>
           </div>
@@ -261,9 +262,6 @@ function fetchUserData(uid, lineName) {
         document.getElementById("registered-view").style.display = "none";
       }
 
-      // ==========================================
-      // 【更新】動態渲染「開放報名」活動列表 (含倒數、名額、邀請)
-      // ==========================================
       const eventListContainer = document.getElementById("event-list");
       eventListContainer.innerHTML = "";
 
@@ -272,7 +270,6 @@ function fetchUserData(uid, lineName) {
           let config = categoryConfig[ev.category] || {顏色: '#3498db'};
           let badgeColor = config.顏色;
 
-          // 計算倒數天數
           let countdownHtml = '';
           if (ev.regEndDate) {
             let diff = ev.regEndDate - new Date().getTime();
@@ -286,7 +283,6 @@ function fetchUserData(uid, lineName) {
             }
           }
 
-          // 判斷剩餘名額
           let spotsHtml = '';
           if (ev.remainingSpots !== null && ev.remainingSpots !== undefined) {
             spotsHtml = `<span class="badge bg-danger ms-2 align-middle" style="font-size:0.75rem;"><i class="fas fa-fire"></i> 剩 ${ev.remainingSpots} 名</span>`;
@@ -334,9 +330,6 @@ function fetchUserData(uid, lineName) {
     });
 }
 
-// ==========================================
-// 繪製屬靈履歷雷達圖 (防塌陷 + 精準對位版)
-// ==========================================
 function renderRadarChart(data) {
   const canvas = document.getElementById('radarChart');
   if (!canvas) return;
@@ -409,9 +402,6 @@ function renderRadarChart(data) {
   });
 }
 
-// ==========================================
-// LINE 邀請分享功能
-// ==========================================
 function shareToLine(eventName, eventId) {
   const myLiffUrl = `https://liff.line.me/${myLiffId}?page=events`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
@@ -536,9 +526,6 @@ function toggleFamilyView() {
   });
 }
 
-// ==========================================
-// 【更新】代禱送出並觸發神聖動畫
-// ==========================================
 function submitPrayer() {
   const target = document.getElementById('prayer-target').value;
   const content = document.getElementById('prayer-content').value;
@@ -560,7 +547,7 @@ function submitPrayer() {
   .then(res => {
     if (res.success) {
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱';
-      playPrayerAnimation(content); // 觸發神聖動畫
+      playPrayerAnimation(content); 
     } else {
       Swal.fire('系統錯誤', res.message, 'error');
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出';
@@ -572,7 +559,6 @@ function submitPrayer() {
   });
 }
 
-// 執行代禱神聖動畫
 function playPrayerAnimation(inputText) {
   const overlay = document.getElementById('ritual-overlay');
   const textElement = document.getElementById('ritual-prayer-text');
@@ -581,17 +567,15 @@ function playPrayerAnimation(inputText) {
 
   textElement.innerText = `"${inputText}"`;
   
-  // 移除動畫 Class 以便重新觸發
   textElement.classList.remove('anim-text');
   doveIcon.classList.remove('anim-dove');
   scripture.classList.remove('scripture-show');
   
-  void textElement.offsetWidth; // 重繪 DOM
+  void textElement.offsetWidth; 
   
   overlay.style.display = 'flex';
   setTimeout(() => { overlay.style.opacity = 1; }, 50);
 
-  // 開始 10 秒鐘的神聖動畫
   setTimeout(() => {
     textElement.classList.add('anim-text');
     doveIcon.classList.add('anim-dove');
