@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>門徒培育系統 - 進階功能與完美代禱動畫測試</title>
+  <title>門徒培育系統 - 神聖代禱動畫與進階功能測試</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -12,7 +12,7 @@
     .card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     
     /* ==========================================
-       【神聖代禱動畫專屬 CSS】
+       【極致神聖版】代禱儀式感動畫 CSS
        ========================================== */
     #ritual-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -21,27 +21,28 @@
       opacity: 0; transition: opacity 1.5s ease-in-out;
     }
     
-    /* 動畫容器 */
+    /* 動畫容器：確保文字和白鴿在同一個中心點對齊 */
     .ritual-content {
       position: absolute; top: 55%; left: 50%; width: 100%; text-align: center;
       transform: translate(-50%, -50%);
     }
     
-    /* 祈禱文字：位於下方，Z-index 較低，會被白鴿覆蓋 */
+    /* 【修改】祈禱文字：更大、初始顏色為深色 */
     .prayer-text-display {
-      font-size: 1.4rem; color: #fff; font-style: italic; max-width: 85%; margin: 0 auto;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.6);
-      position: relative; z-index: 1;
+      font-size: 1.8rem; font-weight: bold; font-style: italic; 
+      max-width: 85%; margin: 0 auto;
+      color: #1a2a3a; /* 初始顏色：深色 */
+      position: relative; z-index: 1; /* 位於白鴿下方 */
       opacity: 1; transform: scale(1);
     }
     
-    /* 白鴿 Icon：位於中心，Z-index 較高，用來覆蓋文字 */
+    /* 【修改】巨型白鴿 Icon */
     .dove-icon {
-      font-size: 9rem; color: white;
-      filter: drop-shadow(0 0 25px rgba(255,255,255,1));
+      font-size: 14rem; color: white; /* 尺寸大幅提升 */
+      filter: drop-shadow(0 0 30px rgba(255,255,255,1));
       position: absolute; top: 50%; left: 50%; 
       transform: translate(-50%, -50%);
-      z-index: 5; opacity: 0;
+      z-index: 5; opacity: 0; pointer-events: none;
     }
 
     /* 羅馬書經文 */
@@ -53,31 +54,33 @@
     }
     
     /* ==========================================
-       【動畫時序控制 - 總時長 8 秒】
+       【精雕細琢】動畫時序控制 - 總時長 8.5 秒
        ========================================== */
     
-    /* 1. 文字動畫：先停留，然後慢慢縮小並淡出 */
-    .anim-text { animation: textShrinkAndFade 8s forwards; }
-    @keyframes textShrinkAndFade {
-      0%, 15%   { transform: scale(1); opacity: 1; }      /* 0-1.2s: 保持原樣 */
-      35%, 100% { transform: scale(0.3); opacity: 0; }    /* 2.8s: 縮小並消失 */
+    /* 1. 文字動畫：黑轉白 (1.2s) -> 緩慢縮小被吸收 (1.2s) */
+    .anim-text { animation: textTransformAndShrink 8.5s forwards; }
+    @keyframes textTransformAndShrink {
+      0%   { transform: scale(1); color: #1a2a3a; text-shadow: none; opacity: 1; }
+      14%  { transform: scale(1); color: #ffffff; text-shadow: 0 0 15px #fff; opacity: 1; } /* 0s - 1.2s: 黑轉白 */
+      28%  { transform: scale(0.2); color: #ffffff; opacity: 0; } /* 1.2s - 2.4s: 緩慢縮小至消失 (耗時 1.2 秒) */
+      100% { transform: scale(0.2); opacity: 0; }
     }
 
-    /* 2. 白鴿動畫：先浮現覆蓋文字，停留一陣子，再往上飛並縮小 */
-    .anim-dove { animation: doveAppearAndFly 8s forwards; }
-    @keyframes doveAppearAndFly {
-      0%, 20%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } /* 0-1.6s: 隱藏 */
-      35%, 45%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } /* 2.8s-3.6s: 完全浮現並放大覆蓋文字 */
-      90%, 100% { opacity: 0; transform: translate(-50%, -80vh) scale(0.1); } /* 7.2s: 飛向高處光源並縮小消失 */
+    /* 2. 巨型白鴿動畫：包覆文字 -> 停留 -> 緩緩飛昇變小 */
+    .anim-dove { animation: doveEmbraceAndFly 8.5s forwards; }
+    @keyframes doveEmbraceAndFly {
+      0%, 10%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } /* 0-0.8s: 等待文字變白 */
+      25%, 40%  { opacity: 1; transform: translate(-50%, -50%) scale(1); } /* 2.1s - 3.4s: 完全顯現，溫柔包覆縮小的文字 */
+      85%, 100% { opacity: 0; transform: translate(-50%, -85vh) scale(0.05); } /* 7.2s: 帶著禱告飛向光明深處 */
     }
     
-    /* 3. 經文浮現動畫：在白鴿開始往上飛時浮現 */
+    /* 3. 經文浮現動畫：在白鴿飛昇途中浮現 */
     .scripture-show { animation: fadeUpIn 3s 4s forwards; }
     @keyframes fadeUpIn {
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 邀請朋友按鈕效果 */
+    /* 邀請朋友按鈕 */
     .share-line-btn {
       color: #28a745; text-decoration: none; font-weight: bold; font-size: 0.85rem; 
       transition: color 0.3s;
@@ -135,38 +138,10 @@
         </div>
       </div>
     </div>
-
-    <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid #28a745;">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <span class="badge mb-2" style="background-color: #28a745;">信徒課程</span>
-          <h5 class="fw-bold mb-1 text-dark">
-            春季成人主日學
-          </h5>
-          <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> 2026/04/01 ~ 06/30</div>
-        </div>
-        
-        <div class="text-end">
-          <div class="text-danger fw-bold mb-1" style="font-size: 0.8rem;">
-            <i class="fas fa-exclamation-circle"></i> 今日截止
-          </div>
-          <button class="btn btn-sm rounded-pill px-4 text-white" style="background-color: #28a745;">報名</button>
-          <div class="mt-2">
-            <a href="#" onclick="shareToLine('春季成人主日學', 'E2026002')" class="share-line-btn">
-              <i class="fab fa-line fa-lg"></i> 邀請朋友
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 
 <script>
-  // ==========================================
-  // 功能 1：LINE 邀請朋友實作
-  // ==========================================
   function shareToLine(eventName, eventId) {
     const myLiffUrl = "https://liff.line.me/2009444508-qaGGdlps?page=events";
     const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
@@ -174,9 +149,6 @@
     window.open(lineUrl, '_blank');
   }
 
-  // ==========================================
-  // 功能 2：飛鴿代禱動畫實作 (細膩時序)
-  // ==========================================
   function testSubmitPrayer() {
     const inputText = document.getElementById('test-prayer-input').value;
     if (!inputText) {
@@ -197,28 +169,27 @@
     doveIcon.classList.remove('anim-dove');
     scripture.classList.remove('scripture-show');
     
-    // 強制重繪 DOM (Reflow)
+    // 強制重繪 DOM
     void textElement.offsetWidth; 
     
     // 顯示神聖光芒遮罩
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.style.opacity = 1; }, 50);
 
-    // 2. 加上動畫 Class，開始 8 秒鐘的神聖動畫
+    // 2. 加上動畫 Class，開始 8.5 秒鐘的神聖動畫
     setTimeout(() => {
       textElement.classList.add('anim-text');
       doveIcon.classList.add('anim-dove');
       scripture.classList.add('scripture-show');
     }, 100);
 
-    // 3. 動畫結束 (8.5 秒)，隱藏遮罩，顯示結尾禱告詞
+    // 3. 動畫結束，顯示結尾禱告詞
     setTimeout(() => {
       overlay.style.opacity = 0;
       setTimeout(() => { 
         overlay.style.display = 'none'; 
-        document.getElementById('test-prayer-input').value = ''; // 清空輸入框
+        document.getElementById('test-prayer-input').value = ''; 
         
-        // 正式且完整的結尾禱告詞
         Swal.fire({
           title: '奉耶穌基督的名祈禱，阿們！',
           text: '您的代禱事項已成功送出，將由牧者同工代禱。',
@@ -226,7 +197,7 @@
           confirmButtonColor: '#0d6efd'
         });
       }, 1500);
-    }, 8500);
+    }, 9000);
   }
 </script>
 
