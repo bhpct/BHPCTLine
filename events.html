@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>霧峰教會 - 活動報名</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="loading" style="display: none;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
+  </div>
+
+  <div class="church-header text-center mb-4">
+    <h3 id="ui-userName">讀取中...</h3>
+    <span class="badge bg-secondary text-white mt-2" id="ui-userTier" style="cursor: pointer; font-size:0.9rem;" onclick="new bootstrap.Modal(document.getElementById('tierInfoModal')).show()">
+      <i class="fas fa-medal"></i> 驗證狀態 <i class="fas fa-question-circle ms-1"></i>
+    </span>
+  </div>
+
+  <div class="container pb-5">
+    <div id="page-events" style="display: none;">
+      <div id="registered-view" class="card p-4 mt-3 bg-white border-0 shadow-sm" style="border-radius: 15px; border-left: 5px solid #28a745 !important; display: none;">
+        <h5 class="mb-2 text-success fw-bold"><i class="fas fa-clipboard-check"></i> 已經報名活動/課程</h5>
+        <div id="registered-event-list"><div class="text-center text-muted my-2" style="font-size:0.9rem;">讀取中...</div></div>
+      </div>
+
+      <div class="card p-4 mt-4 bg-white border-0 shadow-sm" style="border-radius: 15px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+        <h5 class="mb-1 text-primary fw-bold"><i class="fas fa-calendar-alt"></i> 開放報名清單</h5>
+        <p class="text-muted mb-0" style="font-size: 0.9rem;">點擊報名，輕鬆參與教會生活</p>
+      </div>
+
+      <div id="event-list" class="mt-3 mb-5">
+        <div class="text-center text-muted my-4"><div class="spinner-border spinner-border-sm text-primary"></div> 活動讀取中...</div>
+      </div>
+    </div>
+  </div> 
+
+  <nav class="bottom-nav">
+    <a href="index.html?page=profile" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>我的</span></a>
+    <a href="finance.html?page=finance" class="nav-item" id="nav-finance"><i class="fas fa-hand-holding-usd"></i><span>奉獻</span></a>
+    <a href="prayer.html?page=prayer" class="nav-item" id="nav-prayer"><i class="fas fa-praying-hands"></i><span>代禱</span></a>
+    <a href="events.html?page=events" class="nav-item" id="nav-events"><i class="fas fa-calendar-alt"></i><span>活動</span></a>
+  </nav>
+
+  <div class="modal fade" id="tierInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light"><h5 class="modal-title fw-bold"><i class="fas fa-layer-group text-primary"></i> 系統權限分級說明</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item p-3"><div class="fw-bold text-secondary mb-1"><i class="fas fa-user"></i> Tier 0 一般用戶</div><div class="text-muted" style="font-size:0.9rem;">未提供資料的訪客。僅能瀏覽公開頁面、接收教會一般資訊。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold text-primary mb-1"><i class="fas fa-user-check"></i> Tier 1 綁定用戶</div><div class="text-muted" style="font-size:0.9rem;">完成手機自助綁定之會友/新朋友。解鎖專屬「活動報名」、「學習護照」等互動功能。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold mb-1" style="color: #f39c12 !important;"><i class="fas fa-crown"></i> Tier 2 驗證用戶</div><div class="text-muted" style="font-size:0.9rem;">須至行政辦公室進行實體身分驗證。解鎖最高機密「個人與全戶財務奉獻」查詢權限。</div></li>
+          </ul>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary w-100 rounded-pill" data-bs-dismiss="modal">我知道了</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="regModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light"><h5 class="modal-title fw-bold text-dark" id="regEventName">活動名稱</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="regForm">
+            <input type="hidden" id="regEventId">
+            <h6 class="text-primary fw-bold"><i class="fas fa-user-check"></i> 參加者身分</h6>
+            <div class="mb-3">
+              <select class="form-select" id="regProxyType" onchange="toggleProxyFields()">
+                <option value="self" selected>👤 本人參加</option>
+                <option value="proxy" id="opt-proxy">👥 為親友/長輩/孩童代為報名</option>
+              </select>
+            </div>
+            <div id="proxyFields" class="p-3 bg-light rounded mb-3" style="display: none; border-left: 3px solid #f39c12;">
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">參與者真實姓名 <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="regParticipantName"></div>
+              <div><label class="form-label text-muted" style="font-size:0.9rem;">聯絡電話 (選填)</label><input type="tel" class="form-control form-control-sm" id="regParticipantPhone"></div>
+            </div>
+            <div id="extraInfoSection" style="display: none;">
+              <hr><h6 class="text-danger fw-bold"><i class="fas fa-shield-alt"></i> 保險與特殊需求</h6><div class="alert alert-warning p-2" style="font-size: 0.85rem;">⚠️ 本活動需辦理平安險，請確實填寫以下資料。</div>
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">身分證字號 <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="regIdNumber"></div>
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">出生年月日 <span class="text-danger">*</span></label><input type="date" class="form-control form-control-sm" id="regDob"></div>
+              <div class="mb-2"><label class="form-label text-muted" style="font-size:0.9rem;">特殊需求備註 (選填)</label><input type="text" class="form-control form-control-sm" id="regMemo"></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer flex-column border-0 pt-0">
+          <div class="form-check w-100 mb-2"><input class="form-check-input" type="checkbox" id="regAgree" required><label class="form-check-label text-muted" for="regAgree" style="font-size: 0.8rem;">我同意教會收集上述資料用於活動聯繫與保險辦理。</label></div>
+          <button type="button" class="btn btn-primary w-100 rounded-pill py-2 mb-2" onclick="submitRegistration()"><i class="fas fa-paper-plane"></i> 確定送出報名</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="app.js"></script>
+</body>
+</html>
