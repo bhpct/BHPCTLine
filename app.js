@@ -9,7 +9,6 @@ window.onerror = function(msg, url, line) {
 let currentUID = ""; 
 let globalUserName = "未綁定會友"; 
 
-// 🚨 如果您的 LIFF ID 有變動，請記得在此修改
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
@@ -20,16 +19,12 @@ const targetPage = urlParams.get('page') || "profile";
 // 定義類別顏色與概念對應字典 (已全面替換為「聯誼活動」)
 // ==========================================
 const categoryConfig = {
-  // 左上象限 (TL) 對應雷達圖 (上)：服事 (Red)
   '服事者課程': {概念: '服事', 顏色: '#dc3545'},
   '司會訓練': {概念: '服事', 顏色: '#dc3545'},
-  // 右上象限 (TR) 對應雷達圖 (右)：造就 (Green)
   '信徒造就課程': {概念: '造就', 顏色: '#28a745'},
   '聖經課程': {概念: '造就', 顏色: '#28a745'},
-  // 右下象限 (BR) 對應雷達圖 (下)：尋羊 (Orange)
   '聯誼活動': {概念: '尋羊', 顏色: '#f39c12'},  
   '團契出遊': {概念: '尋羊', 顏色: '#f39c12'},
-  // 左下象限 (BL) 對應雷達圖 (左)：見證 (Purple)
   '福音活動': {概念: '見證', 顏色: '#9b59b6'},
   '聖誕晚會': {概念: '見證', 顏色: '#9b59b6'}
 };
@@ -46,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function() {
   liff.init({ liffId: myLiffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
-        // 【關鍵修復】將登入後的跳轉網址，強制綁定為官方 LIFF 網址，徹底解決 400 錯誤！
+        // 【修復】強制鎖定 redirectUri 為官方 LIFF 網址，徹底解決 400 Bad Request
         document.getElementById('loading').innerHTML = `
           <div class="text-center px-4">
             <i class="fab fa-line fa-4x text-success mb-3"></i>
@@ -121,11 +116,9 @@ function fetchUserData(uid, lineName) {
         document.getElementById("input-phone").value = response.phone;
         document.getElementById("input-birthday").value = response.birthday;
         
-        // 更新學習護照總結數字
         document.getElementById("info-event-count").innerText = `${response.eventCount} 場`;
         document.getElementById("info-course-count").innerText = `${response.courseCount} 堂`;
 
-        // 渲染學習歷程清單
         const historyContainer = document.getElementById("history-list");
         historyContainer.innerHTML = "";
         
