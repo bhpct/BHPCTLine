@@ -252,12 +252,12 @@ function renderMemberListTable(list, currentFilter) {
   tbody.innerHTML = html;
 }
 
-// 儀表板 Modal 的簡易修改
+// 【回合 A 防呆】儀表板 Modal 的簡易修改 (只剩等級)
 function editUserSimple(index, currentFilter) {
   getMemberModal().hide();
   let user = currentModalList[index];
   Swal.fire({
-    title: `簡易修改：${user.name}`,
+    title: `快速調整等級：${user.name}`,
     html: `
       <div class="text-start mt-2">
         <label class="form-label fw-bold text-primary">帳號等級</label>
@@ -266,14 +266,23 @@ function editUserSimple(index, currentFilter) {
           <option value="Tier 1" ${user.tier === 'Tier 1' ? 'selected' : ''}>Tier 1 (已綁定)</option>
           <option value="Tier 2" ${user.tier === 'Tier 2' ? 'selected' : ''}>Tier 2 (財務驗證)</option>
         </select>
-        <label class="form-label fw-bold text-primary">服事單位</label><input type="text" id="edit-service" class="form-control mb-3" value="${user.service}">
-        <label class="form-label fw-bold text-primary">推播頻道/團契</label><input type="text" id="edit-groups" class="form-control" value="${user.groups}">
+        <div class="alert alert-light text-muted p-2" style="font-size:0.85rem;">
+          <i class="fas fa-info-circle text-primary"></i> 若需調整團契或服事單位，請前往「會友」分頁使用完整編輯功能。
+        </div>
       </div>`,
     showCancelButton: true, confirmButtonText: '儲存', cancelButtonText: '取消', confirmButtonColor: '#28a745'
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminUpdateUser', adminUid: currentUID, targetUid: user.uid, tier: document.getElementById('edit-tier').value, service: document.getElementById('edit-service').value.trim(), groups: document.getElementById('edit-groups').value.trim() }) })
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ 
+          action: 'adminUpdateUser', adminUid: currentUID, targetUid: user.uid, 
+          tier: document.getElementById('edit-tier').value, 
+          service: user.service, // 保持原樣不變
+          groups: user.groups // 保持原樣不變
+        }) 
+      })
       .then(res => res.json()).then(res => {
         if (res.success) Swal.fire('成功', '資料已更新', 'success').then(() => showMemberList(currentFilter));
         else Swal.fire('錯誤', res.message, 'error').then(() => getMemberModal().show());
@@ -282,7 +291,7 @@ function editUserSimple(index, currentFilter) {
   });
 }
 
-// 共用單獨私訊 API
+// 【回合 A 防呆】共用單獨私訊 API (變數替換修復)
 function directMessageUser(targetUid, targetName) {
   if (memberModalInstance) getMemberModal().hide();
   Swal.fire({
@@ -291,8 +300,11 @@ function directMessageUser(targetUid, targetName) {
     preConfirm: (text) => { if (!text || text.trim() === '') Swal.showValidationMessage('內容不能為空喔！'); return text.trim(); }
   }).then((result) => {
     if (result.isConfirmed) {
+      // 這裡直接把 {name} 變數替換成他的名字再送出
+      let finalMsg = result.value.replace(/{name}/g, targetName);
+
       Swal.fire({ title: '發送中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: 'UID:' + targetUid, messageContent: result.value, attachEventId: '無' }) })
+      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: 'UID:' + targetUid, messageContent: finalMsg, attachEventId: '無' }) })
       .then(res => res.json()).then(res => {
         if (res.success) Swal.fire('發送成功！', `已成功發送給 ${targetName}。`, 'success').then(() => { if (memberModalInstance) getMemberModal().show(); });
         else Swal.fire('發送失敗', res.message, 'error').then(() => { if (memberModalInstance) getMemberModal().show(); });
@@ -343,15 +355,24 @@ function loadAllMembers() {
     });
 }
 
+// 【回合 A 防呆】多重模糊搜尋升級
 function filterFullMemberList() {
-  const keyword = document.getElementById('member-search-input').value.trim().toLowerCase();
+  const searchInput = document.getElementById('member-search-input').value.trim().toLowerCase();
+  const keywords = searchInput ? searchInput.split(/\s+/) : []; // 支援空白分隔多關鍵字
   const tFilter = document.getElementById('filter-tier').value;
   const gFilter = document.getElementById('filter-group').value;
   const bFilter = document.getElementById('filter-baptism').value;
 
   const filtered = allMembersCache.filter(u => {
     let match = true;
-    if (keyword && !(u.name.toLowerCase().includes(keyword) || String(u.phone).includes(keyword))) match = false;
+    
+    // 多重關鍵字比對：必須全部包含才算命中
+    if (keywords.length > 0) {
+      const searchStr = u.name.toLowerCase() + " " + String(u.phone);
+      let allKwMatch = keywords.every(kw => searchStr.includes(kw));
+      if (!allKwMatch) match = false;
+    }
+    
     if (tFilter && u.tier !== tFilter) match = false;
     if (gFilter && !String(u.groups).includes(gFilter)) match = false;
     if (bFilter && u.baptism !== bFilter) match = false;
