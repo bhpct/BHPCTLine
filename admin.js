@@ -624,22 +624,24 @@ function loadAdminRoles() {
           let levelIcon = a.level.includes("最高") ? "🦅" : (a.level.includes("活動") ? "🎟️" : (a.level.includes("財務") ? "💰" : "📋"));
           if(a.level === "超級管理員") levelIcon = "👑";
 
-          let actionHtml = '';
+          // 【新增】所有管理員專屬的小鈴鐺按鈕
+          let actionHtml = `<i class="fas fa-bell fa-lg text-info mx-2" style="cursor:pointer;" onclick="editAdminNotif('${a.uid}', '${a.name}', '${a.notifications}')" title="設定推播通知"></i>`;
+          
           if (a.level !== "超級管理員") {
             let toggleIcon = a.status === '已啟用' ? 'fa-ban text-warning' : 'fa-check-circle text-success';
-            actionHtml = `
+            actionHtml += `
               <i class="fas ${toggleIcon} fa-lg mx-2" style="cursor:pointer;" onclick="manageAdminRole('${a.uid}', 'toggle')" title="切換狀態"></i>
               <i class="fas fa-trash-alt fa-lg text-danger mx-2" style="cursor:pointer;" onclick="manageAdminRole('${a.uid}', 'remove')" title="刪除權限"></i>
             `;
           } else {
-            actionHtml = `<span class="text-muted" style="font-size:0.7rem;">系統預設不可更動</span>`;
+            actionHtml += `<span class="text-muted ms-2" style="font-size:0.7rem;">(預設不可刪)</span>`;
           }
 
           tbody.innerHTML += `
             <tr>
               <td class="text-start fw-bold text-dark">
                 ${a.name}<br>
-                <span class="text-muted" style="font-size:0.7rem;"><i class="fas fa-bell"></i> ${a.notifications || '無'}</span>
+                <span class="text-muted" style="font-size:0.7rem;"><i class="fas fa-bullhorn"></i> ${a.notifications || '無'}</span>
               </td>
               <td class="text-primary">${levelIcon} ${a.level}</td>
               <td><span class="badge bg-${bClass}">${a.status}</span></td>
@@ -649,6 +651,48 @@ function loadAdminRoles() {
         document.getElementById('admin-role-table').style.display = 'table';
       }
     });
+}
+
+// 【本次新增】獨立編輯推播通知的精美視窗
+function editAdminNotif(uid, name, currentNotifs) {
+  let nArr = currentNotifs ? currentNotifs.split('、') : [];
+  let c1 = nArr.includes('新用戶通知') ? 'checked' : '';
+  let c2 = nArr.includes('財務驗證通知') ? 'checked' : '';
+  let c3 = nArr.includes('代禱通知') ? 'checked' : '';
+  let c4 = nArr.includes('活動報名通知') ? 'checked' : '';
+
+  Swal.fire({
+    title: `🔔 推播設定：${name}`,
+    html: `
+      <div class="text-start px-3 mt-3">
+        <p class="text-muted mb-3" style="font-size: 0.85rem;">請勾選該同工需要接收的系統即時通知：</p>
+        <div class="form-check mb-3"><input class="form-check-input edit-notif-chk shadow-sm" type="checkbox" value="新用戶通知" id="en1" ${c1}><label class="form-check-label fw-bold text-dark" for="en1">新用戶註冊</label></div>
+        <div class="form-check mb-3"><input class="form-check-input edit-notif-chk shadow-sm" type="checkbox" value="財務驗證通知" id="en2" ${c2}><label class="form-check-label fw-bold text-dark" for="en2">財務開通申請</label></div>
+        <div class="form-check mb-3"><input class="form-check-input edit-notif-chk shadow-sm" type="checkbox" value="代禱通知" id="en3" ${c3}><label class="form-check-label fw-bold text-dark" for="en3">新代禱事項</label></div>
+        <div class="form-check mb-3"><input class="form-check-input edit-notif-chk shadow-sm" type="checkbox" value="活動報名通知" id="en4" ${c4}><label class="form-check-label fw-bold text-dark" for="en4">新活動報名</label></div>
+      </div>
+    `,
+    showCancelButton: true, confirmButtonText: '儲存設定', cancelButtonText: '取消', confirmButtonColor: '#8e44ad',
+    preConfirm: () => {
+      let sel = [];
+      document.querySelectorAll('.edit-notif-chk:checked').forEach(c => sel.push(c.value));
+      return sel.length > 0 ? sel.join('、') : '無';
+    }
+  }).then(result => {
+    if(result.isConfirmed) {
+      Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ 
+          action: 'manageAdminRole', adminUid: currentUID, targetUid: uid, 
+          targetName: '', roleLevel: '', notifications: result.value, manageAction: 'update_notif' 
+        }) 
+      }).then(res => res.json()).then(res => {
+        if(res.success) Swal.fire('成功', res.message, 'success').then(() => loadAdminRoles());
+        else Swal.fire('錯誤', res.message, 'error');
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
 }
 
 function assignAdminRole() {
