@@ -30,6 +30,12 @@ document.addEventListener("DOMContentLoaded", function() {
   }).catch((err) => Swal.fire('錯誤', 'LIFF 啟動失敗', 'error'));
 });
 
+// 【終極防快取】由 admin.html 呼叫的重整按鈕
+window.forceAdminRefresh = function() {
+  Swal.fire({ title: '重新載入中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+};
+
 function verifyAdminAuth(uid) {
   console.log("🛡️ 向伺服器驗證管理員權限中...");
   fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
@@ -219,7 +225,6 @@ function renderDashboard(data) {
   document.getElementById('tab-dashboard').innerHTML = html + `</div>`;
 }
 
-// 【回合 A 新增】一鍵開通財務權限對話框
 function approveFinanceAccess(targetUid, targetName) {
   Swal.fire({
     title: `核准開通：${targetName}`,
@@ -239,7 +244,7 @@ function approveFinanceAccess(targetUid, targetName) {
   }).then((result) => {
     if (result.isConfirmed) {
       const dCode = result.value;
-      const fId = dCode.split('-')[0]; // 自動切出家庭編號
+      const fId = dCode.split('-')[0]; 
       
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       fetch(GAS_URL, { 
