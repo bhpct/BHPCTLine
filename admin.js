@@ -48,15 +48,21 @@ window.forceAdminRefresh = function() {
 function verifyAdminAuth(uid) {
   console.log("🛡️ 向伺服器驗證管理員權限中...");
   fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
-    .then(res => res.json())
+    .then(async res => {
+      const text = await res.text();
+      try {
+        return JSON.parse(text); // 嘗試解析為正常的 JSON 資料
+      } catch(e) {
+        // 如果解析失敗，就把 Google 偷偷丟回來的東西印出來！
+        throw new Error("<span style='color:red; font-size:0.85rem;'>伺服器回傳異常：</span><br>" + text.substring(0, 150).replace(/</g, "&lt;"));
+      }
+    })
     .then(response => {
       if (response.isAdmin) {
         adminData = response;
         document.getElementById('loading').style.display = 'none';
         document.getElementById('ui-adminName').innerText = `${response.name} (${response.adminLevel})`;
-        
-        applyRBAC(); // 執行角色權限 UI 隱藏機制
-        
+        applyRBAC(); 
       } else {
         document.getElementById('loading').style.display = 'none';
         Swal.fire({
@@ -64,7 +70,11 @@ function verifyAdminAuth(uid) {
           confirmButtonColor: '#8e44ad', confirmButtonText: '返回首頁', allowOutsideClick: false
         }).then(() => { window.location.href = 'index.html'; });
       }
-    }).catch(err => Swal.fire('錯誤', '資料庫連線失敗！', 'error'));
+    }).catch(err => {
+      document.getElementById('loading').style.display = 'none';
+      // 這裡會把真正的死因顯示在跳窗上
+      Swal.fire({ title: '資料庫連線失敗', html: err.message, icon: 'error' });
+    });
 }
 
 // ==========================================
