@@ -199,7 +199,7 @@ function markPrayerDone(rowId) {
 }
 
 // ==========================================
-// Modal 名單總覽與個資修改
+// Modal 名單總覽與個資修改 (防疊加視窗版)
 // ==========================================
 function getMemberModal() {
   if (!memberModalInstance) {
@@ -264,6 +264,9 @@ function renderMemberListTable(list) {
 }
 
 function editUser(index) {
+  // 【防疊加】先隱藏底層 Modal，確保手機鍵盤正常運作
+  getMemberModal().hide();
+
   let user = currentModalList[index];
   Swal.fire({
     title: '修改會友資料',
@@ -301,17 +304,28 @@ function editUser(index) {
         })
       }).then(res => res.json()).then(res => {
         if (res.success) {
-          Swal.fire('成功', '資料已成功更新', 'success');
-          const currentFilter = document.getElementById('memberListModalLabel').innerText.includes('壽星') ? 'Birthday' : user.tier;
-          showMemberList(currentFilter); 
-        } else Swal.fire('錯誤', res.message, 'error');
-      }).catch(err => Swal.fire('錯誤', err.message, 'error'));
+          // 【防疊加】成功後提示，按 OK 才把底層 Modal 叫回來並更新
+          Swal.fire('成功', '資料已成功更新', 'success').then(() => {
+            const currentFilter = document.getElementById('memberListModalLabel').innerText.includes('壽星') ? 'Birthday' : user.tier;
+            showMemberList(currentFilter); 
+          });
+        } else {
+          Swal.fire('錯誤', res.message, 'error').then(() => getMemberModal().show());
+        }
+      }).catch(err => {
+        Swal.fire('錯誤', err.message, 'error').then(() => getMemberModal().show());
+      });
+    } else {
+      // 【防疊加】取消操作，恢復底層 Modal
+      getMemberModal().show();
     }
   });
 }
 
-// 【解鎖單獨私訊】直接呼叫發送 API
 function directMessageUser(index) {
+  // 【防疊加】先隱藏底層 Modal，確保手機鍵盤正常運作
+  getMemberModal().hide();
+
   let user = currentModalList[index];
   Swal.fire({
     title: `💬 私訊給 ${user.name}`,
@@ -340,22 +354,28 @@ function directMessageUser(index) {
         body: JSON.stringify({
           action: 'sendBroadcast',
           uid: currentUID,
-          targetGroup: 'UID:' + user.uid, // 使用新的精準狙擊指令
+          targetGroup: 'UID:' + user.uid,
           messageContent: result.value,
-          attachEventId: '無' // 單獨私訊暫不支援附加圖文卡以保持輕量
+          attachEventId: '無'
         })
       })
       .then(res => res.json())
       .then(res => {
         if (res.success) {
-          Swal.fire('發送成功！', `已成功將訊息發送給 ${user.name}。`, 'success');
+          // 【防疊加】成功後提示，按 OK 才把底層 Modal 叫回來
+          Swal.fire('發送成功！', `已成功將訊息發送給 ${user.name}。`, 'success').then(() => {
+            getMemberModal().show();
+          });
         } else {
-          Swal.fire('發送失敗', res.message, 'error');
+          Swal.fire('發送失敗', res.message, 'error').then(() => getMemberModal().show());
         }
       })
       .catch(err => {
-        Swal.fire('連線錯誤', err.message, 'error');
+        Swal.fire('連線錯誤', err.message, 'error').then(() => getMemberModal().show());
       });
+    } else {
+      // 【防疊加】取消操作，恢復底層 Modal
+      getMemberModal().show();
     }
   });
 }
