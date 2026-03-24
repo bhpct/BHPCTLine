@@ -67,7 +67,7 @@
       <div class="card p-5 text-center text-muted border-0 shadow-sm">
         <i class="fas fa-users-cog fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
         <h5 class="fw-bold text-dark">活動與報名管理</h5>
-        <p style="font-size: 0.9rem;">（開發中：查看名單、一鍵匯出 CSV）</p>
+        <p style="font-size: 0.9rem;">（開發中：查看名單、網頁列印與匯出 CSV）</p>
       </div>
     </div>
 
@@ -96,7 +96,7 @@
 
         <div class="mb-3">
           <label class="form-label fw-bold text-muted" style="font-size:0.9rem;">💬 推播內容</label>
-          <textarea id="broadcast-msg" class="form-control" rows="6" placeholder="請輸入您想告訴會友的訊息..."></textarea>
+          <textarea id="broadcast-msg" class="form-control" rows="6" placeholder="請輸入您想發送給會友的訊息..."></textarea>
           <div class="form-text text-success mt-2 fw-bold" style="font-size:0.85rem;">
             <i class="fas fa-magic"></i> 變數魔法：輸入 <code class="text-danger fs-6">{name}</code> 系統會自動替換成對方的真實姓名！
           </div>
@@ -104,14 +104,14 @@
 
         <div class="mb-4 p-3 bg-light rounded border">
           <label class="form-label fw-bold text-dark" style="font-size:0.9rem;"><i class="fas fa-images text-warning"></i> 附加活動圖文卡 (選填)</label>
-          <p class="text-muted" style="font-size:0.8rem; margin-bottom: 8px;">選擇活動後，系統會自動抓取海報與簡介，生成精美的「圖文點擊卡片」。</p>
+          <p class="text-muted" style="font-size:0.8rem; margin-bottom: 8px;">選擇活動後，系統會自動抓取海報與簡介，生成「圖文點擊卡片」隨訊息送出。</p>
           <select id="broadcast-event" class="form-select">
             <option value="無">無 (純文字推播)</option>
             </select>
         </div>
 
         <button class="btn w-100 rounded-pill fw-bold py-2 shadow text-white" style="background-color: #8e44ad;" onclick="submitBroadcast()" id="btn-send-broadcast">
-          <i class="fas fa-paper-plane"></i> 確認發射推播
+          <i class="fas fa-paper-plane"></i> 確認發送推播
         </button>
       </div>
     </div>
@@ -120,7 +120,7 @@
       <div class="card p-5 text-center text-muted border-0 shadow-sm">
         <i class="fas fa-server fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
         <h5 class="fw-bold text-dark">系統進階設定</h5>
-        <p style="font-size: 0.9rem;">（開發中：手動觸發歷史資料封存）</p>
+        <p style="font-size: 0.9rem;">（開發中：每日大管家排程設定與歷史資料封存）</p>
       </div>
     </div>
 
