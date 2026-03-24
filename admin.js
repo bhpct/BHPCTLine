@@ -133,8 +133,8 @@ function renderDashboard(data) {
     <div class="row mb-3">
       <div class="col-6">
         <div class="card p-3 text-center border-0 shadow-sm h-100" style="border-left: 4px solid #3498db !important;">
-          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-users"></i> 總會友數</h6>
-          <h3 class="fw-bold text-dark mb-0">${data.stats.totalMembers} <span style="font-size:0.8rem">人</span></h3>
+          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-user-plus text-primary"></i> 本月新增會友</h6>
+          <h3 class="fw-bold text-dark mb-0">${data.stats.newMembersThisMonth} <span style="font-size:0.8rem">人</span></h3>
         </div>
       </div>
       <div class="col-6">
@@ -165,10 +165,34 @@ function renderDashboard(data) {
         </div>
       </div>
     </div>
-    
-    <h6 class="fw-bold text-dark mb-3"><i class="fas fa-praying-hands text-warning"></i> 待處理代禱事項 <span class="badge bg-danger rounded-pill">${data.stats.pendingPrayerCount}</span></h6>
+
+    <h6 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice-dollar text-success"></i> 待處理財務開通申請 <span class="badge bg-danger rounded-pill">${data.stats.pendingFinanceCount}</span></h6>
     <div class="list-group shadow-sm border-0 mb-4">
   `;
+
+  if (data.pendingFinanceRequests && data.pendingFinanceRequests.length > 0) {
+      data.pendingFinanceRequests.forEach(f => {
+          html += `
+            <div class="list-group-item p-3 border-0 border-bottom">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold text-success" style="font-size: 1.1rem;">${f.name}</span>
+                <small class="text-muted">${f.applyTime} 申請</small>
+              </div>
+              <div class="mb-3 text-dark" style="font-size: 0.9rem;">
+                <i class="fas fa-phone-alt w-20px text-muted"></i> ${f.phone}
+              </div>
+              <button class="btn btn-sm btn-outline-success rounded-pill w-100 fw-bold py-2" onclick="approveFinanceAccess('${f.uid}', '${f.name}')">
+                <i class="fas fa-user-check"></i> 處理並一鍵開通 (升級 Tier 2)
+              </button>
+            </div>`;
+      });
+  } else {
+      html += `<div class="list-group-item p-4 text-center text-muted border-0">目前無待開通的財務申請 💰</div>`;
+  }
+  html += `</div>`;
+    
+  html += `<h6 class="fw-bold text-dark mb-3"><i class="fas fa-praying-hands text-warning"></i> 待處理代禱事項 <span class="badge bg-danger rounded-pill">${data.stats.pendingPrayerCount}</span></h6>
+    <div class="list-group shadow-sm border-0 mb-4">`;
   
   if (data.pendingPrayers && data.pendingPrayers.length > 0) {
       data.pendingPrayers.forEach(p => {
@@ -193,6 +217,41 @@ function renderDashboard(data) {
       html += `<div class="list-group-item p-4 text-center text-muted border-0">目前沒有未處理的代禱事項 🙏</div>`;
   }
   document.getElementById('tab-dashboard').innerHTML = html + `</div>`;
+}
+
+// 【回合 A 新增】一鍵開通財務權限對話框
+function approveFinanceAccess(targetUid, targetName) {
+  Swal.fire({
+    title: `核准開通：${targetName}`,
+    html: `
+      <div class="text-start mt-2">
+        <p class="text-muted mb-3" style="font-size:0.85rem;">請輸入該會友的「奉獻代碼」，系統將自動擷取「家庭編號」並將其升級為 Tier 2。</p>
+        <label class="form-label fw-bold text-success">奉獻代碼</label>
+        <input type="text" id="finance-code-input" class="form-control mb-3" placeholder="例如：0198-1">
+      </div>
+    `,
+    showCancelButton: true, confirmButtonText: '確定開通', cancelButtonText: '取消', confirmButtonColor: '#28a745',
+    preConfirm: () => {
+      const code = document.getElementById('finance-code-input').value.trim();
+      if (!code) Swal.showValidationMessage('請輸入奉獻代碼！');
+      return code;
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const dCode = result.value;
+      const fId = dCode.split('-')[0]; // 自動切出家庭編號
+      
+      Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'approveFinanceAccess', adminUid: currentUID, targetUid: targetUid, donationCode: dCode, familyId: fId }) 
+      })
+      .then(res => res.json()).then(res => {
+        if (res.success) Swal.fire('開通成功', `已將 ${targetName} 升級為 Tier 2！`, 'success').then(() => loadDashboard());
+        else Swal.fire('錯誤', res.message, 'error');
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
 }
 
 function markPrayerDone(rowId) {
@@ -252,7 +311,6 @@ function renderMemberListTable(list, currentFilter) {
   tbody.innerHTML = html;
 }
 
-// 【回合 A 防呆】儀表板 Modal 的簡易修改 (只剩等級)
 function editUserSimple(index, currentFilter) {
   getMemberModal().hide();
   let user = currentModalList[index];
@@ -279,8 +337,8 @@ function editUserSimple(index, currentFilter) {
         body: JSON.stringify({ 
           action: 'adminUpdateUser', adminUid: currentUID, targetUid: user.uid, 
           tier: document.getElementById('edit-tier').value, 
-          service: user.service, // 保持原樣不變
-          groups: user.groups // 保持原樣不變
+          service: user.service, 
+          groups: user.groups 
         }) 
       })
       .then(res => res.json()).then(res => {
@@ -291,7 +349,6 @@ function editUserSimple(index, currentFilter) {
   });
 }
 
-// 【回合 A 防呆】共用單獨私訊 API (變數替換修復)
 function directMessageUser(targetUid, targetName) {
   if (memberModalInstance) getMemberModal().hide();
   Swal.fire({
@@ -300,9 +357,7 @@ function directMessageUser(targetUid, targetName) {
     preConfirm: (text) => { if (!text || text.trim() === '') Swal.showValidationMessage('內容不能為空喔！'); return text.trim(); }
   }).then((result) => {
     if (result.isConfirmed) {
-      // 這裡直接把 {name} 變數替換成他的名字再送出
       let finalMsg = result.value.replace(/{name}/g, targetName);
-
       Swal.fire({ title: '發送中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: 'UID:' + targetUid, messageContent: finalMsg, attachEventId: '無' }) })
       .then(res => res.json()).then(res => {
@@ -320,7 +375,6 @@ function loadAllMembers() {
   document.getElementById('full-member-loading').style.display = 'block';
   document.getElementById('full-member-list').style.display = 'none';
 
-  // 準備下拉選單
   const filterGroup = document.getElementById('filter-group');
   filterGroup.innerHTML = '<option value="">所有團契</option>';
   if (adminData.availableGroups) {
@@ -333,9 +387,8 @@ function loadAllMembers() {
       document.getElementById('full-member-loading').style.display = 'none';
       if (res.success) {
         allMembersCache = res.list;
-        filterFullMemberList(); // 渲染名單
+        filterFullMemberList(); 
         
-        // 如果是超級管理員，順便把名單塞進 Tab 6 的指派下拉選單
         if (adminData.adminLevel === "超級管理員") {
            const roleSelect = document.getElementById('role-user-select');
            roleSelect.innerHTML = '<option value="">請選擇要升級的會友...</option>';
@@ -355,24 +408,20 @@ function loadAllMembers() {
     });
 }
 
-// 【回合 A 防呆】多重模糊搜尋升級
 function filterFullMemberList() {
   const searchInput = document.getElementById('member-search-input').value.trim().toLowerCase();
-  const keywords = searchInput ? searchInput.split(/\s+/) : []; // 支援空白分隔多關鍵字
+  const keywords = searchInput ? searchInput.split(/\s+/) : []; 
   const tFilter = document.getElementById('filter-tier').value;
   const gFilter = document.getElementById('filter-group').value;
   const bFilter = document.getElementById('filter-baptism').value;
 
   const filtered = allMembersCache.filter(u => {
     let match = true;
-    
-    // 多重關鍵字比對：必須全部包含才算命中
     if (keywords.length > 0) {
       const searchStr = u.name.toLowerCase() + " " + String(u.phone);
       let allKwMatch = keywords.every(kw => searchStr.includes(kw));
       if (!allKwMatch) match = false;
     }
-    
     if (tFilter && u.tier !== tFilter) match = false;
     if (gFilter && !String(u.groups).includes(gFilter)) match = false;
     if (bFilter && u.baptism !== bFilter) match = false;
@@ -417,7 +466,6 @@ function copyUID(uid) {
 }
 
 function openFullEditModal(userObj) {
-  // 生成 Checkbox HTML
   let groupHtml = '';
   if (adminData.availableGroups) {
     let uGrps = (userObj.groups || "").split('、').map(x=>x.trim());
@@ -553,7 +601,10 @@ function loadAdminRoles() {
 
           tbody.innerHTML += `
             <tr>
-              <td class="text-start fw-bold text-dark">${a.name}</td>
+              <td class="text-start fw-bold text-dark">
+                ${a.name}<br>
+                <span class="text-muted" style="font-size:0.7rem;"><i class="fas fa-bell"></i> ${a.notifications || '無'}</span>
+              </td>
               <td class="text-primary">${levelIcon} ${a.level}</td>
               <td><span class="badge bg-${bClass}">${a.status}</span></td>
               <td>${actionHtml}</td>
@@ -572,17 +623,28 @@ function assignAdminRole() {
   
   if (!uid) { Swal.fire('提醒', '請先從清單中選擇一位會友！', 'warning'); return; }
   
+  // 【回合 A 新增】收集打勾的通知項目
+  let notifs = [];
+  document.querySelectorAll('.role-notif-chk:checked').forEach(c => notifs.push(c.value));
+  let notifStr = notifs.length > 0 ? notifs.join('、') : '無';
+
   Swal.fire({
-    title: '指派確認', html: `確定要將 <b>${nameText}</b> 設為 <b class="text-danger">${level}</b> 嗎？`, icon: 'question',
+    title: '指派確認', html: `確定要將 <b>${nameText}</b> 設為 <b class="text-danger">${level}</b> 嗎？<br><small class="text-muted">通知：${notifStr}</small>`, icon: 'question',
     showCancelButton: true, confirmButtonColor: '#c0392b', confirmButtonText: '確定指派'
   }).then(result => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'manageAdminRole', adminUid: currentUID, targetUid: uid, targetName: nameText, roleLevel: level, manageAction: 'add' }) })
-        .then(res => res.json()).then(res => {
-          if (res.success) Swal.fire('成功', res.message, 'success').then(() => loadAdminRoles());
-          else Swal.fire('失敗', res.message, 'error');
-        }).catch(err => Swal.fire('錯誤', err.message, 'error'));
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ 
+          action: 'manageAdminRole', adminUid: currentUID, targetUid: uid, targetName: nameText, 
+          roleLevel: level, notifications: notifStr, manageAction: 'add' 
+        }) 
+      })
+      .then(res => res.json()).then(res => {
+        if (res.success) Swal.fire('成功', res.message, 'success').then(() => loadAdminRoles());
+        else Swal.fire('失敗', res.message, 'error');
+      }).catch(err => Swal.fire('錯誤', err.message, 'error'));
     }
   });
 }
@@ -594,7 +656,7 @@ function manageAdminRole(targetUid, actionType) {
   }).then(result => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'manageAdminRole', adminUid: currentUID, targetUid: targetUid, targetName: '', roleLevel: '', manageAction: actionType }) })
+      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'manageAdminRole', adminUid: currentUID, targetUid: targetUid, targetName: '', roleLevel: '', notifications: '', manageAction: actionType }) })
         .then(res => res.json()).then(res => {
           if (res.success) Swal.fire('成功', res.message, 'success').then(() => loadAdminRoles());
           else Swal.fire('失敗', res.message, 'error');
