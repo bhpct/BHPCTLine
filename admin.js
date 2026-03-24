@@ -1024,3 +1024,101 @@ function saveSystemSettings() {
     else Swal.fire('儲存失敗', res.message, 'error');
   }).catch(err => { btn.innerHTML = originalHtml; btn.disabled = false; Swal.fire('連線錯誤', err.message, 'error'); });
 }
+
+// ==========================================
+// 【回合 B】新增活動精靈 (Event Creator)
+// ==========================================
+
+// 監聽收費名目，如果是免費就隱藏金額框
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => { // 等待 DOM 完全載入
+    const feeNameSelect = document.getElementById('ec-feeName');
+    if (feeNameSelect) {
+      feeNameSelect.addEventListener('change', function() {
+        const amtBox = document.getElementById('fee-amount-box');
+        if (this.value === "無") {
+          amtBox.style.display = 'none';
+          document.getElementById('ec-feeAmount').value = '';
+        } else {
+          amtBox.style.display = 'block';
+        }
+      });
+    }
+  }, 1000);
+});
+
+// 在 applyRBAC 載入分類選項
+function populateCategoryDropdown() {
+  const catSelect = document.getElementById('ec-category');
+  if (!catSelect || !adminData || !adminData.categoryConfig) return;
+  catSelect.innerHTML = '<option value="">請選擇...</option>';
+  for (let catName in adminData.categoryConfig) {
+    catSelect.innerHTML += `<option value="${catName}">${catName}</option>`;
+  }
+}
+
+// 覆寫原本的 loadAdminEventList，順便呼叫 populateCategoryDropdown
+const originalLoadAdminEventList = loadAdminEventList;
+loadAdminEventList = function() {
+  originalLoadAdminEventList();
+  setTimeout(populateCategoryDropdown, 1500); // 確保 adminData 載入後再填充
+}
+
+// 收集資料並呼叫 API 建立活動
+function submitNewEvent() {
+  const name = document.getElementById('ec-name').value.trim();
+  const category = document.getElementById('ec-category').value;
+  const start = document.getElementById('ec-start').value;
+  const end = document.getElementById('ec-end').value;
+
+  if (!name || !category || !start || !end) {
+    Swal.fire('提醒', '請填寫所有帶有紅色 * 號的必填欄位！', 'warning');
+    return;
+  }
+
+  // 轉換 datetime-local 為 GAS 認得的格式 (YYYY/MM/DD HH:mm)
+  const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
+
+  const payload = {
+    name: name,
+    category: category,
+    capacity: document.getElementById('ec-cap').value,
+    start: formatTime(start),
+    end: formatTime(end),
+    regEnd: formatTime(document.getElementById('ec-regEnd').value),
+    feeName: document.getElementById('ec-feeName').value,
+    feeAmount: document.getElementById('ec-feeAmount').value || "",
+    customOpt: document.getElementById('ec-custom').value.trim(),
+    poster: document.getElementById('ec-poster').value.trim(),
+    desc: document.getElementById('ec-desc').value.trim(),
+    proxy: document.getElementById('ec-proxy').checked,
+    extra: document.getElementById('ec-extra').checked
+  };
+
+  Swal.fire({
+    title: '即將上架活動',
+    text: `確定要建立「${name}」嗎？上架後將同步發布並通知幹事。`,
+    icon: 'question',
+    showCancelButton: true, confirmButtonColor: '#2ecc71', confirmButtonText: '確定上架'
+  }).then(result => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: '系統寫入中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'adminCreateEvent', adminUid: currentUID, eventData: payload }) 
+      })
+      .then(res => res.json()).then(res => {
+        if (res.success) {
+          Swal.fire('上架成功！', res.message, 'success').then(() => {
+            document.getElementById('create-event-form').reset();
+            document.getElementById('fee-amount-box').style.display = 'none';
+            toggleEventView('report'); // 切換回列表
+            loadAdminEventList(); // 重新整理清單
+          });
+        } else {
+          Swal.fire('錯誤', res.message, 'error');
+        }
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
+}
