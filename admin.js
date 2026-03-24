@@ -49,8 +49,7 @@ function verifyAdminAuth(uid) {
         console.log("✅ 歡迎進入管理後台");
         
         loadDashboard();
-        // 【新增】呼叫渲染推播選單
-        loadBroadcastForm();
+        loadBroadcastForm(); // 呼叫渲染推播選單
 
       } else {
         // 拒絕訪問，遣返前台
@@ -84,7 +83,7 @@ function switchAdminTab(event, tabId) {
 }
 
 // ==========================================
-// 載入與渲染儀表板數據 (Tab 1)
+// 載入與渲染儀表板數據 (Tab 1) - 【全面升級版】
 // ==========================================
 function loadDashboard() {
   const dashContainer = document.getElementById('tab-dashboard');
@@ -106,17 +105,38 @@ function loadDashboard() {
 
 function renderDashboard(data) {
   let html = `
-    <div class="row mb-4">
+    <div class="row mb-3">
       <div class="col-6">
         <div class="card p-3 text-center border-0 shadow-sm h-100" style="border-left: 4px solid #3498db !important;">
-          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-users"></i> 總綁定會友</h6>
+          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-users"></i> 總會友數</h6>
           <h3 class="fw-bold text-dark mb-0">${data.stats.totalMembers} <span style="font-size:0.8rem">人</span></h3>
         </div>
       </div>
       <div class="col-6">
-        <div class="card p-3 text-center border-0 shadow-sm h-100" style="border-left: 4px solid #2ecc71 !important;">
-          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-user-plus"></i> 本月新生</h6>
-          <h3 class="fw-bold text-dark mb-0">${data.stats.newMembersThisMonth} <span style="font-size:0.8rem">人</span></h3>
+        <div class="card p-3 text-center border-0 shadow-sm h-100" style="border-left: 4px solid #e74c3c !important;">
+          <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-birthday-cake text-danger"></i> 本月壽星</h6>
+          <h3 class="fw-bold text-dark mb-0">${data.stats.birthdayThisMonth} <span style="font-size:0.8rem">人</span></h3>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row mb-4">
+      <div class="col-4 px-2">
+        <div class="card p-2 text-center border-0 shadow-sm h-100 bg-light">
+          <h6 class="text-muted mb-0" style="font-size: 0.75rem;">Tier 0</h6>
+          <h5 class="fw-bold text-secondary mb-0 mt-1">${data.stats.tier0Count}</h5>
+        </div>
+      </div>
+      <div class="col-4 px-2">
+        <div class="card p-2 text-center border-0 shadow-sm h-100 bg-light">
+          <h6 class="text-muted mb-0" style="font-size: 0.75rem;">Tier 1</h6>
+          <h5 class="fw-bold text-primary mb-0 mt-1">${data.stats.tier1Count}</h5>
+        </div>
+      </div>
+      <div class="col-4 px-2">
+        <div class="card p-2 text-center border-0 shadow-sm h-100 bg-light">
+          <h6 class="text-muted mb-0" style="font-size: 0.75rem;">Tier 2</h6>
+          <h5 class="fw-bold text-success mb-0 mt-1">${data.stats.tier2Count}</h5>
         </div>
       </div>
     </div>
@@ -169,7 +189,7 @@ function markPrayerDone(rowId) {
     confirmButtonText: '是的，已處理'
   }).then((result) => {
     if (result.isConfirmed) {
-      Swal.fire({ title: '處理中', text: '正在更新資料庫與推播...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+      Swal.fire({ title: '處理中', text: '正在更新資料庫與發送推播...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
       
       fetch(GAS_URL, {
         method: 'POST',
@@ -190,7 +210,7 @@ function markPrayerDone(rowId) {
 }
 
 // ==========================================
-// 【新增】推播通訊中心邏輯 (Tab 3)
+// 推播通訊中心邏輯 (Tab 3) - 【邏輯與用語升級】
 // ==========================================
 
 function loadBroadcastForm() {
@@ -212,14 +232,21 @@ function loadBroadcastForm() {
     });
   }
 
-  // 3. 填入報名活動名單
+  // 3. 填入報名活動名單 (使用新版 allAdminEvents，包含未合併的獨立子活動)
   const optEvents = document.getElementById('optgroup-events');
-  const eventSelect = document.getElementById('broadcast-event'); // 底下的圖文卡選單
-  if (adminData.activeEvents) {
-    adminData.activeEvents.forEach(e => {
+  const eventSelect = document.getElementById('broadcast-event'); 
+  
+  if (adminData.allAdminEvents && adminData.allAdminEvents.length > 0) {
+    adminData.allAdminEvents.forEach(e => {
       // 給上面的推播對象用
       if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (報名者)</option>`;
       // 給下面的圖文卡選項用
+      if (eventSelect) eventSelect.innerHTML += `<option value="${e.id}">🎟️ [${e.category}] ${e.name}</option>`;
+    });
+  } else if (adminData.activeEvents) {
+     // 這是為了相容舊版資料結構的防呆設計
+     adminData.activeEvents.forEach(e => {
+      if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (報名者)</option>`;
       if (eventSelect) eventSelect.innerHTML += `<option value="${e.id}">🎟️ [${e.category}] ${e.name}</option>`;
     });
   }
@@ -238,23 +265,24 @@ function submitBroadcast() {
   // 美化彈出視窗的提示文字
   let displayTarget = target;
   if (target.startsWith("Group:")) displayTarget = "團契：" + target.replace("Group:", "");
-  if (target.startsWith("Service:")) displayTarget = "服事單位：" + target.replace("Service:", "");
-  if (target.startsWith("Event:")) displayTarget = "活動報名者 (" + target.replace("Event:", "") + ")";
+  else if (target.startsWith("Service:")) displayTarget = "服事單位：" + target.replace("Service:", "");
+  else if (target.startsWith("Event:")) displayTarget = "活動報名者 (" + target.replace("Event:", "") + ")";
+  else if (target.startsWith("Tier ")) displayTarget = "帳號等級：" + target;
 
   Swal.fire({
-    title: '🚨 發射確認',
+    title: '發送確認',
     html: `您即將對 <b class="text-danger">${displayTarget}</b> 發送推播。<br><br>系統將會消耗您的官方帳號推播額度，確定要發送嗎？`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#8e44ad',
     cancelButtonColor: '#6c757d',
-    confirmButtonText: '確定發射！',
+    confirmButtonText: '確定發送',
     cancelButtonText: '我再檢查一下'
   }).then((result) => {
     if (result.isConfirmed) {
       const btn = document.getElementById('btn-send-broadcast');
       const originalHtml = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 飛彈發射中...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...';
       btn.disabled = true;
 
       fetch(GAS_URL, {
@@ -262,7 +290,7 @@ function submitBroadcast() {
         body: JSON.stringify({
           action: 'sendBroadcast',
           uid: currentUID,
-          targetGroup: target, // 這裡會傳送帶有前綴的字串，例如 "Group:青年團契"
+          targetGroup: target, 
           messageContent: msg,
           attachEventId: eventId
         })
