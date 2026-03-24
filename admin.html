@@ -8,10 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css"> 
   <style>
-    /* 【回合 A 新增】防呆：避免手機瀏覽器點擊按鈕、輸入框時微幅放大 */
     button, a, input, select, textarea { touch-action: manipulation; }
-
-    /* 後台專屬視覺微調 */
     .admin-header { 
       background-color: #8e44ad; 
       color: white; 
@@ -44,8 +41,6 @@
 
     .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
     .setting-card { border-left: 4px solid #8e44ad !important; }
-
-    /* RBAC 新增：權限專用隱藏類別 (由 JS 動態控制) */
     .auth-hidden { display: none !important; }
   </style>
 </head>
@@ -60,6 +55,11 @@
     <button class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='index.html'" style="position: absolute; top: 15px; left: 15px; font-weight: bold; color: #8e44ad;">
       <i class="fas fa-home"></i> 前台
     </button>
+    
+    <button class="btn btn-sm btn-outline-light rounded-circle shadow-sm" onclick="forceAdminRefresh()" style="position: absolute; top: 15px; right: 15px;" title="重新抓取最新資料">
+      <i class="fas fa-sync-alt text-white"></i>
+    </button>
+
     <h4 class="mb-1 fw-bold"><i class="fas fa-shield-alt"></i> 管理中心</h4>
     <span class="badge bg-light mt-2" style="color: #8e44ad;" id="ui-adminName">讀取中...</span>
   </div>
@@ -421,6 +421,11 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="admin.js"></script> 
+  <script>
+    // 使用動態時間戳載入 admin.js，讓手機與瀏覽器永不快取這支檔案！
+    var script = document.createElement('script');
+    script.src = "admin.js?v=" + new Date().getTime();
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
