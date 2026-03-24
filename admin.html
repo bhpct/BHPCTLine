@@ -17,8 +17,10 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
       position: relative; 
     }
+    .nav-pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 5px; } /* 讓手機版導覽列可以橫向滑動 */
+    .nav-pills .nav-item { white-space: nowrap; }
     .nav-pills .nav-link.active { background-color: #8e44ad; }
-    .nav-pills .nav-link { color: #6c757d; font-weight: bold; font-size: 0.9rem; }
+    .nav-pills .nav-link { color: #6c757d; font-weight: bold; font-size: 0.9rem; padding: 0.5rem 0.8rem; }
     .admin-section { display: none; }
     .admin-section.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -42,6 +44,9 @@
     /* 第三階段新增：精美滑動開關 */
     .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
     .setting-card { border-left: 4px solid #8e44ad !important; }
+
+    /* RBAC 新增：權限專用隱藏類別 (由 JS 動態控制) */
+    .auth-hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -51,27 +56,33 @@
     <span class="ms-3 fw-bold" style="color: #2c3e50;">門禁權限驗證中...</span>
   </div>
 
-  <div class="admin-header text-center mb-4">
+  <div class="admin-header text-center mb-3">
     <button class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='index.html'" style="position: absolute; top: 15px; left: 15px; font-weight: bold; color: #8e44ad;">
-      <i class="fas fa-home"></i> 返回前台
+      <i class="fas fa-home"></i> 前台
     </button>
     <h4 class="mb-1 fw-bold"><i class="fas fa-shield-alt"></i> 管理中心</h4>
     <span class="badge bg-light mt-2" style="color: #8e44ad;" id="ui-adminName">讀取中...</span>
   </div>
 
-  <div class="container pb-5">
-    <ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded shadow-sm">
-      <li class="nav-item">
+  <div class="container pb-5 px-3">
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm flex-nowrap" style="overflow-x: auto;">
+      <li class="nav-item" id="nav-tab-dashboard">
         <a class="nav-link active" href="#" onclick="switchAdminTab(event, 'dashboard')"><i class="fas fa-tasks mb-1 d-block fa-lg"></i>待辦</a>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="nav-tab-events">
         <a class="nav-link" href="#" onclick="switchAdminTab(event, 'events')"><i class="fas fa-clipboard-list mb-1 d-block fa-lg"></i>活動</a>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="nav-tab-broadcast">
         <a class="nav-link" href="#" onclick="switchAdminTab(event, 'broadcast')"><i class="fas fa-bullhorn mb-1 d-block fa-lg"></i>推播</a>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="nav-tab-settings">
         <a class="nav-link" href="#" onclick="switchAdminTab(event, 'settings')"><i class="fas fa-cogs mb-1 d-block fa-lg"></i>設定</a>
+      </li>
+      <li class="nav-item" id="nav-tab-members">
+        <a class="nav-link" href="#" onclick="switchAdminTab(event, 'members')"><i class="fas fa-users-cog mb-1 d-block fa-lg"></i>會友</a>
+      </li>
+      <li class="nav-item auth-hidden" id="nav-tab-roles">
+        <a class="nav-link" href="#" onclick="switchAdminTab(event, 'roles')"><i class="fas fa-user-shield mb-1 d-block fa-lg"></i>權限</a>
       </li>
     </ul>
 
@@ -157,12 +168,9 @@
               <option value="Tier 1">Tier 1 (綁定用戶)</option>
               <option value="Tier 2">Tier 2 (驗證用戶)</option>
             </optgroup>
-            <optgroup label="團契/牧區" id="optgroup-groups">
-            </optgroup>
-            <optgroup label="服事單位" id="optgroup-services">
-            </optgroup>
-            <optgroup label="活動報名者" id="optgroup-events">
-            </optgroup>
+            <optgroup label="團契/牧區" id="optgroup-groups"></optgroup>
+            <optgroup label="服事單位" id="optgroup-services"></optgroup>
+            <optgroup label="活動報名者" id="optgroup-events"></optgroup>
           </select>
         </div>
 
@@ -254,6 +262,117 @@
         <button class="btn w-100 rounded-pill fw-bold py-3 shadow text-white" style="background-color: #2c3e50;" onclick="saveSystemSettings()" id="btn-save-settings">
           <i class="fas fa-save"></i> 儲存所有排程設定
         </button>
+      </div>
+    </div>
+
+    <div id="tab-members" class="admin-section">
+      <div id="finance-upload-section" class="card p-4 border-0 shadow-sm mb-4 auth-hidden" style="border-top: 5px solid #2ecc71 !important;">
+        <h5 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice-dollar text-success"></i> 財務報表上傳</h5>
+        <p class="text-muted" style="font-size:0.85rem;">請將教會會計系統產出的奉獻明細存成 CSV 格式後貼入下方：</p>
+        <textarea id="finance-csv-input" class="form-control mb-3" rows="4" placeholder="日期,科目代碼,奉獻項目,奉獻代碼,姓名,奉獻金額,專案/備註..."></textarea>
+        <button class="btn btn-success w-100 fw-bold rounded-pill" onclick="submitFinanceCSV()" id="btn-upload-finance">
+          <i class="fas fa-upload"></i> 確認匯入資料庫
+        </button>
+      </div>
+
+      <div id="member-management-section" class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #e67e22 !important;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0"><i class="fas fa-address-card text-warning"></i> 全教會名單庫</h5>
+          <span class="badge bg-light text-muted border" id="total-member-count">共 0 人</span>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-12">
+            <div class="input-group shadow-sm">
+              <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="member-search-input" class="form-control border-start-0" placeholder="輸入姓名或電話搜尋..." onkeyup="filterFullMemberList()">
+            </div>
+          </div>
+          <div class="col-4">
+            <select id="filter-tier" class="form-select form-select-sm text-muted" onchange="filterFullMemberList()">
+              <option value="">所有階級</option>
+              <option value="Tier 0">Tier 0 (未綁定)</option>
+              <option value="Tier 1">Tier 1 (已綁定)</option>
+              <option value="Tier 2">Tier 2 (已驗證)</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <select id="filter-group" class="form-select form-select-sm text-muted" onchange="filterFullMemberList()">
+              <option value="">所有團契</option>
+              </select>
+          </div>
+          <div class="col-4">
+            <select id="filter-baptism" class="form-select form-select-sm text-muted" onchange="filterFullMemberList()">
+              <option value="">洗禮狀態</option>
+              <option value="慕道友">慕道友</option>
+              <option value="小兒洗禮">小兒洗禮</option>
+              <option value="堅信禮">堅信禮</option>
+              <option value="成人洗禮">成人洗禮</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="full-member-loading" class="text-center py-4">
+          <div class="spinner-border text-warning" role="status"></div>
+        </div>
+        <div class="list-group shadow-sm border-0" id="full-member-list" style="display: none; max-height: 500px; overflow-y: auto;">
+          </div>
+      </div>
+    </div>
+
+    <div id="tab-roles" class="admin-section">
+      <div class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #c0392b !important;">
+        <div class="alert alert-danger border-0 mb-4" style="background-color: #fdeded;">
+          <h5 class="fw-bold mb-1 text-danger"><i class="fas fa-exclamation-triangle"></i> 最高權限控制台</h5>
+          <p class="mb-0" style="font-size:0.85rem;">此區塊僅「超級管理員」可見。請謹慎指派以下權限：</p>
+          <ul class="mb-0 mt-2 ps-3 text-muted" style="font-size:0.8rem;">
+            <li><b>最高管理員：</b>可管理會友、活動、財務、排程 (無法進入此頁)。</li>
+            <li><b>活動管理員：</b>僅可新增活動、檢視報表與發送推播。</li>
+            <li><b>財務管理員：</b>僅可上傳財務 CSV 報表。</li>
+          </ul>
+        </div>
+
+        <h6 class="fw-bold text-dark mb-3"><i class="fas fa-user-plus text-primary"></i> 指派新管理員</h6>
+        <div class="row g-2 mb-4">
+          <div class="col-12">
+            <select id="role-user-select" class="form-select border-primary shadow-sm">
+              <option value="">請選擇要升級的會友...</option>
+              </select>
+          </div>
+          <div class="col-7">
+            <select id="role-level-select" class="form-select shadow-sm">
+              <option value="最高管理員">🦅 最高管理員</option>
+              <option value="活動管理員">🎟️ 活動管理員</option>
+              <option value="財務管理員">💰 財務管理員</option>
+              <option value="一般同工">📋 一般同工</option>
+            </select>
+          </div>
+          <div class="col-5">
+            <button class="btn btn-danger w-100 fw-bold shadow-sm" onclick="assignAdminRole()">
+              <i class="fas fa-check"></i> 確認指派
+            </button>
+          </div>
+        </div>
+
+        <h6 class="fw-bold text-dark mb-3 border-top pt-3"><i class="fas fa-users-cog text-secondary"></i> 現有管理員名單</h6>
+        <div id="admin-role-loading" class="text-center py-3">
+          <div class="spinner-border text-danger spinner-border-sm" role="status"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center mb-0" id="admin-role-table" style="font-size: 0.85rem; display: none;">
+            <thead class="table-light">
+              <tr>
+                <th class="text-start">姓名</th>
+                <th>權限等級</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-role-tbody">
+              </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
 
