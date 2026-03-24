@@ -599,6 +599,7 @@ function openRegModal(eventId) {
   const reqBday = document.getElementById('req-bday');
   if(reqBday) reqBday.style.display = evt.requireExtraInfo ? 'inline' : 'none';
 
+  // 【核心：動態表單生成引擎】
   const container = document.getElementById('dynamicFormContainer');
   const fieldsArea = document.getElementById('dynamicFieldsArea');
   fieldsArea.innerHTML = ''; 
@@ -606,39 +607,47 @@ function openRegModal(eventId) {
   if (evt.customForm && evt.customForm.trim() !== '') {
       const forms = evt.customForm.split('|');
       forms.forEach((f) => {
+          // 下拉選單題型：例如「便當:葷,素」
           if (f.includes(':')) {
               const parts = f.split(':');
               if(parts.length === 2) {
                   const qName = parts[0].trim();
                   const opts = parts[1].split(',').map(o => o.trim());
                   
-                  let selectHtml = `<div class="mb-2">
-                    <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
-                    <select class="form-select form-select-sm dynamic-select" data-qname="${qName}">`;
+                  let selectHtml = `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.95rem;">${qName} <span class="text-danger">*</span></label>
+                      <select class="form-select border-primary dynamic-select" data-qname="${qName}">
+                        <option value="" disabled selected>請選擇${qName}...</option>`;
                   opts.forEach(o => { selectHtml += `<option value="${o}">${o}</option>`; });
                   selectHtml += `</select></div>`;
                   
                   fieldsArea.innerHTML += selectHtml;
               }
+          // 多選題型：例如「服事意願-招待,招待,司琴」
           } else if (f.includes('-')) {
               const parts = f.split('-');
               if(parts.length === 2) {
                   const qName = parts[0].trim();
                   const opts = parts[1].split(',').map(o => o.trim());
                   
-                  let checkHtml = `<div class="mb-2">
-                    <label class="form-label text-muted" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
-                    <div class="dynamic-checkbox-group">`;
+                  let checkHtml = `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.95rem;">${qName} <span class="text-danger">*</span></label>
+                      <div class="dynamic-checkbox-group bg-light p-2 rounded border">
+                        <div class="row g-2">`;
                   
                   opts.forEach((o, idx) => {
                       const cId = `chk-${qName}-${idx}`;
                       checkHtml += `
-                        <div class="form-check">
-                          <input class="form-check-input dynamic-checkbox" type="checkbox" value="${o}" id="${cId}" data-qname="${qName}">
-                          <label class="form-check-label" for="${cId}">${o}</label>
+                        <div class="col-6">
+                          <div class="form-check">
+                            <input class="form-check-input dynamic-checkbox" type="checkbox" value="${o}" id="${cId}" data-qname="${qName}">
+                            <label class="form-check-label text-muted" for="${cId}">${o}</label>
+                          </div>
                         </div>`;
                   });
-                  checkHtml += `</div></div>`;
+                  checkHtml += `</div></div></div>`;
                   
                   fieldsArea.innerHTML += checkHtml;
               }
@@ -679,13 +688,20 @@ function submitRegistration() {
   if (!pName) { Swal.fire('提醒', '請填寫「參與者真實姓名」！', 'warning'); return; } 
   if (!pPhone) { Swal.fire('提醒', '請填寫「聯絡電話」！', 'warning'); return; } 
 
+  // 【核心：動態表單收集引擎】
   let extraObj = {};
+  let missingRequired = false;
   
   document.querySelectorAll('.dynamic-select').forEach(selectEl => {
       const qName = selectEl.getAttribute('data-qname');
       const ans = selectEl.value;
+      if (!ans) {
+        missingRequired = true;
+        Swal.fire('提醒', `請選擇您的「${qName}」！`, 'warning');
+      }
       extraObj[qName] = ans;
   });
+  if (missingRequired) return;
 
   let checkMap = {};
   document.querySelectorAll('.dynamic-checkbox:checked').forEach(chkEl => {
@@ -717,6 +733,7 @@ function submitRegistration() {
 
   Swal.fire({ title: '處理中', text: '正在傳送報名資料...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
   
+  // 將 extraObj 轉為 JSON 字串傳給後端
   fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
   .then(res => res.json()).then(res => { 
     if (res.success) { 
@@ -758,15 +775,14 @@ function submitRegistration() {
       Swal.fire('報名失敗', res.message, 'error').then(() => {
         if (regModalInstance) regModalInstance.show();
       }); 
-      btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; 
     } 
   }).catch(err => { 
     Swal.fire('連線錯誤', err.message, 'error').then(() => {
         if (regModalInstance) regModalInstance.show();
     }); 
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; 
   });
 }
+
 
 function cancelRegistration(regId, eventName) {
   Swal.fire({ title: '確定取消報名嗎？', html: `活動：<b>${eventName}</b><br>取消後將釋出您的名額。`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d', confirmButtonText: '是的，我要取消', cancelButtonText: '保留名額' }).then((result) => {
