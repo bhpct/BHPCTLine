@@ -108,6 +108,12 @@ function clearCache() {
   }
 }
 
+// 【回合 A 防呆】一鍵清除快取並重整，確保幹事權限生效
+function forceRefresh() {
+  clearCache();
+  window.location.reload();
+}
+
 function fetchUserData(uid, lineName) {
   const cacheKey = CACHE_PREFIX + uid;
   const cachedDataStr = localStorage.getItem(cacheKey);
@@ -160,7 +166,10 @@ function renderUI(response, lineName) {
       const headerEl = document.querySelector('.church-header');
       if (headerEl && !document.getElementById('btn-to-admin')) {
           const adminBtnHtml = `
-              <div style="position: absolute; top: 15px; right: 15px;">
+              <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 5px;">
+                  <button id="btn-force-refresh" class="btn btn-sm btn-outline-light rounded-circle shadow-sm" onclick="forceRefresh()" title="重新抓取權限">
+                      <i class="fas fa-sync-alt text-dark"></i>
+                  </button>
                   <button id="btn-to-admin" class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='admin.html'" style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">
                       <i class="fas fa-cog"></i> 管理後台
                   </button>
@@ -460,13 +469,11 @@ function submitBinding() {
   .then(res => res.json()).then(res => { if(res.success) { clearCache(); Swal.fire('綁定成功', res.message, 'success').then(() => window.location.reload()); } else { Swal.fire('綁定失敗', res.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; } }).catch(error => { Swal.fire('連線錯誤', error.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; });
 }
 
-// 【修復：防疊加視窗】個人資料儲存
 function saveProfile() {
   const btn = document.querySelector('#editProfileModal .btn-primary');
   let newServicesArray = []; document.querySelectorAll('#checkbox-services input[type="checkbox"]:checked').forEach(chk => newServicesArray.push(chk.value));
   let newGroupsArray = []; document.querySelectorAll('#checkbox-groups input[type="checkbox"]:checked').forEach(chk => newGroupsArray.push(chk.value));
   
-  // 先隱藏底層 Modal
   const editModalEl = document.getElementById('editProfileModal');
   const editModalInstance = bootstrap.Modal.getInstance(editModalEl);
   if (editModalInstance) editModalInstance.hide();
@@ -500,7 +507,28 @@ function renderDonationChart() {
   window.myDonationChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], datasets: [{ data: dataValues, backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const percentage = Math.round((value / totalAmount) * 100); return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; }}}} , cutout: '70%' } });
 }
 
-function applyFinanceAccess() { Swal.fire('已送出', '已發送申請！請等候辦公室同工審核開通。', 'success'); }
+// 【回合 A 防呆】修改開通申請文字與回寫資料庫
+function applyFinanceAccess() { 
+  Swal.fire({
+    title: '申請開通財務權限',
+    html: '為了保護會友隱私，請本人攜帶手機至<b>教會辦公室</b>，由同工為您進行身份核對與權限開通。',
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: '送出申請',
+    cancelButtonText: '稍後再說',
+    confirmButtonColor: '#28a745'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'applyFinanceAccess', uid: currentUID }) })
+      .then(res => res.json()).then(res => {
+        if(res.success) { clearCache(); Swal.fire('已送出申請', '辦公室已收到您的申請，請盡速前往辦理。', 'success').then(()=>window.location.reload()); }
+        else Swal.fire('錯誤', res.message, 'error');
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
+}
+
 function toggleFamilyView() { Swal.fire({ title: document.getElementById('familySwitch').checked ? '已切換至【全戶視角】' : '已切換至【個人視角】', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 }); }
 
 function submitPrayer() {
@@ -640,7 +668,6 @@ function toggleProxyFields() {
   }
 }
 
-// 【修復：防疊加視窗】報名活動
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
   
@@ -684,7 +711,6 @@ function submitRegistration() {
   
   const btn = document.querySelector('#regModal .btn-primary'); 
   
-  // 先隱藏底層 Modal
   const regModalEl = document.getElementById('regModal');
   const regModalInstance = bootstrap.Modal.getInstance(regModalEl);
   if (regModalInstance) regModalInstance.hide();
@@ -785,7 +811,6 @@ function openFeedbackModal(regId, eventId, eventName) {
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
 }
 
-// 【修復：防疊加視窗】送出回饋
 function submitFeedbackModal() {
     const regId = document.getElementById('fbRegId').value;
     const eventId = document.getElementById('fbEventId').value;
@@ -807,7 +832,6 @@ function submitFeedbackModal() {
 
     const btn = document.querySelector('#feedbackModal .btn-warning');
     
-    // 先隱藏底層 Modal
     const fbModalEl = document.getElementById('feedbackModal');
     const fbModalInstance = bootstrap.Modal.getInstance(fbModalEl);
     if (fbModalInstance) fbModalInstance.hide();
