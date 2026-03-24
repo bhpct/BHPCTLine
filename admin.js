@@ -15,7 +15,8 @@ let memberModalInstance = null;
 let allMembersCache = [];
 let adminRolesCache = [];
 
-document.addEventListener("DOMContentLoaded", function() {
+// ====== 【修復：相容動態載入的啟動機制】 ======
+function initAdminSystem() {
   const loadingEl = document.getElementById('loading');
   if (!myLiffId) { Swal.fire('系統錯誤', '未設定 LIFF ID！', 'error'); loadingEl.style.display = 'none'; return; }
 
@@ -28,7 +29,15 @@ document.addEventListener("DOMContentLoaded", function() {
       }).catch(err => Swal.fire('錯誤', '無法取得 LINE 帳號資料', 'error'));
     }
   }).catch((err) => Swal.fire('錯誤', 'LIFF 啟動失敗', 'error'));
-});
+}
+
+// 判斷：如果網頁已經載入完畢，就直接啟動；如果還沒，就乖乖排隊等候
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initAdminSystem);
+} else {
+    initAdminSystem(); 
+}
+// ==========================================
 
 // 【終極防快取】由 admin.html 呼叫的重整按鈕
 window.forceAdminRefresh = function() {
