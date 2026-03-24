@@ -27,7 +27,7 @@
     .clickable-card { transition: all 0.2s ease-in-out; cursor: pointer; }
     .clickable-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
 
-    /* 第二階段新增：網頁列印專屬魔法 (只印出乾淨表格) */
+    /* 第二階段新增：網頁列印專屬魔法 */
     @media print {
       body { background-color: white !important; }
       .admin-header, .nav-pills, .no-print, .swal2-container, #loading { display: none !important; }
@@ -38,6 +38,10 @@
       th, td { border: 1px solid #000 !important; padding: 8px !important; font-size: 12pt !important; color: black !important; }
       th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
     }
+
+    /* 第三階段新增：精美滑動開關 */
+    .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
+    .setting-card { border-left: 4px solid #8e44ad !important; }
   </style>
 </head>
 <body>
@@ -86,7 +90,7 @@
           <div class="col-12 mb-2">
             <select id="report-event-select" class="form-select border-primary fw-bold text-dark">
               <option value="">請選擇要檢視的活動報表...</option>
-              </select>
+            </select>
           </div>
           <div class="col-12">
             <button class="btn btn-primary w-100 fw-bold rounded-pill" onclick="loadEventReport()">
@@ -128,7 +132,7 @@
                   </tr>
                 </thead>
                 <tbody id="report-tbody">
-                  </tbody>
+                </tbody>
               </table>
             </div>
             <div class="text-end mt-2 no-print text-muted" style="font-size: 0.8rem;">
@@ -154,11 +158,11 @@
               <option value="Tier 2">Tier 2 (驗證用戶)</option>
             </optgroup>
             <optgroup label="團契/牧區" id="optgroup-groups">
-              </optgroup>
+            </optgroup>
             <optgroup label="服事單位" id="optgroup-services">
-              </optgroup>
+            </optgroup>
             <optgroup label="活動報名者" id="optgroup-events">
-              </optgroup>
+            </optgroup>
           </select>
         </div>
 
@@ -175,7 +179,7 @@
           <p class="text-muted" style="font-size:0.8rem; margin-bottom: 8px;">選擇活動後，系統會自動抓取海報與簡介，生成「圖文點擊卡片」隨訊息送出。</p>
           <select id="broadcast-event" class="form-select">
             <option value="無">無 (純文字推播)</option>
-            </select>
+          </select>
         </div>
 
         <button class="btn w-100 rounded-pill fw-bold py-2 shadow text-white" style="background-color: #8e44ad;" onclick="submitBroadcast()" id="btn-send-broadcast">
@@ -185,10 +189,71 @@
     </div>
 
     <div id="tab-settings" class="admin-section">
-      <div class="card p-5 text-center text-muted border-0 shadow-sm">
-        <i class="fas fa-server fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
-        <h5 class="fw-bold text-dark">系統進階設定</h5>
-        <p style="font-size: 0.9rem;">（開發中：每日大管家排程設定與歷史資料封存）</p>
+      <div id="settings-loading" class="text-center my-5">
+        <div class="spinner-border" style="color: #8e44ad;" role="status"></div>
+        <p class="mt-2 text-muted fw-bold">讀取系統設定中...</p>
+      </div>
+      
+      <div id="settings-content" style="display: none;">
+        <div class="alert alert-info border-0 shadow-sm mb-4" style="background-color: #e8f4f8;">
+          <h6 class="fw-bold mb-1"><i class="fas fa-robot text-primary"></i> 每日大管家排程系統</h6>
+          <small class="text-muted">此頁面設定的訊息，將於每日早上 8:00 自動觸發發送。可用變數：<code class="text-danger">{name}</code>、<code class="text-danger">{event_name}</code></small>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3 setting-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-birthday-cake text-danger me-1"></i> 當日壽星自動祝福</h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="set-toggle-birthday">
+            </div>
+          </div>
+          <textarea id="set-tpl-birthday" class="form-control text-muted" rows="3" style="font-size:0.9rem;"></textarea>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3 setting-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt text-primary me-1"></i> 活動前 7 天自動提醒</h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="set-toggle-event7">
+            </div>
+          </div>
+          <textarea id="set-tpl-event7" class="form-control text-muted" rows="3" style="font-size:0.9rem;"></textarea>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3 setting-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt text-info me-1"></i> 活動前 3 天自動提醒</h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="set-toggle-event3">
+            </div>
+          </div>
+          <textarea id="set-tpl-event3" class="form-control text-muted" rows="3" style="font-size:0.9rem;"></textarea>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-3 setting-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-check text-warning me-1"></i> 活動前 1 天(明日)提醒</h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="set-toggle-event1">
+            </div>
+          </div>
+          <textarea id="set-tpl-event1" class="form-control text-muted" rows="3" style="font-size:0.9rem;"></textarea>
+        </div>
+
+        <div class="card p-3 shadow-sm border-0 mb-4 setting-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-success me-1"></i> 活動結束後問卷邀請</h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="set-toggle-feedback">
+            </div>
+          </div>
+          <div class="form-text text-success mb-1" style="font-size:0.75rem;">*請務必保留 <code>{feedback_link}</code> 以產生專屬問卷連結。</div>
+          <textarea id="set-tpl-feedback" class="form-control text-muted" rows="3" style="font-size:0.9rem;"></textarea>
+        </div>
+
+        <button class="btn w-100 rounded-pill fw-bold py-3 shadow text-white" style="background-color: #2c3e50;" onclick="saveSystemSettings()" id="btn-save-settings">
+          <i class="fas fa-save"></i> 儲存所有排程設定
+        </button>
       </div>
     </div>
 
@@ -216,7 +281,7 @@
                 </tr>
               </thead>
               <tbody id="member-list-tbody">
-                </tbody>
+              </tbody>
             </table>
           </div>
         </div>
