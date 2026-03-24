@@ -11,6 +11,9 @@ let globalUserName = "未綁定會友";
 let currentUserData = null; 
 let globalActiveEvents = []; 
 let dynamicCategoryConfig = {};
+// 【新增】管理員全域變數
+let globalIsAdmin = false;
+let globalAdminLevel = "";
 
 const myLiffId = '2009444508-qaGGdlps';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
@@ -151,6 +154,26 @@ function renderUI(response, lineName) {
   globalActiveEvents = response.activeEvents || []; 
   dynamicCategoryConfig = response.categoryConfig || {};
   
+  // 【新增】接收管理員屬性
+  globalIsAdmin = response.isAdmin || false;
+  globalAdminLevel = response.adminLevel || "";
+
+  // 【新增】如果是管理員，在畫面右上角（header內）動態產生切換按鈕
+  if (globalIsAdmin) {
+      const headerEl = document.querySelector('.church-header');
+      if (headerEl && !document.getElementById('btn-to-admin')) {
+          const adminBtnHtml = `
+              <div style="position: absolute; top: 15px; right: 15px;">
+                  <button id="btn-to-admin" class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='admin.html'" style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">
+                      <i class="fas fa-cog"></i> 管理後台
+                  </button>
+              </div>
+          `;
+          headerEl.style.position = 'relative'; // 確保絕對定位可以運作
+          headerEl.innerHTML += adminBtnHtml;
+      }
+  }
+  
   if(response.found) {
     globalUserName = response.name; 
     safeSetText("ui-userName", response.name + "，平安！");
@@ -183,7 +206,6 @@ function renderUI(response, lineName) {
               let config = dynamicCategoryConfig[ev.category] || {概念: '尋羊', 顏色: '#f39c12'};
               if (radarData[config.概念] !== undefined) radarData[config.概念] += 1;
               
-              // 【大升級】學習歷程區塊：若活動已結束且未填問卷，顯示「⭐ 填寫回饋」按鈕
               let fbBtnHtml = "";
               if (ev.feedbackStatus === "未填寫" && ev.regId && ev.eventId) {
                   fbBtnHtml = `<div class="mt-2 text-end"><button class="btn btn-sm btn-outline-warning rounded-pill fw-bold" onclick="openFeedbackModal('${ev.regId}', '${ev.eventId}', '${ev.name}')"><i class="fas fa-star"></i> 填寫回饋</button></div>`;
@@ -276,7 +298,6 @@ function renderUI(response, lineName) {
     if (boundView) boundView.style.display = "none";
   }
   
-  // ====== 活動報名專屬 (events.html) ======
   const regEventListContainer = document.getElementById("registered-event-list");
   if (regEventListContainer) {
     regEventListContainer.innerHTML = "";
@@ -284,14 +305,11 @@ function renderUI(response, lineName) {
       response.registeredEvents.forEach(ev => {
         let config = dynamicCategoryConfig[ev.category] || {顏色: '#6c757d'};
         
-        // 【大升級】報名清單的時間狀態感知器
         let actionAreaHtml = '';
 
         if (ev.timingStatus === "進行中") {
-            // 活動進行中，顯示強烈的打卡按鈕
             actionAreaHtml = `<button class="btn btn-success btn-sm rounded-pill shadow-sm fw-bold px-3 py-2" onclick="checkInEvent('${ev.regId}', '${ev.name}')"><i class="fas fa-map-marker-alt"></i> 點我簽到</button>`;
         } else {
-            // 活動未開始或已結束，顯示原本的繳費狀態與取消按鈕
             let cancelIcon = ev.canCancel 
                 ? `<i class="fas fa-times-circle fa-2x text-danger" style="cursor: pointer;" onclick="cancelRegistration('${ev.regId}', '${ev.name}')" title="取消報名"></i>` 
                 : `<i class="fas fa-times-circle fa-2x text-secondary" style="opacity: 0.4;" title="已過取消期限，請洽辦公室"></i>`;
@@ -700,9 +718,6 @@ function cancelRegistration(regId, eventName) {
   });
 }
 
-// ==========================================
-// 【新增】打卡簽到與問卷回饋專用函數
-// ==========================================
 function checkInEvent(regId, eventName) {
     Swal.fire({
         title: '確認簽到',
