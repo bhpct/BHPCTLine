@@ -10,7 +10,7 @@
   <style>
     /* 後台專屬視覺微調 */
     .admin-header { 
-      background-color: #8e44ad; /* 尊貴的紫色代表管理員 */
+      background-color: #8e44ad; 
       color: white; 
       padding: 25px 20px; 
       border-radius: 0 0 20px 20px; 
@@ -22,6 +22,22 @@
     .admin-section { display: none; }
     .admin-section.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* 第二階段新增：可點擊的卡片特效 */
+    .clickable-card { transition: all 0.2s ease-in-out; cursor: pointer; }
+    .clickable-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
+
+    /* 第二階段新增：網頁列印專屬魔法 (只印出乾淨表格) */
+    @media print {
+      body { background-color: white !important; }
+      .admin-header, .nav-pills, .no-print, .swal2-container, #loading { display: none !important; }
+      .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      .card { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; }
+      #print-section { display: block !important; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #000 !important; padding: 8px !important; font-size: 12pt !important; color: black !important; }
+      th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
@@ -57,17 +73,69 @@
 
     <div id="tab-dashboard" class="admin-section active">
       <div class="card p-5 text-center text-muted border-0 shadow-sm">
-        <i class="fas fa-hammer fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
-        <h5 class="fw-bold text-dark">待辦審核中心</h5>
-        <p style="font-size: 0.9rem;">（讀取中...）</p>
+        <div class="spinner-border text-primary mx-auto" style="color: #8e44ad !important;"></div>
+        <p class="mt-2 text-muted">讀取數據中...</p>
       </div>
     </div>
 
     <div id="tab-events" class="admin-section">
-      <div class="card p-5 text-center text-muted border-0 shadow-sm">
-        <i class="fas fa-users-cog fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
-        <h5 class="fw-bold text-dark">活動與報名管理</h5>
-        <p style="font-size: 0.9rem;">（開發中：查看名單、網頁列印與匯出 CSV）</p>
+      <div class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #3498db !important;">
+        <h5 class="fw-bold text-dark mb-4 no-print"><i class="fas fa-clipboard-check text-primary"></i> 報名名單與列印</h5>
+        
+        <div class="row mb-3 no-print">
+          <div class="col-12 mb-2">
+            <select id="report-event-select" class="form-select border-primary fw-bold text-dark">
+              <option value="">請選擇要檢視的活動報表...</option>
+              </select>
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary w-100 fw-bold rounded-pill" onclick="loadEventReport()">
+              <i class="fas fa-search"></i> 載入名單
+            </button>
+          </div>
+        </div>
+
+        <div id="print-section" style="display: none;">
+          <div class="d-flex justify-content-between align-items-end mb-3 border-bottom pb-2 no-print mt-4">
+            <h6 class="fw-bold mb-0 text-success" id="report-status"><i class="fas fa-check-circle"></i> 已載入</h6>
+            <div>
+              <button class="btn btn-sm btn-outline-dark fw-bold me-1" onclick="window.print()">
+                <i class="fas fa-print"></i> 列印
+              </button>
+              <button class="btn btn-sm btn-outline-success fw-bold" onclick="downloadCSV()">
+                <i class="fas fa-file-csv"></i> CSV
+              </button>
+            </div>
+          </div>
+
+          <div id="report-content">
+            <div class="text-center mb-3">
+              <h4 class="fw-bold text-dark" id="print-event-name">活動名稱</h4>
+              <p class="mb-0 text-muted fw-bold" id="print-event-time">活動時間：</p>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped table-sm align-middle" style="font-size: 0.85rem; min-width: 600px;">
+                <thead class="table-light text-center">
+                  <tr>
+                    <th style="width: 50px;">序號</th>
+                    <th>姓名</th>
+                    <th style="width: 80px;">類型</th>
+                    <th>聯絡電話</th>
+                    <th style="width: 80px;">繳費</th>
+                    <th style="width: 80px;">出席</th>
+                    <th>自訂/備註</th>
+                  </tr>
+                </thead>
+                <tbody id="report-tbody">
+                  </tbody>
+              </table>
+            </div>
+            <div class="text-end mt-2 no-print text-muted" style="font-size: 0.8rem;">
+              * 提示：橫向列印可獲得最佳排版效果
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -124,6 +192,36 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="modal fade no-print" id="memberListModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header text-white" style="background-color: #34495e;">
+          <h5 class="modal-title fw-bold" id="memberListModalLabel"><i class="fas fa-address-book"></i> 名單總覽</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div id="modal-loading" class="text-center my-5" style="display: none;">
+            <div class="spinner-border text-secondary" role="status"></div>
+            <p class="mt-2 text-muted fw-bold">資料撈取中...</p>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle text-center" style="font-size: 0.9rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-start">姓名/電話</th>
+                  <th>等級/身分</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="member-list-tbody">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
