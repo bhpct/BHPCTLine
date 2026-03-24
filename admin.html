@@ -167,11 +167,101 @@
       </div>
 
       <div id="event-create-view" class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #2ecc71 !important; display: none;">
-        <h5 class="fw-bold text-dark mb-4"><i class="fas fa-calendar-plus text-success"></i> 建立新活動</h5>
-        <div class="text-center text-muted py-5">
-          <i class="fas fa-tools fa-3x mb-3 text-secondary"></i>
-          <p>活動精靈開發中，敬請期待...</p>
-        </div>
+        <h5 class="fw-bold text-dark mb-4"><i class="fas fa-calendar-plus text-success"></i> 建立新活動精靈</h5>
+        
+        <form id="create-event-form">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">活動名稱 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control border-success" id="ec-name" placeholder="例如：2026 春季野外禮拜" required>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">活動分類 <span class="text-danger">*</span></label>
+              <select class="form-select border-success" id="ec-category" required>
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">人數上限</label>
+              <input type="number" class="form-control" id="ec-cap" placeholder="留空代表無上限">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">活動開始時間 <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control border-success" id="ec-start" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">活動結束時間 <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control border-success" id="ec-end" required>
+            </div>
+
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-cogs"></i> 報名與收費設定</h6>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">報名截止時間</label>
+              <input type="datetime-local" class="form-control" id="ec-regEnd">
+              <div class="form-text">留空代表活動結束前皆可報名</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">收費名目</label>
+              <select class="form-select" id="ec-feeName">
+                <option value="無">免費活動</option>
+                <option value="活動代辦費">活動代辦費</option>
+                <option value="保證金">保證金</option>
+                <option value="場地清潔費">場地清潔費</option>
+                <option value="教材費">教材費</option>
+              </select>
+            </div>
+
+            <div class="col-md-6" id="fee-amount-box" style="display:none;">
+              <label class="form-label fw-bold text-dark">收費金額 (元) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control border-warning" id="ec-feeAmount" placeholder="請輸入金額">
+            </div>
+
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-list-ul"></i> 附加資訊設定</h6>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">自訂報名選項 (選填)</label>
+              <input type="text" class="form-control" id="ec-custom" placeholder="例如輸入：便當:葷,素 | 尺寸:S,M,L">
+              <div class="form-text text-primary">使用「:」區隔標題與選項，多個題型請用「|」分隔。</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">活動宣傳海報網址</label>
+              <input type="url" class="form-control" id="ec-poster" placeholder="https://...">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">活動詳情簡介</label>
+              <textarea class="form-control" id="ec-desc" rows="3" placeholder="讓大家知道這個活動的亮點！"></textarea>
+            </div>
+
+            <div class="col-6">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="ec-proxy" checked>
+                <label class="form-check-label fw-bold ms-2" for="ec-proxy">允許代為報名</label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="ec-extra">
+                <label class="form-check-label fw-bold ms-2" for="ec-extra">必填身分證字號(保險用)</label>
+              </div>
+            </div>
+
+            <div class="col-12 mt-4">
+              <button type="button" class="btn btn-success w-100 fw-bold py-3 shadow-sm rounded-pill" onclick="submitNewEvent()">
+                <i class="fas fa-rocket"></i> 確認無誤，立即上架！
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
 
     </div>
