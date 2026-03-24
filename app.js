@@ -11,7 +11,6 @@ let globalUserName = "未綁定會友";
 let currentUserData = null; 
 let globalActiveEvents = []; 
 let dynamicCategoryConfig = {};
-// 【新增】管理員全域變數
 let globalIsAdmin = false;
 let globalAdminLevel = "";
 
@@ -154,11 +153,9 @@ function renderUI(response, lineName) {
   globalActiveEvents = response.activeEvents || []; 
   dynamicCategoryConfig = response.categoryConfig || {};
   
-  // 【新增】接收管理員屬性
   globalIsAdmin = response.isAdmin || false;
   globalAdminLevel = response.adminLevel || "";
 
-  // 【新增】如果是管理員，在畫面右上角（header內）動態產生切換按鈕
   if (globalIsAdmin) {
       const headerEl = document.querySelector('.church-header');
       if (headerEl && !document.getElementById('btn-to-admin')) {
@@ -169,7 +166,7 @@ function renderUI(response, lineName) {
                   </button>
               </div>
           `;
-          headerEl.style.position = 'relative'; // 確保絕對定位可以運作
+          headerEl.style.position = 'relative'; 
           headerEl.innerHTML += adminBtnHtml;
       }
   }
@@ -463,13 +460,36 @@ function submitBinding() {
   .then(res => res.json()).then(res => { if(res.success) { clearCache(); Swal.fire('綁定成功', res.message, 'success').then(() => window.location.reload()); } else { Swal.fire('綁定失敗', res.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; } }).catch(error => { Swal.fire('連線錯誤', error.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; });
 }
 
+// 【修復：防疊加視窗】個人資料儲存
 function saveProfile() {
   const btn = document.querySelector('#editProfileModal .btn-primary');
   let newServicesArray = []; document.querySelectorAll('#checkbox-services input[type="checkbox"]:checked').forEach(chk => newServicesArray.push(chk.value));
   let newGroupsArray = []; document.querySelectorAll('#checkbox-groups input[type="checkbox"]:checked').forEach(chk => newGroupsArray.push(chk.value));
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 儲存中...';
+  
+  // 先隱藏底層 Modal
+  const editModalEl = document.getElementById('editProfileModal');
+  const editModalInstance = bootstrap.Modal.getInstance(editModalEl);
+  if (editModalInstance) editModalInstance.hide();
+
+  Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
   fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: document.getElementById('input-phone').value, birthday: document.getElementById('input-birthday').value, groups: newGroupsArray.join('、'), service: newServicesArray.join('、') }) })
-  .then(res => res.json()).then(res => { if(res.success) { clearCache(); Swal.fire('成功', '資料已成功更新！', 'success').then(() => window.location.reload()); } else { Swal.fire('錯誤', res.message, 'error'); btn.innerHTML = '儲存修改'; } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); btn.innerHTML = '儲存修改'; });
+  .then(res => res.json()).then(res => { 
+    if(res.success) { 
+      clearCache(); 
+      Swal.fire('成功', '資料已成功更新！', 'success').then(() => window.location.reload()); 
+    } else { 
+      Swal.fire('錯誤', res.message, 'error').then(() => {
+        if (editModalInstance) editModalInstance.show();
+        btn.innerHTML = '儲存修改'; 
+      });
+    } 
+  }).catch(err => { 
+    Swal.fire('連線錯誤', err.message, 'error').then(() => {
+      if (editModalInstance) editModalInstance.show();
+      btn.innerHTML = '儲存修改'; 
+    });
+  });
 }
 
 function renderDonationChart() {
@@ -620,6 +640,7 @@ function toggleProxyFields() {
   }
 }
 
+// 【修復：防疊加視窗】報名活動
 function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
   
@@ -662,13 +683,18 @@ function submitRegistration() {
   if (document.getElementById('regMemo').value) extraObj.備註 = document.getElementById('regMemo').value;
   
   const btn = document.querySelector('#regModal .btn-primary'); 
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
+  
+  // 先隱藏底層 Modal
+  const regModalEl = document.getElementById('regModal');
+  const regModalInstance = bootstrap.Modal.getInstance(regModalEl);
+  if (regModalInstance) regModalInstance.hide();
+
+  Swal.fire({ title: '處理中', text: '正在傳送報名資料...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
   
   fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
   .then(res => res.json()).then(res => { 
     if (res.success) { 
       clearCache(); 
-      bootstrap.Modal.getInstance(document.getElementById('regModal')).hide(); 
       document.getElementById('regForm').reset(); 
 
       if (!isProxy) {
@@ -703,10 +729,17 @@ function submitRegistration() {
 
       Swal.fire('報名成功', res.message, 'success').then(() => { window.location.reload(); }); 
     } else { 
-      Swal.fire('報名失敗', res.message, 'error'); 
+      Swal.fire('報名失敗', res.message, 'error').then(() => {
+        if (regModalInstance) regModalInstance.show();
+      }); 
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; 
     } 
-  }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; });
+  }).catch(err => { 
+    Swal.fire('連線錯誤', err.message, 'error').then(() => {
+        if (regModalInstance) regModalInstance.show();
+    }); 
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> 確定送出報名'; 
+  });
 }
 
 function cancelRegistration(regId, eventName) {
@@ -752,6 +785,7 @@ function openFeedbackModal(regId, eventId, eventName) {
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
 }
 
+// 【修復：防疊加視窗】送出回饋
 function submitFeedbackModal() {
     const regId = document.getElementById('fbRegId').value;
     const eventId = document.getElementById('fbEventId').value;
@@ -772,7 +806,13 @@ function submitFeedbackModal() {
     }
 
     const btn = document.querySelector('#feedbackModal .btn-warning');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
+    
+    // 先隱藏底層 Modal
+    const fbModalEl = document.getElementById('feedbackModal');
+    const fbModalInstance = bootstrap.Modal.getInstance(fbModalEl);
+    if (fbModalInstance) fbModalInstance.hide();
+
+    Swal.fire({ title: '傳送中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
     fetch(GAS_URL, { 
         method: 'POST', 
@@ -781,14 +821,17 @@ function submitFeedbackModal() {
     .then(res => res.json()).then(res => {
         if (res.success) {
             clearCache();
-            bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
             Swal.fire('非常感謝', res.message, 'success').then(() => { window.location.reload(); });
         } else {
-            Swal.fire('錯誤', res.message, 'error');
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋';
+            Swal.fire('錯誤', res.message, 'error').then(() => {
+                if (fbModalInstance) fbModalInstance.show();
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋';
+            });
         }
     }).catch(err => { 
-        Swal.fire('連線錯誤', err.message, 'error'); 
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋'; 
+        Swal.fire('連線錯誤', err.message, 'error').then(() => {
+            if (fbModalInstance) fbModalInstance.show();
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出回饋'; 
+        });
     });
 }
