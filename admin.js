@@ -6,7 +6,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-
 let currentUID = ""; 
 let adminData = null;
 
-// 【第二階段新增】全域變數，供報表與名單操作使用
+// 全域變數，供報表與名單操作使用
 let currentModalList = []; 
 let currentReportData = [];
 let memberModalInstance = null;
@@ -52,7 +52,7 @@ function verifyAdminAuth(uid) {
         loadDashboard();
         loadBroadcastForm();
         loadAdminEventList(); 
-        loadSystemSettings(); // 【第三階段新增】載入自動化系統排程設定
+        loadSystemSettings(); 
 
       } else {
         document.getElementById('loading').style.display = 'none';
@@ -255,7 +255,7 @@ function renderMemberListTable(list) {
         </td>
         <td>
           <button class="btn btn-sm btn-outline-primary shadow-sm mb-1" onclick="editUser(${index})"><i class="fas fa-edit"></i> 修改</button>
-          <button class="btn btn-sm btn-outline-info shadow-sm mb-1" onclick="directMessageUser('${user.name}')"><i class="fas fa-comment-dots"></i> 私訊</button>
+          <button class="btn btn-sm btn-outline-info shadow-sm mb-1" onclick="directMessageUser(${index})"><i class="fas fa-comment-dots"></i> 私訊</button>
         </td>
       </tr>
     `;
@@ -310,13 +310,53 @@ function editUser(index) {
   });
 }
 
-function directMessageUser(name) {
+// 【解鎖單獨私訊】直接呼叫發送 API
+function directMessageUser(index) {
+  let user = currentModalList[index];
   Swal.fire({
-    title: '💬 單獨私訊功能',
-    icon: 'info',
-    html: `目前正為您準備單獨私訊 <b>${name}</b> 的專屬通道。<br><br><small class="text-muted">（此功能將於下一階段系統更新時解鎖，目前請先使用 Tab 3 的推播通訊中心進行群發喔！）</small>`,
+    title: `💬 私訊給 ${user.name}`,
+    input: 'textarea',
+    inputLabel: '請輸入要發送的訊息內容',
+    inputPlaceholder: '支援使用 {name} 變數...',
+    inputAttributes: {
+      'aria-label': '請輸入訊息內容'
+    },
+    showCancelButton: true,
+    confirmButtonText: '確定發送',
+    cancelButtonText: '取消',
     confirmButtonColor: '#8e44ad',
-    confirmButtonText: '我知道了'
+    preConfirm: (text) => {
+      if (!text || text.trim() === '') {
+        Swal.showValidationMessage('推播內容不能為空喔！');
+      }
+      return text.trim();
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: '發送中', text: '系統處理中...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+      
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'sendBroadcast',
+          uid: currentUID,
+          targetGroup: 'UID:' + user.uid, // 使用新的精準狙擊指令
+          messageContent: result.value,
+          attachEventId: '無' // 單獨私訊暫不支援附加圖文卡以保持輕量
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          Swal.fire('發送成功！', `已成功將訊息發送給 ${user.name}。`, 'success');
+        } else {
+          Swal.fire('發送失敗', res.message, 'error');
+        }
+      })
+      .catch(err => {
+        Swal.fire('連線錯誤', err.message, 'error');
+      });
+    }
   });
 }
 
@@ -501,7 +541,7 @@ function submitBroadcast() {
 }
 
 // ==========================================
-// 【第三階段新增】系統進階設定 (Tab 4) 自動化大管家
+// 系統進階設定 (Tab 4) 自動化大管家
 // ==========================================
 function loadSystemSettings() {
   fetch(`${GAS_URL}?action=getSystemSettings&uid=${currentUID}`)
@@ -512,23 +552,18 @@ function loadSystemSettings() {
         document.getElementById('settings-content').style.display = 'block';
         const s = res.settings;
         
-        // 填入生日設定
         document.getElementById('set-toggle-birthday').checked = (String(s["自動_生日祝福_開關"]).toUpperCase() === "TRUE");
         document.getElementById('set-tpl-birthday').value = s["自動_生日祝福_模板"] || "";
         
-        // 填入活動 7 天前設定
         document.getElementById('set-toggle-event7').checked = (String(s["自動_活動提醒7天_開關"]).toUpperCase() === "TRUE");
         document.getElementById('set-tpl-event7').value = s["自動_活動提醒7天_模板"] || "";
         
-        // 填入活動 3 天前設定
         document.getElementById('set-toggle-event3').checked = (String(s["自動_活動提醒3天_開關"]).toUpperCase() === "TRUE");
         document.getElementById('set-tpl-event3').value = s["自動_活動提醒3天_模板"] || "";
         
-        // 填入活動 1 天前設定
         document.getElementById('set-toggle-event1').checked = (String(s["自動_活動提醒1天_開關"]).toUpperCase() === "TRUE");
         document.getElementById('set-tpl-event1').value = s["自動_活動提醒1天_模板"] || "";
         
-        // 填入活動回饋設定
         document.getElementById('set-toggle-feedback').checked = (String(s["自動_活動回饋_開關"]).toUpperCase() === "TRUE");
         document.getElementById('set-tpl-feedback').value = s["自動_活動回饋_模板"] || "";
 
