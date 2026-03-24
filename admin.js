@@ -51,7 +51,8 @@ function verifyAdminAuth(uid) {
         
         loadDashboard();
         loadBroadcastForm();
-        loadAdminEventList(); // 【第二階段新增】載入報表用的活動清單
+        loadAdminEventList(); 
+        loadSystemSettings(); // 【第三階段新增】載入自動化系統排程設定
 
       } else {
         document.getElementById('loading').style.display = 'none';
@@ -99,7 +100,6 @@ function loadDashboard() {
 }
 
 function renderDashboard(data) {
-  // 【第二階段新增】幫壽星、Tier 卡片加上 clickable-card 與 onclick 事件
   let html = `
     <div class="row mb-3">
       <div class="col-6">
@@ -199,7 +199,7 @@ function markPrayerDone(rowId) {
 }
 
 // ==========================================
-// 【第二階段新增】Modal 名單總覽與個資修改
+// Modal 名單總覽與個資修改
 // ==========================================
 function getMemberModal() {
   if (!memberModalInstance) {
@@ -302,7 +302,6 @@ function editUser(index) {
       }).then(res => res.json()).then(res => {
         if (res.success) {
           Swal.fire('成功', '資料已成功更新', 'success');
-          // 重新撈取該層級的名單以更新畫面
           const currentFilter = document.getElementById('memberListModalLabel').innerText.includes('壽星') ? 'Birthday' : user.tier;
           showMemberList(currentFilter); 
         } else Swal.fire('錯誤', res.message, 'error');
@@ -321,9 +320,8 @@ function directMessageUser(name) {
   });
 }
 
-
 // ==========================================
-// 【第二階段新增】活動報表管理 (Tab 2)
+// 活動報表管理 (Tab 2)
 // ==========================================
 function loadAdminEventList() {
   fetch(`${GAS_URL}?action=getAdminEventList&uid=${currentUID}`)
@@ -392,11 +390,10 @@ function downloadCSV() {
   }
   
   let eventName = document.getElementById('print-event-name').innerText;
-  let csvContent = '\uFEFF'; // BOM 讓 Excel 讀取 UTF-8 不會亂碼
+  let csvContent = '\uFEFF'; 
   csvContent += "序號,報名時間,報名類型,姓名,聯絡電話,繳費狀態,出席狀態,自訂備註\n";
   
   currentReportData.forEach((row, index) => {
-    // 避免自訂備註裡面的逗號或換行破壞 CSV 格式
     let extra = String(row.extraInfo || '').replace(/"/g, '""'); 
     csvContent += `${index+1},${row.regTime},${row.type},${row.participantName},${row.phone},${row.payStatus},${row.attendance},"${extra}"\n`;
   });
@@ -411,7 +408,6 @@ function downloadCSV() {
   link.click();
   document.body.removeChild(link);
 }
-
 
 // ==========================================
 // 推播通訊中心邏輯 (Tab 3) 
@@ -501,5 +497,86 @@ function submitBroadcast() {
         Swal.fire('連線錯誤', err.message, 'error');
       });
     }
+  });
+}
+
+// ==========================================
+// 【第三階段新增】系統進階設定 (Tab 4) 自動化大管家
+// ==========================================
+function loadSystemSettings() {
+  fetch(`${GAS_URL}?action=getSystemSettings&uid=${currentUID}`)
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById('settings-loading').style.display = 'none';
+      if (res.success) {
+        document.getElementById('settings-content').style.display = 'block';
+        const s = res.settings;
+        
+        // 填入生日設定
+        document.getElementById('set-toggle-birthday').checked = (String(s["自動_生日祝福_開關"]).toUpperCase() === "TRUE");
+        document.getElementById('set-tpl-birthday').value = s["自動_生日祝福_模板"] || "";
+        
+        // 填入活動 7 天前設定
+        document.getElementById('set-toggle-event7').checked = (String(s["自動_活動提醒7天_開關"]).toUpperCase() === "TRUE");
+        document.getElementById('set-tpl-event7').value = s["自動_活動提醒7天_模板"] || "";
+        
+        // 填入活動 3 天前設定
+        document.getElementById('set-toggle-event3').checked = (String(s["自動_活動提醒3天_開關"]).toUpperCase() === "TRUE");
+        document.getElementById('set-tpl-event3').value = s["自動_活動提醒3天_模板"] || "";
+        
+        // 填入活動 1 天前設定
+        document.getElementById('set-toggle-event1').checked = (String(s["自動_活動提醒1天_開關"]).toUpperCase() === "TRUE");
+        document.getElementById('set-tpl-event1').value = s["自動_活動提醒1天_模板"] || "";
+        
+        // 填入活動回饋設定
+        document.getElementById('set-toggle-feedback').checked = (String(s["自動_活動回饋_開關"]).toUpperCase() === "TRUE");
+        document.getElementById('set-tpl-feedback').value = s["自動_活動回饋_模板"] || "";
+
+      } else {
+        document.getElementById('settings-loading').innerHTML = `<div class="alert alert-danger">${res.message}</div>`;
+      }
+    })
+    .catch(err => {
+      document.getElementById('settings-loading').innerHTML = `<div class="alert alert-danger">連線失敗：${err.message}</div>`;
+    });
+}
+
+function saveSystemSettings() {
+  const btn = document.getElementById('btn-save-settings');
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 儲存中...';
+  btn.disabled = true;
+
+  const settingsObj = {
+    "自動_生日祝福_開關": document.getElementById('set-toggle-birthday').checked ? "TRUE" : "FALSE",
+    "自動_生日祝福_模板": document.getElementById('set-tpl-birthday').value.trim(),
+    "自動_活動提醒7天_開關": document.getElementById('set-toggle-event7').checked ? "TRUE" : "FALSE",
+    "自動_活動提醒7天_模板": document.getElementById('set-tpl-event7').value.trim(),
+    "自動_活動提醒3天_開關": document.getElementById('set-toggle-event3').checked ? "TRUE" : "FALSE",
+    "自動_活動提醒3天_模板": document.getElementById('set-tpl-event3').value.trim(),
+    "自動_活動提醒1天_開關": document.getElementById('set-toggle-event1').checked ? "TRUE" : "FALSE",
+    "自動_活動提醒1天_模板": document.getElementById('set-tpl-event1').value.trim(),
+    "自動_活動回饋_開關": document.getElementById('set-toggle-feedback').checked ? "TRUE" : "FALSE",
+    "自動_活動回饋_模板": document.getElementById('set-tpl-feedback').value.trim()
+  };
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'saveSystemSettings', uid: currentUID, settings: settingsObj })
+  })
+  .then(res => res.json())
+  .then(res => {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    if (res.success) {
+      Swal.fire({ title: '儲存成功', text: '系統大管家的排程設定已更新！', icon: 'success', timer: 2000, showConfirmButton: false });
+    } else {
+      Swal.fire('儲存失敗', res.message, 'error');
+    }
+  })
+  .catch(err => {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    Swal.fire('連線錯誤', err.message, 'error');
   });
 }
