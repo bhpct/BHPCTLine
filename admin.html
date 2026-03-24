@@ -2,12 +2,15 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>霧峰教會 - 管理後台</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css"> 
   <style>
+    /* 【回合 A 新增】防呆：避免手機瀏覽器點擊按鈕、輸入框時微幅放大 */
+    button, a, input, select, textarea { touch-action: manipulation; }
+
     /* 後台專屬視覺微調 */
     .admin-header { 
       background-color: #8e44ad; 
@@ -17,7 +20,7 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
       position: relative; 
     }
-    .nav-pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 5px; } /* 讓手機版導覽列可以橫向滑動 */
+    .nav-pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 5px; } 
     .nav-pills .nav-item { white-space: nowrap; }
     .nav-pills .nav-link.active { background-color: #8e44ad; }
     .nav-pills .nav-link { color: #6c757d; font-weight: bold; font-size: 0.9rem; padding: 0.5rem 0.8rem; }
@@ -25,11 +28,9 @@
     .admin-section.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* 第二階段新增：可點擊的卡片特效 */
     .clickable-card { transition: all 0.2s ease-in-out; cursor: pointer; }
     .clickable-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
 
-    /* 第二階段新增：網頁列印專屬魔法 */
     @media print {
       body { background-color: white !important; }
       .admin-header, .nav-pills, .no-print, .swal2-container, #loading { display: none !important; }
@@ -41,7 +42,6 @@
       th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
     }
 
-    /* 第三階段新增：精美滑動開關 */
     .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
     .setting-card { border-left: 4px solid #8e44ad !important; }
 
@@ -285,7 +285,7 @@
           <div class="col-12">
             <div class="input-group shadow-sm">
               <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-              <input type="text" id="member-search-input" class="form-control border-start-0" placeholder="輸入姓名或電話搜尋..." onkeyup="filterFullMemberList()">
+              <input type="text" id="member-search-input" class="form-control border-start-0" placeholder="輸入姓名或電話搜尋 (支援多關鍵字)..." onkeyup="filterFullMemberList()">
             </div>
           </div>
           <div class="col-4">
@@ -299,7 +299,7 @@
           <div class="col-4">
             <select id="filter-group" class="form-select form-select-sm text-muted" onchange="filterFullMemberList()">
               <option value="">所有團契</option>
-              </select>
+            </select>
           </div>
           <div class="col-4">
             <select id="filter-baptism" class="form-select form-select-sm text-muted" onchange="filterFullMemberList()">
@@ -316,7 +316,7 @@
           <div class="spinner-border text-warning" role="status"></div>
         </div>
         <div class="list-group shadow-sm border-0" id="full-member-list" style="display: none; max-height: 500px; overflow-y: auto;">
-          </div>
+        </div>
       </div>
     </div>
 
@@ -333,11 +333,11 @@
         </div>
 
         <h6 class="fw-bold text-dark mb-3"><i class="fas fa-user-plus text-primary"></i> 指派新管理員</h6>
-        <div class="row g-2 mb-4">
+        <div class="row g-2 mb-3">
           <div class="col-12">
             <select id="role-user-select" class="form-select border-primary shadow-sm">
               <option value="">請選擇要升級的會友...</option>
-              </select>
+            </select>
           </div>
           <div class="col-7">
             <select id="role-level-select" class="form-select shadow-sm">
@@ -351,6 +351,16 @@
             <button class="btn btn-danger w-100 fw-bold shadow-sm" onclick="assignAdminRole()">
               <i class="fas fa-check"></i> 確認指派
             </button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded border mb-4">
+          <label class="form-label fw-bold text-muted mb-2" style="font-size:0.85rem;"><i class="fas fa-bell text-warning"></i> 指派時順便勾選接收推播通知</label>
+          <div class="row g-2">
+            <div class="col-6 form-check"><input class="form-check-input role-notif-chk" type="checkbox" value="新用戶通知" id="rn1"><label class="form-check-label text-muted" style="font-size:0.85rem;" for="rn1">新用戶註冊</label></div>
+            <div class="col-6 form-check"><input class="form-check-input role-notif-chk" type="checkbox" value="財務驗證通知" id="rn2"><label class="form-check-label text-muted" style="font-size:0.85rem;" for="rn2">財務開通申請</label></div>
+            <div class="col-6 form-check"><input class="form-check-input role-notif-chk" type="checkbox" value="代禱通知" id="rn3"><label class="form-check-label text-muted" style="font-size:0.85rem;" for="rn3">新代禱事項</label></div>
+            <div class="col-6 form-check"><input class="form-check-input role-notif-chk" type="checkbox" value="活動報名通知" id="rn4"><label class="form-check-label text-muted" style="font-size:0.85rem;" for="rn4">新活動報名</label></div>
           </div>
         </div>
 
@@ -369,7 +379,7 @@
               </tr>
             </thead>
             <tbody id="admin-role-tbody">
-              </tbody>
+            </tbody>
           </table>
         </div>
 
