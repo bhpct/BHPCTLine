@@ -31,7 +31,6 @@ function initAdminSystem() {
   }).catch((err) => Swal.fire('錯誤', 'LIFF 啟動失敗', 'error'));
 }
 
-// 判斷：如果網頁已經載入完畢，就直接啟動；如果還沒，就乖乖排隊等候
 if (document.readyState === 'loading') {
     document.addEventListener("DOMContentLoaded", initAdminSystem);
 } else {
@@ -39,7 +38,6 @@ if (document.readyState === 'loading') {
 }
 // ==========================================
 
-// 【終極防快取】由 admin.html 呼叫的重整按鈕
 window.forceAdminRefresh = function() {
   Swal.fire({ title: '重新載入中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
   window.location.href = window.location.pathname + '?t=' + new Date().getTime();
@@ -51,9 +49,8 @@ function verifyAdminAuth(uid) {
     .then(async res => {
       const text = await res.text();
       try {
-        return JSON.parse(text); // 嘗試解析為正常的 JSON 資料
+        return JSON.parse(text);
       } catch(e) {
-        // 如果解析失敗，就把 Google 偷偷丟回來的東西印出來！
         throw new Error("<span style='color:red; font-size:0.85rem;'>伺服器回傳異常：</span><br>" + text.substring(0, 150).replace(/</g, "&lt;"));
       }
     })
@@ -72,7 +69,6 @@ function verifyAdminAuth(uid) {
       }
     }).catch(err => {
       document.getElementById('loading').style.display = 'none';
-      // 這裡會把真正的死因顯示在跳窗上
       Swal.fire({ title: '資料庫連線失敗', html: err.message, icon: 'error' });
     });
 }
@@ -84,45 +80,42 @@ function applyRBAC() {
   const lvl = adminData.adminLevel;
   console.log("當前管理員身分：", lvl);
 
-  // 預設先載入基本資料 (推播選單與活動選單)
   loadBroadcastForm();
   loadAdminEventList();
 
   if (lvl === "超級管理員") {
-    // 👑 擁有一切權限
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
     loadDashboard();
     loadSystemSettings();
     loadAllMembers();
     loadAdminRoles();
     
   } else if (lvl === "最高管理員") {
-    // 🦅 除權限管理外，其餘全開
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
     loadDashboard();
     loadSystemSettings();
     loadAllMembers();
     
   } else if (lvl === "活動管理員") {
-    // 🎟️ 只能看 Tab 2, 3
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
-    switchAdminTab(null, 'events'); // 【修復】傳入 null 避免假點擊報錯
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
+    switchAdminTab(null, 'events'); 
     
   } else if (lvl === "財務管理員") {
-    // 💰 只能看 Tab 5 (且只能看到 CSV 上傳區)
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-broadcast').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('member-management-section').style.display = 'none';
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    switchAdminTab(null, 'members'); // 【修復】傳入 null 避免假點擊報錯
+    switchAdminTab(null, 'members'); 
     
   } else {
-    // 📋 一般同工 (預設 Tab 1, 3, 5)
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     loadDashboard();
@@ -130,16 +123,13 @@ function applyRBAC() {
   }
 }
 
-// 【修復】強化的 Tab 切換邏輯，支援程式自動呼叫
 function switchAdminTab(event, tabId) {
   if (event) event.preventDefault(); 
   document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
   
-  // 如果是真實點擊
   if (event && event.currentTarget) {
     event.currentTarget.classList.add('active');
   } else {
-    // 如果是系統自動切換，用 ID 去找實體按鈕
     const navEl = document.getElementById('nav-tab-' + tabId);
     if (navEl) {
       const linkEl = navEl.querySelector('.nav-link');
@@ -307,9 +297,6 @@ function markPrayerDone(rowId) {
   });
 }
 
-// ==========================================
-// 簡易名單 Modal (Tab 1 儀表板點擊使用)
-// ==========================================
 function getMemberModal() {
   if (!memberModalInstance) memberModalInstance = new bootstrap.Modal(document.getElementById('memberListModal'));
   return memberModalInstance;
@@ -624,7 +611,6 @@ function loadAdminRoles() {
           let levelIcon = a.level.includes("最高") ? "🦅" : (a.level.includes("活動") ? "🎟️" : (a.level.includes("財務") ? "💰" : "📋"));
           if(a.level === "超級管理員") levelIcon = "👑";
 
-          // 【新增】所有管理員專屬的小鈴鐺按鈕
           let actionHtml = `<i class="fas fa-bell fa-lg text-info mx-2" style="cursor:pointer;" onclick="editAdminNotif('${a.uid}', '${a.name}', '${a.notifications}')" title="設定推播通知"></i>`;
           
           if (a.level !== "超級管理員") {
@@ -653,7 +639,6 @@ function loadAdminRoles() {
     });
 }
 
-// 【本次新增】獨立編輯推播通知的精美視窗
 function editAdminNotif(uid, name, currentNotifs) {
   let nArr = currentNotifs ? currentNotifs.split('、') : [];
   let c1 = nArr.includes('新用戶通知') ? 'checked' : '';
@@ -703,7 +688,6 @@ function assignAdminRole() {
   
   if (!uid) { Swal.fire('提醒', '請先從清單中選擇一位會友！', 'warning'); return; }
   
-  // 【回合 A 新增】收集打勾的通知項目
   let notifs = [];
   document.querySelectorAll('.role-notif-chk:checked').forEach(c => notifs.push(c.value));
   let notifStr = notifs.length > 0 ? notifs.join('、') : '無';
@@ -746,18 +730,39 @@ function manageAdminRole(targetUid, actionType) {
 }
 
 // ==========================================
-// 活動報表管理 (Tab 2)
+// 【回合 B】活動報表與 ERP 管理引擎 (Tab 2)
 // ==========================================
+
+// 切換「名單報表」與「新增活動」面板
+function toggleEventView(viewType) {
+  document.getElementById('btn-toggle-report').classList.remove('active');
+  document.getElementById('btn-toggle-create').classList.remove('active');
+  document.getElementById('event-report-view').style.display = 'none';
+  document.getElementById('event-create-view').style.display = 'none';
+  
+  if(viewType === 'report') {
+    document.getElementById('btn-toggle-report').classList.add('active');
+    document.getElementById('event-report-view').style.display = 'block';
+  } else {
+    document.getElementById('btn-toggle-create').classList.add('active');
+    document.getElementById('event-create-view').style.display = 'block';
+  }
+}
+
 function loadAdminEventList() {
   fetch(`${GAS_URL}?action=getAdminEventList&uid=${currentUID}`)
     .then(res => res.json())
     .then(res => {
       if (res.success && res.list.length > 0) {
         let sel = document.getElementById('report-event-select');
-        res.list.forEach(e => { sel.innerHTML += `<option value="${e.id}">${e.start} - ${e.name} (${e.status})</option>`; });
+        res.list.forEach(e => { 
+          // 【回合 B 新增】在下拉選單直接顯示目前報名人數與總名額
+          sel.innerHTML += `<option value="${e.id}">${e.start} - ${e.name} (${e.status}) [${e.currentRegs}/${e.capacity}]</option>`; 
+        });
       }
     });
 }
+
 function loadEventReport() {
   let eventId = document.getElementById('report-event-select').value;
   if (!eventId) { Swal.fire('提醒', '請先選擇一個要檢視的活動報表！', 'warning'); return; }
@@ -773,16 +778,152 @@ function loadEventReport() {
         document.getElementById('print-event-time').innerText = `活動時間：${res.eventInfo.date} | 報名人數：${res.list.length} 人`;
         let tbody = document.getElementById('report-tbody');
         tbody.innerHTML = ''; currentReportData = res.list;
-        if (res.list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4 fw-bold">目前尚無人報名此活動</td></tr>'; } 
-        else {
+        
+        if (res.list.length === 0) { 
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fw-bold">目前尚無人報名此活動</td></tr>'; 
+        } else {
           res.list.forEach((reg, index) => {
             let attClass = reg.attendance === '已出席' ? 'text-success' : 'text-danger';
-            tbody.innerHTML += `<tr><td class="text-center fw-bold">${index + 1}</td><td class="fw-bold">${reg.participantName}</td><td class="text-center text-muted">${reg.type}</td><td class="text-center">${reg.phone}</td><td class="text-center">${reg.payStatus}</td><td class="text-center fw-bold ${attClass}">${reg.attendance}</td><td class="text-muted" style="font-size:0.75rem">${reg.extraInfo || ''}</td></tr>`;
+            
+            // 【回合 B 新增】將繳費狀態變成視覺標籤，並加入操作按鈕
+            let payBadge = reg.payStatus === '已繳費' ? '<span class="badge bg-success">已繳費</span>' : (reg.payStatus === '免繳費' ? '<span class="badge bg-secondary">免繳費</span>' : '<span class="badge bg-warning text-dark">未繳費</span>');
+            let payBtnClass = reg.payStatus === '已繳費' ? 'btn-success' : 'btn-outline-warning text-dark';
+            let payIcon = reg.payStatus === '已繳費' ? 'fa-check-circle' : 'fa-dollar-sign';
+
+            tbody.innerHTML += `<tr>
+              <td class="text-center fw-bold">${index + 1}</td>
+              <td class="fw-bold text-primary">${reg.participantName}</td>
+              <td class="text-center text-muted">${reg.type}</td>
+              <td class="text-center">${reg.phone}</td>
+              <td class="text-center">${payBadge}</td>
+              <td class="text-center fw-bold ${attClass}">${reg.attendance}</td>
+              <td class="text-muted" style="font-size:0.75rem">${reg.extraInfo || ''}</td>
+              <td class="text-center no-print">
+                <button class="btn btn-sm ${payBtnClass} mb-1" onclick="togglePayment('${reg.regId}', ${index})" title="切換繳費狀態"><i class="fas ${payIcon}"></i></button>
+                <button class="btn btn-sm btn-outline-primary mb-1" onclick='openEditRegModal(${index})' title="編輯資料"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger mb-1" onclick="deleteReg('${reg.regId}')" title="刪除報名"><i class="fas fa-trash-alt"></i></button>
+              </td>
+            </tr>`;
           });
         }
       } else { Swal.fire('錯誤', res.message, 'error'); }
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
+
+// 【回合 B 新增】一鍵切換繳費狀態
+function togglePayment(regId, index) {
+  Swal.fire({ title: '更新繳費狀態中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminTogglePayment', adminUid: currentUID, regId: regId }) })
+    .then(res => res.json()).then(res => {
+      if(res.success) { 
+        Swal.fire({title: '成功', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false}); 
+        loadEventReport(); // 重新載入報表
+      }
+      else Swal.fire('錯誤', res.message, 'error');
+    }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+}
+
+// 【回合 B 新增】手動幫無 LINE 會友建檔報名
+function openAddRegModal() {
+  let eventId = document.getElementById('report-event-select').value;
+  if (!eventId) { Swal.fire('提醒', '請先選擇一個活動！', 'warning'); return; }
+  
+  Swal.fire({
+    title: '新增報名者 (後台代報)',
+    html: `
+      <div class="text-start mt-2">
+        <label class="form-label fw-bold text-dark mb-1">姓名 <span class="text-danger">*</span></label>
+        <input type="text" id="ar-name" class="form-control mb-3" placeholder="請輸入參與者姓名">
+        
+        <label class="form-label fw-bold text-dark mb-1">聯絡電話</label>
+        <input type="text" id="ar-phone" class="form-control mb-3" placeholder="選填">
+        
+        <label class="form-label fw-bold text-dark mb-1">自訂選項 / 備註資訊</label>
+        <input type="text" id="ar-extra" class="form-control mb-3" placeholder="例如：便當:葷, 需專車接送">
+        
+        <label class="form-label fw-bold text-dark mb-1">繳費狀態</label>
+        <select id="ar-pay" class="form-select border-primary">
+          <option value="未繳費">未繳費</option>
+          <option value="已繳費">已繳費 (現場收現)</option>
+          <option value="免繳費">免繳費</option>
+        </select>
+      </div>
+    `,
+    showCancelButton: true, confirmButtonText: '確定新增', cancelButtonText: '取消', confirmButtonColor: '#2ecc71',
+    preConfirm: () => {
+      let name = document.getElementById('ar-name').value.trim();
+      if(!name) { Swal.showValidationMessage('請務必填寫姓名！'); return false; }
+      return {
+        name: name, 
+        phone: document.getElementById('ar-phone').value.trim(),
+        extra: document.getElementById('ar-extra').value.trim(), 
+        payStatus: document.getElementById('ar-pay').value
+      }
+    }
+  }).then(res => {
+    if(res.isConfirmed) {
+      Swal.fire({ title: '寫入資料庫中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      let v = res.value;
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'adminAddReg', adminUid: currentUID, eventId: eventId, name: v.name, phone: v.phone, extra: v.extra, payStatus: v.payStatus }) 
+      }).then(res => res.json()).then(res => {
+          if(res.success) Swal.fire('新增成功', res.message, 'success').then(()=>loadEventReport());
+          else Swal.fire('錯誤', res.message, 'error');
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
+}
+
+// 【回合 B 新增】修改現有報名資料
+function openEditRegModal(index) {
+  let reg = currentReportData[index];
+  Swal.fire({
+    title: '編輯報名資料',
+    html: `
+      <div class="text-start mt-2">
+        <label class="form-label fw-bold text-dark">參與者姓名</label>
+        <input type="text" id="er-name" class="form-control mb-3" value="${reg.participantName}">
+        <label class="form-label fw-bold text-dark">聯絡電話</label>
+        <input type="text" id="er-phone" class="form-control mb-3" value="${reg.phone}">
+        <label class="form-label fw-bold text-dark">自訂選項 / 備註資訊</label>
+        <input type="text" id="er-extra" class="form-control mb-2" value="${reg.extraInfo || ''}">
+      </div>
+    `,
+    showCancelButton: true, confirmButtonText: '儲存修改', cancelButtonText: '取消', confirmButtonColor: '#3498db'
+  }).then(res => {
+    if(res.isConfirmed) {
+      Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'adminUpdateReg', adminUid: currentUID, regId: reg.regId, name: document.getElementById('er-name').value.trim(), phone: document.getElementById('er-phone').value.trim(), extra: document.getElementById('er-extra').value.trim() }) 
+      }).then(res => res.json()).then(res => {
+          if(res.success) Swal.fire('成功', res.message, 'success').then(()=>loadEventReport());
+          else Swal.fire('錯誤', res.message, 'error');
+      }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
+}
+
+// 【回合 B 新增】強制刪除報名紀錄 (釋放名額)
+function deleteReg(regId) {
+  Swal.fire({
+    title: '確認強制刪除？', 
+    text: '刪除後將無法恢復，且會立即釋出報名名額！', 
+    icon: 'warning',
+    showCancelButton: true, confirmButtonColor: '#e74c3c', confirmButtonText: '是的，強制刪除！'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: '刪除中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminDeleteReg', adminUid: currentUID, regId: regId }) })
+        .then(res => res.json()).then(res => {
+          if(res.success) Swal.fire('已刪除', res.message, 'success').then(()=>loadEventReport());
+          else Swal.fire('錯誤', res.message, 'error');
+        }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
+}
+
 function downloadCSV() {
   if (currentReportData.length === 0) { Swal.fire('提醒', '目前沒有資料可以匯出喔！', 'warning'); return; }
   let eventName = document.getElementById('print-event-name').innerText;
