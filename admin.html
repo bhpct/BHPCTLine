@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>霧峰教會 - 霸王級後台</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css"> <style>
+    /* 後台專屬視覺微調 */
+    .admin-header { 
+      background-color: #8e44ad; /* 尊貴的紫色代表管理員 */
+      color: white; 
+      padding: 25px 20px; 
+      border-radius: 0 0 20px 20px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+      position: relative; 
+    }
+    .nav-pills .nav-link.active { background-color: #8e44ad; }
+    .nav-pills .nav-link { color: #6c757d; font-weight: bold; font-size: 0.9rem; }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <div id="loading" style="display: flex;">
+    <div class="spinner-border" style="color: #8e44ad;" role="status"></div>
+    <span class="ms-3 fw-bold" style="color: #2c3e50;">門禁權限驗證中...</span>
+  </div>
+
+  <div class="admin-header text-center mb-4">
+    <button class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='index.html'" style="position: absolute; top: 15px; left: 15px; font-weight: bold; color: #8e44ad;">
+      <i class="fas fa-home"></i> 返回前台
+    </button>
+    <h4 class="mb-1 fw-bold"><i class="fas fa-shield-alt"></i> 管理中心</h4>
+    <span class="badge bg-light mt-2" style="color: #8e44ad;" id="ui-adminName">讀取中...</span>
+  </div>
+
+  <div class="container pb-5">
+    <ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded shadow-sm">
+      <li class="nav-item">
+        <a class="nav-link active" href="#" onclick="switchAdminTab(event, 'dashboard')"><i class="fas fa-tasks mb-1 d-block fa-lg"></i>待辦</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" onclick="switchAdminTab(event, 'events')"><i class="fas fa-clipboard-list mb-1 d-block fa-lg"></i>活動</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" onclick="switchAdminTab(event, 'broadcast')"><i class="fas fa-bullhorn mb-1 d-block fa-lg"></i>推播</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" onclick="switchAdminTab(event, 'settings')"><i class="fas fa-cogs mb-1 d-block fa-lg"></i>設定</a>
+      </li>
+    </ul>
+
+    <div id="tab-dashboard" class="admin-section active">
+      <div class="card p-5 text-center text-muted border-0 shadow-sm">
+        <i class="fas fa-hammer fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
+        <h5 class="fw-bold text-dark">待辦審核中心</h5>
+        <p style="font-size: 0.9rem;">（開發中：代禱回覆、財務開通權限審核）</p>
+      </div>
+    </div>
+
+    <div id="tab-events" class="admin-section">
+      <div class="card p-5 text-center text-muted border-0 shadow-sm">
+        <i class="fas fa-users-cog fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
+        <h5 class="fw-bold text-dark">活動與報名管理</h5>
+        <p style="font-size: 0.9rem;">（開發中：查看名單、一鍵匯出 CSV）</p>
+      </div>
+    </div>
+
+    <div id="tab-broadcast" class="admin-section">
+      <div class="card p-5 text-center text-muted border-0 shadow-sm">
+        <i class="fas fa-satellite-dish fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
+        <h5 class="fw-bold text-dark">推播通訊中心</h5>
+        <p style="font-size: 0.9rem;">（開發中：生日祝福、群發變數推播、圖文卡）</p>
+      </div>
+    </div>
+
+    <div id="tab-settings" class="admin-section">
+      <div class="card p-5 text-center text-muted border-0 shadow-sm">
+        <i class="fas fa-server fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
+        <h5 class="fw-bold text-dark">系統進階設定</h5>
+        <p style="font-size: 0.9rem;">（開發中：手動觸發歷史資料封存）</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="admin.js"></script> </body>
+</html>
