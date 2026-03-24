@@ -109,7 +109,7 @@ function applyRBAC() {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
-    switchAdminTab(new Event('click'), 'events'); // 強制跳轉至活動 Tab
+    switchAdminTab(null, 'events'); // 【修復】傳入 null 避免假點擊報錯
     
   } else if (lvl === "財務管理員") {
     // 💰 只能看 Tab 5 (且只能看到 CSV 上傳區)
@@ -119,7 +119,7 @@ function applyRBAC() {
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('member-management-section').style.display = 'none';
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    switchAdminTab(new Event('click'), 'members'); // 強制跳轉至會友/財務 Tab
+    switchAdminTab(null, 'members'); // 【修復】傳入 null 避免假點擊報錯
     
   } else {
     // 📋 一般同工 (預設 Tab 1, 3, 5)
@@ -130,14 +130,26 @@ function applyRBAC() {
   }
 }
 
+// 【修復】強化的 Tab 切換邏輯，支援程式自動呼叫
 function switchAdminTab(event, tabId) {
-  if(event) event.preventDefault(); 
+  if (event) event.preventDefault(); 
   document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-  if(event) event.currentTarget.classList.add('active');
-  else document.getElementById('nav-tab-'+tabId).querySelector('.nav-link').classList.add('active');
+  
+  // 如果是真實點擊
+  if (event && event.currentTarget) {
+    event.currentTarget.classList.add('active');
+  } else {
+    // 如果是系統自動切換，用 ID 去找實體按鈕
+    const navEl = document.getElementById('nav-tab-' + tabId);
+    if (navEl) {
+      const linkEl = navEl.querySelector('.nav-link');
+      if (linkEl) linkEl.classList.add('active');
+    }
+  }
   
   document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
-  document.getElementById('tab-' + tabId).classList.add('active');
+  const tabEl = document.getElementById('tab-' + tabId);
+  if (tabEl) tabEl.classList.add('active');
 }
 
 // ==========================================
