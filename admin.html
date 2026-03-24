@@ -94,7 +94,16 @@
     </div>
 
     <div id="tab-events" class="admin-section">
-      <div class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #3498db !important;">
+      <div class="d-flex mb-3 no-print">
+        <button class="btn btn-outline-primary flex-grow-1 me-2 fw-bold active" id="btn-toggle-report" onclick="toggleEventView('report')">
+          <i class="fas fa-list"></i> 檢視名單
+        </button>
+        <button class="btn btn-outline-success flex-grow-1 fw-bold auth-hidden" id="btn-toggle-create" onclick="toggleEventView('create')">
+          <i class="fas fa-plus"></i> 新增活動
+        </button>
+      </div>
+
+      <div id="event-report-view" class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #3498db !important;">
         <h5 class="fw-bold text-dark mb-4 no-print"><i class="fas fa-clipboard-check text-primary"></i> 報名名單與列印</h5>
         
         <div class="row mb-3 no-print">
@@ -114,10 +123,13 @@
           <div class="d-flex justify-content-between align-items-end mb-3 border-bottom pb-2 no-print mt-4">
             <h6 class="fw-bold mb-0 text-success" id="report-status"><i class="fas fa-check-circle"></i> 已載入</h6>
             <div>
+              <button class="btn btn-sm btn-outline-success fw-bold me-1" onclick="openAddRegModal()">
+                <i class="fas fa-user-plus"></i> 新增
+              </button>
               <button class="btn btn-sm btn-outline-dark fw-bold me-1" onclick="window.print()">
                 <i class="fas fa-print"></i> 列印
               </button>
-              <button class="btn btn-sm btn-outline-success fw-bold" onclick="downloadCSV()">
+              <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="downloadCSV()">
                 <i class="fas fa-file-csv"></i> CSV
               </button>
             </div>
@@ -130,7 +142,7 @@
             </div>
             
             <div class="table-responsive">
-              <table class="table table-bordered table-striped table-sm align-middle" style="font-size: 0.85rem; min-width: 600px;">
+              <table class="table table-bordered table-hover table-sm align-middle" style="font-size: 0.85rem; min-width: 600px;">
                 <thead class="table-light text-center">
                   <tr>
                     <th style="width: 50px;">序號</th>
@@ -140,6 +152,7 @@
                     <th style="width: 80px;">繳費</th>
                     <th style="width: 80px;">出席</th>
                     <th>自訂/備註</th>
+                    <th class="no-print">操作</th>
                   </tr>
                 </thead>
                 <tbody id="report-tbody">
@@ -152,6 +165,15 @@
           </div>
         </div>
       </div>
+
+      <div id="event-create-view" class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #2ecc71 !important; display: none;">
+        <h5 class="fw-bold text-dark mb-4"><i class="fas fa-calendar-plus text-success"></i> 建立新活動</h5>
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-tools fa-3x mb-3 text-secondary"></i>
+          <p>活動精靈開發中，敬請期待...</p>
+        </div>
+      </div>
+
     </div>
 
     <div id="tab-broadcast" class="admin-section">
@@ -422,7 +444,6 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
-    // 使用動態時間戳載入 admin.js，讓手機與瀏覽器永不快取這支檔案！
     var script = document.createElement('script');
     script.src = "admin.js?v=" + new Date().getTime();
     document.body.appendChild(script);
