@@ -783,7 +783,6 @@ function submitRegistration() {
   });
 }
 
-
 function cancelRegistration(regId, eventName) {
   Swal.fire({ title: '確定取消報名嗎？', html: `活動：<b>${eventName}</b><br>取消後將釋出您的名額。`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d', confirmButtonText: '是的，我要取消', cancelButtonText: '保留名額' }).then((result) => {
     if (result.isConfirmed) {
