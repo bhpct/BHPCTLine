@@ -785,10 +785,14 @@ function loadEventReport() {
           res.list.forEach((reg, index) => {
             let attClass = reg.attendance === '已出席' ? 'text-success' : 'text-danger';
             
-            // 【回合 B 新增】將繳費狀態變成視覺標籤，並加入操作按鈕
+            // 繳費按鈕 UI
             let payBadge = reg.payStatus === '已繳費' ? '<span class="badge bg-success">已繳費</span>' : (reg.payStatus === '免繳費' ? '<span class="badge bg-secondary">免繳費</span>' : '<span class="badge bg-warning text-dark">未繳費</span>');
             let payBtnClass = reg.payStatus === '已繳費' ? 'btn-success' : 'btn-outline-warning text-dark';
             let payIcon = reg.payStatus === '已繳費' ? 'fa-check-circle' : 'fa-dollar-sign';
+
+            // 【本次新增】出席簽到按鈕 UI
+            let attBtnClass = reg.attendance === '已出席' ? 'btn-success' : 'btn-outline-secondary';
+            let attIcon = reg.attendance === '已出席' ? 'fa-user-check' : 'fa-user-times';
 
             tbody.innerHTML += `<tr>
               <td class="text-center fw-bold">${index + 1}</td>
@@ -799,6 +803,7 @@ function loadEventReport() {
               <td class="text-center fw-bold ${attClass}">${reg.attendance}</td>
               <td class="text-muted" style="font-size:0.75rem">${reg.extraInfo || ''}</td>
               <td class="text-center no-print">
+                <button class="btn btn-sm ${attBtnClass} mb-1" onclick="toggleAttendance('${reg.regId}', '${reg.attendance}')" title="切換出席/簽到狀態"><i class="fas ${attIcon}"></i></button>
                 <button class="btn btn-sm ${payBtnClass} mb-1" onclick="togglePayment('${reg.regId}', ${index})" title="切換繳費狀態"><i class="fas ${payIcon}"></i></button>
                 <button class="btn btn-sm btn-outline-primary mb-1" onclick='openEditRegModal(${index})' title="編輯資料"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-outline-danger mb-1" onclick="deleteReg('${reg.regId}')" title="刪除報名"><i class="fas fa-trash-alt"></i></button>
@@ -808,6 +813,30 @@ function loadEventReport() {
         }
       } else { Swal.fire('錯誤', res.message, 'error'); }
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+}
+
+// 【本次新增】手動切換簽到/出席狀態
+function toggleAttendance(regId, currentStatus) {
+  let actionText = currentStatus === '已出席' ? '取消簽到 (改回未出席)' : '手動簽到 (改為已出席)';
+  
+  Swal.fire({ 
+    title: '切換出席狀態', 
+    text: `確定要將該名會友標記為「${actionText}」嗎？`, 
+    icon: 'question',
+    showCancelButton: true, confirmButtonColor: '#28a745', confirmButtonText: '確定切換'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: '更新中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminToggleAttendance', adminUid: currentUID, regId: regId }) })
+        .then(res => res.json()).then(res => {
+          if(res.success) { 
+            Swal.fire({title: '成功', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false}); 
+            loadEventReport(); // 重新載入報表
+          }
+          else Swal.fire('錯誤', res.message, 'error');
+        }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+    }
+  });
 }
 
 // 【回合 B 新增】一鍵切換繳費狀態
