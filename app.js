@@ -14,11 +14,7 @@ let dynamicCategoryConfig = {};
 let globalIsAdmin = false;
 let globalAdminLevel = "";
 
-const myLiffId = '2009444508-qaGGdlps';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
 
-const CACHE_PREFIX = 'church_data_';
-const CACHE_TTL = 10 * 60 * 1000; 
 
 window.triggerLineLogin = function() {
   const cleanUrl = window.location.origin + window.location.pathname;
