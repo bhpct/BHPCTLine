@@ -14,8 +14,6 @@ let dynamicCategoryConfig = {};
 let globalIsAdmin = false;
 let globalAdminLevel = "";
 
-
-
 window.triggerLineLogin = function() {
   const cleanUrl = window.location.origin + window.location.pathname;
   liff.login({ redirectUri: cleanUrl });
@@ -53,19 +51,31 @@ function safeSetVal(id, val) {
   if (el) el.value = val;
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+// ==========================================
+// 【防呆啟動引擎】確保 config.js 載入後才啟動
+// ==========================================
+function initApp() {
   setActiveNav(); 
-  
   const loadingEl = document.getElementById('loading');
   if (loadingEl) loadingEl.style.display = 'flex';
   
-  if (!myLiffId) {
-    Swal.fire('錯誤', '網頁沒有設定 LIFF ID！', 'error');
+  // 檢查 CONFIG 是否存在 (防呆：萬一 config.js 比較慢載入)
+  if (typeof window.CONFIG === 'undefined') {
+      console.warn("等待 config.js 載入中...");
+      setTimeout(initApp, 100); // 延遲 0.1 秒再試一次
+      return;
+  }
+
+  // 讀取 config.js 裡的變數
+  const liffId = window.CONFIG.LIFF_ID;
+  
+  if (!liffId) {
+    Swal.fire('錯誤', '網頁沒有設定 LIFF ID！請檢查 config.js', 'error');
     if (loadingEl) loadingEl.style.display = 'none';
     return;
   }
 
-  liff.init({ liffId: myLiffId })
+  liff.init({ liffId: liffId })
     .then(() => {
       if (!liff.isLoggedIn()) {
         if (loadingEl) {
@@ -95,11 +105,19 @@ document.addEventListener("DOMContentLoaded", function() {
       Swal.fire('錯誤', 'LIFF 啟動失敗！請檢查 LIFF ID 設定。<br>' + err.message, 'error');
       if (loadingEl) loadingEl.style.display = 'none';
     });
-});
+}
+
+// 判斷網頁是否已經載入完畢，錯過事件就直接強制啟動！
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp(); 
+}
+// ==========================================
 
 function clearCache() {
   if (currentUID) {
-    localStorage.removeItem(CACHE_PREFIX + currentUID);
+    localStorage.removeItem(window.CACHE_PREFIX + currentUID);
     console.log("已清除本地快取資料，確保抓取最新狀態！");
   }
 }
@@ -111,15 +129,16 @@ function forceRefresh() {
 }
 
 function fetchUserData(uid, lineName) {
-  const cacheKey = CACHE_PREFIX + uid;
+  const cacheKey = window.CACHE_PREFIX + uid;
   const cachedDataStr = localStorage.getItem(cacheKey);
   const loadingEl = document.getElementById('loading');
+  const gasUrl = window.CONFIG.GAS_URL; // 從 config 取出 URL
 
   if (cachedDataStr) {
     try {
       const cacheObj = JSON.parse(cachedDataStr);
       const now = new Date().getTime();
-      if (now - cacheObj.timestamp < CACHE_TTL) {
+      if (now - cacheObj.timestamp < window.CONFIG.CACHE_TTL) {
         console.log("⚡ 讀取本地快取資料 (0秒載入)");
         if (loadingEl) loadingEl.style.display = 'none';
         renderUI(cacheObj.data, lineName);
@@ -133,7 +152,7 @@ function fetchUserData(uid, lineName) {
   }
 
   console.log("🌐 向 GAS 伺服器請求最新資料...");
-  fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
+  fetch(`${gasUrl}?action=getUser&uid=${uid}`)
     .then(response => response.json())
     .then(response => {
       localStorage.setItem(cacheKey, JSON.stringify({
@@ -452,7 +471,7 @@ function renderRadarChart(data) {
 }
 
 function shareToLine(eventName, eventId) {
-  const myLiffUrl = `https://liff.line.me/${myLiffId}/events.html?page=events&eventId=${eventId}`;
+  const myLiffUrl = `https://liff.line.me/${window.CONFIG.LIFF_ID}/events.html?page=events&eventId=${eventId}`;
   const text = `平安！教會即將舉辦【${eventName}】，誠摯邀請你一起來參加！\n點擊下方連結即可快速報名：\n${myLiffUrl}`;
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
 }
@@ -461,7 +480,8 @@ function submitBinding() {
   const name = document.getElementById('bind-name').value.trim(); const phone = document.getElementById('bind-phone').value.trim(); const birthday = document.getElementById('bind-birthday').value;
   if (!name || !phone || !birthday) { Swal.fire('提醒', '請完整填寫真實姓名、電話與生日喔！', 'warning'); return; }
   const btn = document.querySelector('#unbound-view .btn-warning'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: name, phone: phone, birthday: birthday }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: name, phone: phone, birthday: birthday }) })
   .then(res => res.json()).then(res => { if(res.success) { clearCache(); Swal.fire('綁定成功', res.message, 'success').then(() => window.location.reload()); } else { Swal.fire('綁定失敗', res.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; } }).catch(error => { Swal.fire('連線錯誤', error.message, 'error'); btn.innerHTML = '<i class="fas fa-link"></i> 一鍵綁定 / 註冊'; });
 }
 
@@ -475,8 +495,8 @@ function saveProfile() {
   if (editModalInstance) editModalInstance.hide();
 
   Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: document.getElementById('input-phone').value, birthday: document.getElementById('input-birthday').value, groups: newGroupsArray.join('、'), service: newServicesArray.join('、') }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: document.getElementById('input-phone').value, birthday: document.getElementById('input-birthday').value, groups: newGroupsArray.join('、'), service: newServicesArray.join('、') }) })
   .then(res => res.json()).then(res => { 
     if(res.success) { 
       clearCache(); 
@@ -503,7 +523,6 @@ function renderDonationChart() {
   window.myDonationChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], datasets: [{ data: dataValues, backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const percentage = Math.round((value / totalAmount) * 100); return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; }}}} , cutout: '70%' } });
 }
 
-// 【回合 A 防呆】修改開通申請文字與回寫資料庫
 function applyFinanceAccess() { 
   Swal.fire({
     title: '申請開通財務權限',
@@ -516,7 +535,8 @@ function applyFinanceAccess() {
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'applyFinanceAccess', uid: currentUID }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'applyFinanceAccess', uid: currentUID }) })
       .then(res => res.json()).then(res => {
         if(res.success) { clearCache(); Swal.fire('已送出申請', '辦公室已收到您的申請，請盡速前往辦理。', 'success').then(()=>window.location.reload()); }
         else Swal.fire('錯誤', res.message, 'error');
@@ -531,8 +551,8 @@ function submitPrayer() {
   const target = document.getElementById('prayer-target').value; const content = document.getElementById('prayer-content').value; const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
   if(!target || !content) { Swal.fire('提醒', '請填寫代禱對象與內容！', 'warning'); return; }
   const btn = document.querySelector('#page-prayer .btn-primary'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
-  
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitPrayer', uid: currentUID, userName: globalUserName, target: target, content: content, isPublic: isPublic }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'submitPrayer', uid: currentUID, userName: globalUserName, target: target, content: content, isPublic: isPublic }) })
   .then(res => res.json()).then(res => { if (res.success) { btn.innerHTML = '<i class="fas fa-paper-plane"></i> 送出代禱'; playPrayerAnimation(content); } else { Swal.fire('系統錯誤', res.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出'; } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新送出'; });
 }
 
@@ -595,7 +615,6 @@ function openRegModal(eventId) {
   const reqBday = document.getElementById('req-bday');
   if(reqBday) reqBday.style.display = evt.requireExtraInfo ? 'inline' : 'none';
 
-  // 【核心：動態表單生成引擎】
   const container = document.getElementById('dynamicFormContainer');
   const fieldsArea = document.getElementById('dynamicFieldsArea');
   fieldsArea.innerHTML = ''; 
@@ -603,7 +622,6 @@ function openRegModal(eventId) {
   if (evt.customForm && evt.customForm.trim() !== '') {
       const forms = evt.customForm.split('|');
       forms.forEach((f) => {
-          // 下拉選單題型：例如「便當:葷,素」
           if (f.includes(':')) {
               const parts = f.split(':');
               if(parts.length === 2) {
@@ -620,7 +638,6 @@ function openRegModal(eventId) {
                   
                   fieldsArea.innerHTML += selectHtml;
               }
-          // 多選題型：例如「服事意願-招待,招待,司琴」
           } else if (f.includes('-')) {
               const parts = f.split('-');
               if(parts.length === 2) {
@@ -684,7 +701,6 @@ function submitRegistration() {
   if (!pName) { Swal.fire('提醒', '請填寫「參與者真實姓名」！', 'warning'); return; } 
   if (!pPhone) { Swal.fire('提醒', '請填寫「聯絡電話」！', 'warning'); return; } 
 
-  // 【核心：動態表單收集引擎】
   let extraObj = {};
   let missingRequired = false;
   
@@ -729,8 +745,8 @@ function submitRegistration() {
 
   Swal.fire({ title: '處理中', text: '正在傳送報名資料...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
   
-  // 將 extraObj 轉為 JSON 字串傳給後端
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
   .then(res => res.json()).then(res => { 
     if (res.success) { 
       clearCache(); 
@@ -745,7 +761,7 @@ function submitRegistration() {
               icon: 'success', showCancelButton: true, confirmButtonText: '一併校正', cancelButtonText: '暫不更新', confirmButtonColor: '#28a745'
             }).then((result) => {
               if (result.isConfirmed) {
-                fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: pPhone, birthday: pBday, groups: currentUserData.groups, service: currentUserData.service }) })
+                fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'saveProfile', uid: currentUID, phone: pPhone, birthday: pBday, groups: currentUserData.groups, service: currentUserData.service }) })
                 .then(()=> { clearCache(); window.location.reload(); });
               } else { window.location.reload(); }
             });
@@ -758,7 +774,7 @@ function submitRegistration() {
             icon: 'success', showCancelButton: true, confirmButtonText: '一鍵升級', cancelButtonText: '下次再說', confirmButtonColor: '#f39c12'
           }).then((result) => {
             if (result.isConfirmed) {
-              fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: pName, phone: pPhone, birthday: pBday }) })
+              fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: pName, phone: pPhone, birthday: pBday }) })
               .then(()=> { clearCache(); window.location.reload(); });
             } else { window.location.reload(); }
           });
@@ -783,7 +799,8 @@ function cancelRegistration(regId, eventName) {
   Swal.fire({ title: '確定取消報名嗎？', html: `活動：<b>${eventName}</b><br>取消後將釋出您的名額。`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d', confirmButtonText: '是的，我要取消', cancelButtonText: '保留名額' }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', text: '正在取消報名...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'cancelRegistrationUser', regId: regId, uid: currentUID }) }).then(res => res.json()).then(res => { if (res.success) { clearCache(); Swal.fire('已取消', res.message, 'success').then(() => { window.location.reload(); }); } else { Swal.fire('錯誤', res.message, 'error'); } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); });
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'cancelRegistrationUser', regId: regId, uid: currentUID }) }).then(res => res.json()).then(res => { if (res.success) { clearCache(); Swal.fire('已取消', res.message, 'success').then(() => { window.location.reload(); }); } else { Swal.fire('錯誤', res.message, 'error'); } }).catch(err => { Swal.fire('連線錯誤', err.message, 'error'); });
     }
   });
 }
@@ -800,7 +817,8 @@ function checkInEvent(regId, eventName) {
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({ title: '處理中', text: '正在寫入簽到紀錄...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-            fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkInUser', regId: regId, uid: currentUID }) })
+            const gasUrl = window.CONFIG.GAS_URL;
+            fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'checkInUser', regId: regId, uid: currentUID }) })
             .then(res => res.json())
             .then(res => { 
                 if (res.success) { 
@@ -849,7 +867,8 @@ function submitFeedbackModal() {
 
     Swal.fire({ title: '傳送中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
-    fetch(GAS_URL, { 
+    const gasUrl = window.CONFIG.GAS_URL;
+    fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ action: 'submitFeedback', regId: regId, uid: currentUID, eventId: eventId, stars: stars, feedbackText: feedbackText }) 
     })
