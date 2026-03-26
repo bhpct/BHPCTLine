@@ -1,8 +1,5 @@
 // admin.js - 專屬於後台的輕量化邏輯，嚴格隔離以確保資訊安全
 
-const myLiffId = '2009444508-qaGGdlps'; // 🚨 務必確認與前台相同
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa4MCwa6_Uky7EkbUcghr-_ikexNIbdYZY23U3oysE4Kv6jendZafVbyXB1_2Cpqo-/exec';
-
 let currentUID = ""; 
 let adminData = null;
 
@@ -159,7 +156,7 @@ function renderDashboard(data) {
   let html = `
     <div class="row mb-3">
       <div class="col-6">
-        <div class="card p-3 text-center border-0 shadow-sm h-100" style="border-left: 4px solid #3498db !important;">
+        <div class="card p-3 text-center border-0 shadow-sm h-100 clickable-card" style="border-left: 4px solid #3498db !important;" onclick="showMemberList('NewMembers')">
           <h6 class="text-muted mb-1" style="font-size: 0.8rem;"><i class="fas fa-user-plus text-primary"></i> 本月新增會友</h6>
           <h3 class="fw-bold text-dark mb-0">${data.stats.newMembersThisMonth} <span style="font-size:0.8rem">人</span></h3>
         </div>
@@ -302,7 +299,11 @@ function getMemberModal() {
   return memberModalInstance;
 }
 function showMemberList(filterType) {
-  document.getElementById('memberListModalLabel').innerHTML = filterType === 'Birthday' ? '🎂 本月壽星名單' : `📊 ${filterType} 名單`;
+  let title = `📊 ${filterType} 名單`;
+  if (filterType === 'Birthday') title = '🎂 本月壽星名單';
+  if (filterType === 'NewMembers') title = '🎉 本月新增綁定會友'; // 加入這行
+  
+  document.getElementById('memberListModalLabel').innerHTML = title;
   document.getElementById('member-list-tbody').innerHTML = '';
   document.getElementById('modal-loading').style.display = 'block';
   getMemberModal().show();
