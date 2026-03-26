@@ -56,7 +56,7 @@
       <i class="fas fa-home"></i> 前台
     </button>
     
-    <button class="btn btn-sm btn-outline-light rounded-circle shadow-sm" onclick="forceAdminRefresh()" style="position: absolute; top: 15px; right: 15px;" title="重新抓取最新資料">
+    <button class="btn btn-sm btn-outline-light rounded-circle shadow-sm border-white" onclick="forceAdminRefresh()" style="position: absolute; top: 15px; right: 15px;" title="重新抓取最新資料">
       <i class="fas fa-sync-alt text-white"></i>
     </button>
 
@@ -112,8 +112,8 @@
               <option value="">請選擇要檢視的活動報表...</option>
             </select>
           </div>
-          <div class="col-12">
-            <button class="btn btn-primary w-100 fw-bold rounded-pill" onclick="loadEventReport()">
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary flex-grow-1 fw-bold rounded-pill" onclick="loadEventReport()">
               <i class="fas fa-search"></i> 載入名單
             </button>
           </div>
@@ -228,8 +228,17 @@
 
             <div class="col-12">
               <label class="form-label fw-bold text-dark">自訂報名選項 (選填)</label>
-              <input type="text" class="form-control" id="ec-custom" placeholder="例如輸入：便當:葷,素 | 尺寸:S,M,L">
-              <div class="form-text text-primary">使用「:」區隔標題與選項，多個題型請用「|」分隔。</div>
+              <input type="text" class="form-control mb-2" id="ec-custom" placeholder="請依照下方規則輸入...">
+              <div class="alert alert-light border p-3" style="font-size:0.85rem; border-left: 4px solid #3498db !important;">
+                <b class="text-primary"><i class="fas fa-info-circle"></i> 產生器規則說明：</b><br>
+                1. <b>下拉單選題：</b>標題與選項之間請用冒號 <code>:</code> 或 <code>：</code> 隔開。<br>
+                　 👉 範例：<code>便當:排骨,雞腿,素食</code><br>
+                2. <b>打勾多選題：</b>標題與選項之間請用減號 <code>-</code> 隔開。<br>
+                　 👉 範例：<code>服事意願-招待,司琴,領詩</code><br>
+                3. <b>分隔符號：</b>如果要設定很多題，題目之間請用直線 <code>|</code> 隔開。<br>
+                　 👉 綜合範例：<code class="bg-white p-1 rounded border text-danger">便當:排骨,素食 | 交通-遊覽車,自行前往</code><br>
+                <i class="text-muted mt-1 d-block">* 註：系統支援全形與半形符號，請安心輸入！</i>
+              </div>
             </div>
 
             <div class="col-12">
@@ -251,7 +260,7 @@
             <div class="col-6">
               <div class="form-check form-switch mt-2">
                 <input class="form-check-input" type="checkbox" id="ec-extra">
-                <label class="form-check-label fw-bold ms-2" for="ec-extra">必填身分證字號(保險用)</label>
+                <label class="form-check-label fw-bold ms-2" for="ec-extra">必填身分證(保險)</label>
               </div>
             </div>
 
@@ -533,7 +542,15 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <script src="config.js?v=1"></script>
+  
   <script>
+    // 動態替換網頁標題
+    if (typeof CONFIG !== 'undefined') {
+        document.title = CONFIG.CHURCH_NAME + " - 管理後台";
+    }
+
     var script = document.createElement('script');
     script.src = "admin.js?v=" + new Date().getTime();
     document.body.appendChild(script);
