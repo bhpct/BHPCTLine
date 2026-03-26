@@ -108,8 +108,21 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="app.js"></script>
+  
+  <script src="config.js?v=1"></script>
+  <script>
+    // 動態替換網頁標題為 config.js 中的教會名稱
+    if (typeof CONFIG !== 'undefined') {
+        document.title = CONFIG.CHURCH_NAME + " - 我的會友中心";
+    }
+    
+    // 為了避免手機快取問題，動態載入 app.js
+    var script = document.createElement('script');
+    script.src = "app.js?v=" + new Date().getTime();
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
