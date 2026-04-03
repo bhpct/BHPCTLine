@@ -593,7 +593,6 @@ function openFullEditModal(userObj) {
   });
 }
 
-
 // ==========================================
 // 權限管理控管 (Tab 6，僅超級管理員可見)
 // ==========================================
@@ -1337,8 +1336,8 @@ loadAdminEventList = function() {
 
 // 【第五包新增】一鍵產生標準群組編號
 function generateGroupId() {
-  const dateStr = new Date().toISOString().slice(2,7).replace('-', ''); // e.g. "2604"
-  const randomStr = Math.floor(1000 + Math.random() * 9000); // 4位隨機數
+  const dateStr = new Date().toISOString().slice(2,7).replace('-', ''); 
+  const randomStr = Math.floor(1000 + Math.random() * 9000); 
   document.getElementById('ec-group-id').value = "G" + dateStr + "-" + randomStr;
 }
 
@@ -1848,97 +1847,63 @@ function processFinanceFile() {
              return;
           }
 
-          // 1. 智慧尋找日期 (掃描前 5 行找 YYYY/MM/DD)
           let parsedDate = Utilities_formatDateClient(new Date()); 
-          for(let r=0; r<Math.min(5, rawRows.length); r++) {
-             let rowStr = rawRows[r].join(" ");
-             let dateMatch = rowStr.match(/(\d{4}\/\d{1,2}\/\d{1,2})/);
-             if(dateMatch) {
-                parsedDate = dateMatch[1];
-                break;
-             }
-          }
-
           let cleanData = [];
+          let expectedCount = 0;
+          let expectedSum = 0;
           
-          // 2. 開始智慧清洗每一行資料
           for (let i = 0; i < rawRows.length; i++) {
               let row = rawRows[i];
-              // 過濾空行或太短的行
-              if(!row || row.length < 3) continue;
+              if(!row || row.length === 0) continue;
               
               let col0 = String(row[0] || "").trim();
               let col1 = String(row[1] || "").trim();
-              let col2 = String(row[2] || "").trim();
-              let col3 = String(row[3] || "").trim();
               
-              // 過濾掉總計、共計、表頭等雜訊
-              if (col0.includes("共計") || col0.includes("總計") || col0.includes("明細表") || col0.includes("教會")) continue;
-              if (col0 === "日期" || col0 === "科目代碼" || col0 === "") continue;
+              // 1. 抓取日期 (從前 5 行尋找包含 YYYY/MM/DD 的儲存格)
+              if (i <= 5 && col0.match(/(\d{4}\/\d{1,2}\/\d{1,2})/)) {
+                 parsedDate = col0.match(/(\d{4}\/\d{1,2}\/\d{1,2})/)[1];
+                 continue; 
+              }
 
-              // 【核心處理】針對混合在一起的文字進行正則分離
-              // 案例： "月定獻金0065-1  黃士杰 4101.00", 金額在 col1 或 col2
-              
-              let itemName = "";
-              let donationCode = "";
-              let familyId = "";
-              let personName = "";
-              let amount = 0;
-              let memo = "";
-              
-              // 嘗試從 col0 分離出「項目」和「奉獻代碼」
-              // 正則：先抓非數字文字(項目)，再抓帶有橫線的編號(代碼)
-              let matchCode = col0.match(/([^\d]+)\s*(\d{4}-\d{1,2})/);
-              if (matchCode) {
-                 itemName = matchCode[1].trim();
-                 donationCode = matchCode[2].trim();
-                 familyId = donationCode.split("-")[0];
+              // 2. 判斷是否為小計或總計列
+              if (col0.includes("共計") || col0.includes("總計") || col1.includes("總計")) {
+                 // 擷取這列的「人」與「金額」
+                 let fullRowStr = row.join(" ");
+                 let countMatch = fullRowStr.match(/(\d+)\s*人/);
+                 if (countMatch) expectedCount = parseInt(countMatch[1]);
                  
-                 // 尋找人名 (通常跟在代碼後面，或是被分配到下一個非數字的欄位)
-                 let restOfCol0 = col0.replace(matchCode[0], "").trim();
-                 if (restOfCol0 && isNaN(parseInt(restOfCol0))) {
-                     personName = restOfCol0.split(/\s+/)[0]; 
+                 // 從後面找尋金額 (通常最後一個數字就是總和)
+                 for(let c = row.length - 1; c >= 1; c--) {
+                     let val = String(row[c] || "").replace(/,/g, "").trim();
+                     if(val && !isNaN(val) && Number(val) > 0) {
+                         expectedSum = Number(val);
+                         break;
+                     }
                  }
-              } else {
-                 // 如果沒有代碼，就先整包當成項目
-                 itemName = col0;
+                 continue; // 這是統計列，不寫入明細資料庫
               }
 
-              // 如果人名還沒找到，往後面的欄位找找看
-              if (!personName) {
-                  for(let c=1; c<row.length; c++) {
-                      let val = String(row[c] || "").trim();
-                      if (val && isNaN(parseInt(val.charAt(0))) && val !== "共計" && val !== "總計") {
-                          personName = val;
-                          break;
-                      }
-                  }
+              // 3. 過濾無效資料或表頭
+              if (!col0 || col0 === "科目代碼" || col0 === "教會名稱" || col0.includes("教會")) continue;
+
+              // 4. 標準資料列提取
+              let accountCode = col0;
+              let itemName = col1;
+              let donationCode = String(row[2] || "").trim();
+              let personName = String(row[3] || "").trim();
+              let amountStr = String(row[4] || "").replace(/,/g, "").trim();
+              let memo = String(row[5] || "").trim();
+
+              // 金額格式轉換 (防呆 3.000 變 3000)
+              if (amountStr.indexOf('.') > 0 && amountStr.split('.')[1].length === 3) {
+                  amountStr = amountStr.replace(/\./g, "");
               }
-              if(!personName) personName = "無名氏";
+              
+              let amount = Number(amountStr);
 
-              // 尋找金額 (尋找帶有逗號的數字，或純數字)
-              for(let c=1; c<row.length; c++) {
-                 let val = String(row[c] || "").trim();
-                 // 拔除千位逗號
-                 let cleanVal = val.replace(/,/g, "");
-                 // 如果教會的系統會把 3,000 變成 3.000，這裡做轉換
-                 if (cleanVal.indexOf('.') > 0 && cleanVal.split('.')[1].length === 3) {
-                     cleanVal = cleanVal.replace(/\./g, "");
-                 }
-                 
-                 if (cleanVal !== "" && !isNaN(cleanVal) && Number(cleanVal) > 10) { 
-                     // 假設金額大於 10 才算數，避免抓到 1.000 這種被誤認為 1 的科目代碼
-                     amount = Number(cleanVal);
-                     break;
-                 }
-              }
-
-              // 字典校正 (解決截斷問題)
-              if (itemName.includes("建築及專")) itemName = "建築及專案獻金";
-              if (itemName.includes("對內奉") || itemName.includes("對內獻")) itemName = "對內奉獻";
-              if (itemName.includes("對外獻") || itemName.includes("對外奉")) itemName = "對外獻金";
-
-              if (amount > 0) {
+              // 確保是有效的奉獻紀錄
+              if (amount > 0 && personName && personName !== "無名氏") {
+                 let familyId = donationCode.split("-")[0] || "";
                  cleanData.push({
                     date: parsedDate,
                     itemName: itemName,
@@ -1956,22 +1921,35 @@ function processFinanceFile() {
               return;
           }
 
-          // 3. 將結果顯示在畫面上供確認
+          // 5. 雙重核對邏輯 (Double Check)
           currentFinancePreviewData = cleanData;
-          let totalAmount = cleanData.reduce((sum, curr) => sum + curr.amount, 0);
+          let actualCount = cleanData.length;
+          let actualSum = cleanData.reduce((sum, curr) => sum + curr.amount, 0);
+          
+          let checkStatusHtml = "";
+          if (expectedCount === actualCount && expectedSum === actualSum) {
+              checkStatusHtml = `<div class="alert alert-success p-2 mb-2" style="font-size:0.85rem;">
+                 <i class="fas fa-check-circle"></i> <b>雙重核對通過！</b><br>
+                 系統抓取的 <b>${actualCount}</b> 筆資料，總額 <b>$ ${actualSum.toLocaleString()}</b>，與報表最後的總計完全吻合！
+              </div>`;
+          } else {
+              checkStatusHtml = `<div class="alert alert-danger p-2 mb-2" style="font-size:0.85rem;">
+                 <i class="fas fa-exclamation-triangle"></i> <b>雙重核對警告！資料可能有漏抓</b><br>
+                 系統抓取的總筆數：<b>${actualCount}</b> 筆，總金額：<b>$ ${actualSum.toLocaleString()}</b><br>
+                 報表底部的總計為：<b>${expectedCount}</b> 筆，總金額：<b>$ ${expectedSum.toLocaleString()}</b><br>
+                 請仔細核對下方明細，或手動修正 Excel 後重新上傳！
+              </div>`;
+          }
 
-          let previewHtml = `
-            <div class="alert alert-info p-2 mb-2" style="font-size:0.85rem;">
-               <i class="fas fa-check-circle"></i> 系統已自動解析檔案，基準日為 <b>${parsedDate}</b>。<br>
-               共抓取 <b>${cleanData.length}</b> 筆資料，總金額：<b>$ ${totalAmount.toLocaleString()}</b> 元。<br>
-               請確認下方隨機抽樣預覽是否正確：
+          let previewHtml = checkStatusHtml + `
+            <div class="alert alert-light p-2 mb-2 border" style="font-size:0.85rem;">
+               基準日：<b>${parsedDate}</b>。請確認下方隨機抽樣預覽是否正確：
             </div>
             <table class="table table-sm table-bordered table-striped" style="font-size:0.8rem;">
                <thead class="table-light"><tr><th>項目</th><th>代碼</th><th>姓名</th><th>金額</th></tr></thead>
                <tbody>
           `;
           
-          // 隨機抽樣 5 筆預覽
           let maxPreview = Math.min(5, cleanData.length);
           for(let i=0; i<maxPreview; i++) {
              previewHtml += `<tr>
@@ -1983,10 +1961,9 @@ function processFinanceFile() {
           }
           previewHtml += `</tbody></table>`;
           
-          // 將上傳按鈕換成「確認寫入」按鈕
           previewHtml += `
             <button class="btn btn-warning w-100 fw-bold rounded-pill shadow-sm" onclick="confirmFinanceUpload()">
-               <i class="fas fa-database"></i> 確認無誤，一鍵寫入資料庫
+               <i class="fas fa-database"></i> 忽略警告/確認無誤，一鍵寫入資料庫
             </button>
           `;
 
