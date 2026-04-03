@@ -6,14 +6,18 @@ let adminData = null;
 // 全域變數庫
 let currentModalList = []; 
 let currentReportData = [];
-let currentReportEventInfo = null; // 保存當下活動的完整資訊
+let currentReportEventInfo = null; 
 let memberModalInstance = null;
 
-// 第三階段新增：全教會名單與管理員快取
+// 全教會名單與管理員快取
 let allMembersCache = [];
 let adminRolesCache = [];
 
-// ====== 【防呆啟動引擎】確保 config.js 載入後才啟動 ======
+// 【第四包新增】全域圖表變數
+let myAdminDonationCatChart = null;
+let myAdminDonationTrendChart = null;
+
+// ====== 【防呆啟動引擎】 ======
 function initAdminSystem() {
   const loadingEl = document.getElementById('loading');
   if (loadingEl) loadingEl.style.display = 'flex';
@@ -63,6 +67,11 @@ function verifyAdminAuth(uid) {
         adminData = response;
         document.getElementById('loading').style.display = 'none';
         document.getElementById('ui-adminName').innerText = `${response.name} (${response.adminLevel})`;
+        
+        // 【第四包新增】順手把今年自動帶入財務報表的 input
+        const yInput = document.getElementById('finance-year-input');
+        if(yInput && response.sysYear) yInput.value = response.sysYear;
+        
         applyRBAC(); 
       } else {
         document.getElementById('loading').style.display = 'none';
@@ -84,20 +93,25 @@ function applyRBAC() {
   if (lvl === "超級管理員") {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
+    document.getElementById('finance-report-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); 
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
-    loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles();
+    document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
+    loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles(); loadFinancialSummary();
   } else if (lvl === "最高管理員") {
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
+    document.getElementById('finance-report-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
-    loadDashboard(); loadSystemSettings(); loadAllMembers();
+    document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
+    loadDashboard(); loadSystemSettings(); loadAllMembers(); loadFinancialSummary();
   } else if (lvl === "活動管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
+    document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
     switchAdminTab(null, 'events'); 
   } else if (lvl === "財務管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
@@ -106,7 +120,9 @@ function applyRBAC() {
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('member-management-section').style.display = 'none';
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
+    document.getElementById('finance-report-section').classList.remove('auth-hidden');
     switchAdminTab(null, 'members'); 
+    loadFinancialSummary();
   } else {
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
@@ -733,14 +749,17 @@ function manageAdminRole(targetUid, actionType) {
 // 【回合 B】活動報表與 ERP 管理引擎 (Tab 2)
 // ==========================================
 
+// 覆寫原有的 toggleEventView 支援 manage 面板與 archive 面板
 function toggleEventView(viewType) {
   document.getElementById('btn-toggle-report').classList.remove('active');
   document.getElementById('btn-toggle-manage').classList.remove('active');
   document.getElementById('btn-toggle-create').classList.remove('active');
+  document.getElementById('btn-toggle-archive').classList.remove('active');
   
   document.getElementById('event-report-view').style.display = 'none';
   document.getElementById('event-manage-view').style.display = 'none';
   document.getElementById('event-create-view').style.display = 'none';
+  document.getElementById('event-archive-view').style.display = 'none';
   
   if(viewType === 'report') {
     document.getElementById('btn-toggle-report').classList.add('active');
@@ -749,6 +768,10 @@ function toggleEventView(viewType) {
     document.getElementById('btn-toggle-manage').classList.add('active');
     document.getElementById('event-manage-view').style.display = 'block';
     loadManageEventList(); 
+  } else if (viewType === 'archive') { // 【第四包新增】
+    document.getElementById('btn-toggle-archive').classList.add('active');
+    document.getElementById('event-archive-view').style.display = 'block';
+    loadArchiveEventList();
   } else {
     document.getElementById('btn-toggle-create').classList.add('active');
     document.getElementById('event-create-view').style.display = 'block';
@@ -1107,9 +1130,6 @@ function downloadCSV() {
   link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-// ==========================================
-// 推播通訊中心邏輯 (Tab 3) 
-// ==========================================
 function loadBroadcastForm() {
   if (!adminData) return;
   const optGroups = document.getElementById('optgroup-groups');
@@ -1120,7 +1140,6 @@ function loadBroadcastForm() {
   const optEvents = document.getElementById('optgroup-events');
   const eventSelect = document.getElementById('broadcast-event'); 
   
-  // 【第 4b 點】將系列活動(群組)整理出來加入發送對象
   let groupEventMap = {};
 
   if (adminData.allAdminEvents && adminData.allAdminEvents.length > 0) {
@@ -1128,14 +1147,12 @@ function loadBroadcastForm() {
       if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (單一場次報名者)</option>`;
       if (eventSelect) eventSelect.innerHTML += `<option value="${e.id}">🎟️ [${e.category}] ${e.name}</option>`;
       
-      // 收集群組資訊
       if (e.groupId) {
          let cleanName = e.name.replace(/\([一二三四五六七八九十1-9]+\)$/, "").trim();
          groupEventMap[e.groupId] = cleanName;
       }
     });
     
-    // 將群組選項加入下拉選單
     for (let gId in groupEventMap) {
         if (optEvents) optEvents.innerHTML += `<option value="GroupEvent:${gId}">📂 ${groupEventMap[gId]} (整個系列報名者)</option>`;
     }
@@ -1157,7 +1174,7 @@ function submitBroadcast() {
   let displayTarget = target;
   if (target.startsWith("Group:")) displayTarget = "團契：" + target.replace("Group:", "");
   else if (target.startsWith("Service:")) displayTarget = "服事單位：" + target.replace("Service:", "");
-  else if (target.startsWith("GroupEvent:")) displayTarget = "系列活動全體報名者"; // 【第 4b 點新增】
+  else if (target.startsWith("GroupEvent:")) displayTarget = "系列活動全體報名者"; 
   else if (target.startsWith("Event:")) displayTarget = "活動報名者 (" + target.replace("Event:", "") + ")";
   else if (target.startsWith("Tier ")) displayTarget = "帳號等級：" + target;
 
@@ -1177,9 +1194,6 @@ function submitBroadcast() {
   });
 }
 
-// ==========================================
-// 系統進階設定 (Tab 4)
-// ==========================================
 function loadSystemSettings() {
   const gasUrl = window.CONFIG.GAS_URL;
   fetch(`${gasUrl}?action=getSystemSettings&uid=${currentUID}`)
@@ -1214,10 +1228,6 @@ function saveSystemSettings() {
     else Swal.fire('儲存失敗', res.message, 'error');
   }).catch(err => { btn.innerHTML = originalHtml; btn.disabled = false; Swal.fire('連線錯誤', err.message, 'error'); });
 }
-
-// ==========================================
-// 【回合 B】新增活動精靈 (Event Creator)
-// ==========================================
 
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => { 
@@ -1266,7 +1276,7 @@ function submitNewEvent() {
 
   const payload = {
     name: name,
-    groupId: document.getElementById('ec-group-id').value.trim(), // 【第 4a 點】新增擷取群組編號
+    groupId: document.getElementById('ec-group-id').value.trim(), 
     category: category,
     capacity: document.getElementById('ec-cap').value,
     start: formatTime(start),
@@ -1309,12 +1319,6 @@ function submitNewEvent() {
     }
   });
 }
-
-// ==========================================
-// 【第三包新增】管理活動庫 (Event Manager)
-// ==========================================
-
-let currentManageEventList = [];
 
 function loadManageEventList() {
   document.getElementById('manage-event-loading').style.display = 'block';
@@ -1396,7 +1400,6 @@ function openEditEventModal(eventId) {
                 catOptions += `<option value="${catName}" ${sel}>${catName}</option>`;
             }
             
-            // 將字串時間嘗試轉換，否則直接保留供修改
             let dateStartStr = evtDetail.date.split(" ~ ")[0].replace(" ", "T");
             let dateEndStr = evtDetail.date.split(" ~ ")[1] ? evtDetail.date.split(" ~ ")[1].replace(" ", "T") : dateStartStr;
             let regEndStr = evtDetail.regEndDate ? new Date(evtDetail.regEndDate).toISOString().slice(0, 16) : "";
@@ -1404,7 +1407,6 @@ function openEditEventModal(eventId) {
             let proxyChecked = evtDetail.allowProxy ? "checked" : "";
             let extraChecked = evtDetail.requireExtraInfo ? "checked" : "";
 
-            // 【第 3 點修正】編輯表單的欄位要和新增表單一樣多！
             Swal.fire({
                 title: '編輯活動設定',
                 width: '650px',
