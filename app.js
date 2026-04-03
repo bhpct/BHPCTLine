@@ -180,7 +180,6 @@ function renderUI(response, lineName) {
   // 【第 6 點優化】讓前台按鈕與後台對齊：左上角是「管理後台」(若為管理員)，右上角是「白色的重整圈圈」
   const headerEl = document.querySelector('.church-header');
   if (headerEl) {
-      // 為了避免重複插入，先清空已經存在的動態按鈕
       const existingAdminBtn = document.getElementById('btn-to-admin-container');
       const existingRefreshBtn = document.getElementById('btn-force-refresh');
       if (existingAdminBtn) existingAdminBtn.remove();
@@ -188,7 +187,6 @@ function renderUI(response, lineName) {
 
       headerEl.style.position = 'relative'; 
 
-      // 右上角：重整按鈕 (全體用戶皆有)
       const refreshBtnHtml = `
           <button id="btn-force-refresh" class="btn btn-sm btn-outline-light rounded-circle shadow-sm border-white" onclick="forceRefresh()" style="position: absolute; top: 15px; right: 15px;" title="重新抓取最新資料">
               <i class="fas fa-sync-alt text-white"></i>
@@ -196,7 +194,6 @@ function renderUI(response, lineName) {
       `;
       headerEl.innerHTML += refreshBtnHtml;
 
-      // 左上角：管理後台按鈕 (僅限管理員)
       if (globalIsAdmin) {
           const adminBtnHtml = `
               <div id="btn-to-admin-container" style="position: absolute; top: 15px; left: 15px;">
@@ -423,8 +420,10 @@ function renderUI(response, lineName) {
     const locked = document.getElementById('finance-locked');
     if (locked) locked.style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
     financeUnlocked.style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
+    
+    // 【修改】將靜態呼叫改為呼叫動態渲染
     if (response.tier === 'Tier 2' && response.found) {
-      renderDonationChart();
+      renderRealDonationChart(response.personalFinance);
     }
   }
 
@@ -448,6 +447,61 @@ function renderUI(response, lineName) {
   }
 }
 
+// 【新增】接收真實財務數據並渲染圖表與列表
+function renderRealDonationChart(financeData) {
+  if (!financeData) return;
+  
+  safeSetText('my-total-donation', '$ ' + (financeData.totalAmount || 0).toLocaleString());
+
+  const canvas = document.getElementById('donationChart'); 
+  if (canvas) { 
+      const ctx = canvas.getContext('2d');
+      const labels = Object.keys(financeData.categoryData || {});
+      const dataValues = Object.values(financeData.categoryData || {});
+      const totalAmount = financeData.totalAmount || 1; 
+      
+      const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
+      
+      if (window.myDonationChart) window.myDonationChart.destroy();
+      
+      if (labels.length === 0) {
+          window.myDonationChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['尚無資料'], datasets: [{ data: [1], backgroundColor: ['#e9ecef'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false }}, cutout: '70%' } });
+      } else {
+          window.myDonationChart = new Chart(ctx, { 
+              type: 'doughnut', 
+              data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: colors, borderWidth: 0 }] }, 
+              options: { 
+                  responsive: true, maintainAspectRatio: false, 
+                  plugins: { 
+                      legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }, 
+                      tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const percentage = Math.round((value / totalAmount) * 100); return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; }}}} , 
+                  cutout: '70%' 
+              } 
+          });
+      }
+  }
+
+  const listContainer = document.getElementById('my-donation-list');
+  if (listContainer) {
+      listContainer.innerHTML = '';
+      if (financeData.records && financeData.records.length > 0) {
+          financeData.records.forEach(r => {
+             listContainer.innerHTML += `
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom">
+                  <div>
+                    <h6 class="mb-1 fw-bold text-dark">${r.itemName}</h6>
+                    <small class="text-muted"><i class="far fa-calendar-alt"></i> ${r.date} | ${r.name}</small>
+                  </div>
+                  <span class="badge bg-success rounded-pill px-3 py-2" style="font-size:1rem;">$ ${r.amount.toLocaleString()}</span>
+                </div>
+             `; 
+          });
+      } else {
+          listContainer.innerHTML = `<div class="p-4 text-center text-muted">今年度尚無奉獻紀錄</div>`;
+      }
+  }
+}
+
 function switchPage(pageId) {
   const pages = ['profile', 'finance', 'prayer', 'events'];
   pages.forEach(p => {
@@ -462,8 +516,8 @@ function switchPage(pageId) {
   const targetNavEl = document.getElementById('nav-' + pageId);
   if (targetNavEl) targetNavEl.classList.add('active');
 
-  if (pageId === 'finance') {
-    renderDonationChart();
+  if (pageId === 'finance' && currentUserData && currentUserData.tier === 'Tier 2') {
+    renderRealDonationChart(currentUserData.personalFinance);
   }
 }
 
@@ -529,14 +583,6 @@ function saveProfile() {
   });
 }
 
-function renderDonationChart() {
-  const canvas = document.getElementById('donationChart'); if (!canvas) return; 
-  const ctx = canvas.getContext('2d');
-  const dataValues = [22100, 7800, 2600]; const totalAmount = dataValues.reduce((a, b) => a + b, 0); 
-  if (window.myDonationChart) window.myDonationChart.destroy();
-  window.myDonationChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['月定獻金', '感恩獻金', '對外獻金-本宗'], datasets: [{ data: dataValues, backgroundColor: ['#3498db', '#2ecc71', '#f1c40f'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const percentage = Math.round((value / totalAmount) * 100); return `${label}: $ ${value.toLocaleString()} (${percentage}%)`; }}}} , cutout: '70%' } });
-}
-
 function applyFinanceAccess() { 
   Swal.fire({
     title: '申請開通財務權限',
@@ -559,7 +605,36 @@ function applyFinanceAccess() {
   });
 }
 
-function toggleFamilyView() { Swal.fire({ title: document.getElementById('familySwitch').checked ? '已切換至【全戶視角】' : '已切換至【個人視角】', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 }); }
+// 切換為全戶或個人視角，並觸發重新抓取資料
+function toggleFamilyView() { 
+  let isFamily = document.getElementById('familySwitch').checked;
+  Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+  
+  const gasUrl = window.CONFIG.GAS_URL;
+  // 直接呼叫更新權限的 API
+  fetch(gasUrl, { 
+    method: 'POST', 
+    body: JSON.stringify({ 
+      action: 'adminUpdateFullUser', 
+      adminUid: currentUID, // 使用者自己更新自己
+      userData: {
+         uid: currentUID,
+         name: currentUserData.name,
+         phone: currentUserData.phone.replace(/^'/, ''),
+         birthday: currentUserData.birthday,
+         donationCode: currentUserData.donationCode || "", // 需確保後端有傳回此欄位，這裡簡化處理
+         familyId: currentUserData.familyId || "",
+         familyView: isFamily,
+         groups: currentUserData.groups,
+         service: currentUserData.service,
+         tier: currentUserData.tier,
+         baptism: currentUserData.baptism || ""
+      } 
+    }) 
+  }).then(() => {
+     forceRefresh(); // 強制重整抓最新資料
+  });
+}
 
 function submitPrayer() {
   const target = document.getElementById('prayer-target').value; const content = document.getElementById('prayer-content').value; const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
