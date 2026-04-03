@@ -593,6 +593,7 @@ function openFullEditModal(userObj) {
   });
 }
 
+
 // ==========================================
 // 權限管理控管 (Tab 6，僅超級管理員可見)
 // ==========================================
@@ -889,7 +890,6 @@ function togglePayment(regId, index) {
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
 
-// 【第五包修改】升級為具備動態表單生成能力的後台代報精靈
 function openAddRegModal() {
   let eventId = document.getElementById('report-event-select').value;
   if (!eventId) { Swal.fire('提醒', '請先選擇一個活動！', 'warning'); return; }
@@ -1334,7 +1334,6 @@ loadAdminEventList = function() {
   setTimeout(populateCategoryDropdown, 1500); 
 }
 
-// 【第五包新增】一鍵產生標準群組編號
 function generateGroupId() {
   const dateStr = new Date().toISOString().slice(2,7).replace('-', ''); 
   const randomStr = Math.floor(1000 + Math.random() * 9000); 
@@ -1834,12 +1833,10 @@ function processFinanceFile() {
   reader.onload = function(e) {
       try {
           const data = new Uint8Array(e.target.result);
-          // 使用 SheetJS 解析檔案
           const workbook = XLSX.read(data, {type: 'array'});
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           
-          // 轉換成二維陣列，header: 1 表示原樣輸出，不把第一列當 key
           const rawRows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
           
           if(rawRows.length < 3) {
@@ -1867,12 +1864,10 @@ function processFinanceFile() {
 
               // 2. 判斷是否為小計或總計列
               if (col0.includes("共計") || col0.includes("總計") || col1.includes("總計")) {
-                 // 擷取這列的「人」與「金額」
                  let fullRowStr = row.join(" ");
                  let countMatch = fullRowStr.match(/(\d+)\s*人/);
                  if (countMatch) expectedCount = parseInt(countMatch[1]);
                  
-                 // 從後面找尋金額 (通常最後一個數字就是總和)
                  for(let c = row.length - 1; c >= 1; c--) {
                      let val = String(row[c] || "").replace(/,/g, "").trim();
                      if(val && !isNaN(val) && Number(val) > 0) {
@@ -1880,21 +1875,20 @@ function processFinanceFile() {
                          break;
                      }
                  }
-                 continue; // 這是統計列，不寫入明細資料庫
+                 continue; 
               }
 
               // 3. 過濾無效資料或表頭
               if (!col0 || col0 === "科目代碼" || col0 === "教會名稱" || col0.includes("教會")) continue;
 
-              // 4. 標準資料列提取
-              let accountCode = col0;
-              let itemName = col1;
-              let donationCode = String(row[2] || "").trim();
-              let personName = String(row[3] || "").trim();
-              let amountStr = String(row[4] || "").replace(/,/g, "").trim();
-              let memo = String(row[5] || "").trim();
+              // 4. 標準資料列提取 (精準對位版)
+              let accountCode = col0;                                         // A欄: 科目代碼
+              let itemName = col1;                                            // B欄: 會計科目
+              let donationCode = String(row[2] || "").trim();                 // C欄: 奉獻代碼
+              let personName = String(row[3] || "").trim();                   // D欄: 姓名
+              let amountStr = String(row[4] || "").replace(/,/g, "").trim();  // E欄: 金額
+              let memo = String(row[5] || "").trim();                         // F欄: 備註
 
-              // 金額格式轉換 (防呆 3.000 變 3000)
               if (amountStr.indexOf('.') > 0 && amountStr.split('.')[1].length === 3) {
                   amountStr = amountStr.replace(/\./g, "");
               }
@@ -1906,6 +1900,7 @@ function processFinanceFile() {
                  let familyId = donationCode.split("-")[0] || "";
                  cleanData.push({
                     date: parsedDate,
+                    accountCode: accountCode,
                     itemName: itemName,
                     donationCode: donationCode,
                     familyId: familyId,
@@ -1942,17 +1937,18 @@ function processFinanceFile() {
           }
 
           let previewHtml = checkStatusHtml + `
-            <div class="alert alert-light p-2 mb-2 border" style="font-size:0.85rem;">
-               基準日：<b>${parsedDate}</b>。請確認下方隨機抽樣預覽是否正確：
+            <div class="alert alert-warning p-2 mb-2 border" style="font-size:0.85rem;">
+               ⚠️ <b>覆蓋警告：</b> 系統將以 <b>${parsedDate}</b> 為基準日，若資料庫已有同日期的紀錄將會被<b>自動覆蓋</b>，以避免重複寫入！
             </div>
             <table class="table table-sm table-bordered table-striped" style="font-size:0.8rem;">
-               <thead class="table-light"><tr><th>項目</th><th>代碼</th><th>姓名</th><th>金額</th></tr></thead>
+               <thead class="table-light"><tr><th>代碼</th><th>科目</th><th>奉獻代碼</th><th>姓名</th><th>金額</th></tr></thead>
                <tbody>
           `;
           
           let maxPreview = Math.min(5, cleanData.length);
           for(let i=0; i<maxPreview; i++) {
              previewHtml += `<tr>
+                <td>${cleanData[i].accountCode}</td>
                 <td>${cleanData[i].itemName}</td>
                 <td>${cleanData[i].donationCode}</td>
                 <td>${cleanData[i].personName}</td>
