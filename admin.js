@@ -17,6 +17,9 @@ let adminRolesCache = [];
 let myAdminDonationCatChart = null;
 let myAdminDonationTrendChart = null;
 
+// 【第五包新增】財務預覽全域變數
+let currentFinancePreviewData = [];
+
 // ====== 【防呆啟動引擎】 ======
 function initAdminSystem() {
   const loadingEl = document.getElementById('loading');
@@ -68,7 +71,6 @@ function verifyAdminAuth(uid) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('ui-adminName').innerText = `${response.name} (${response.adminLevel})`;
         
-        // 【第四包新增】順手把今年自動帶入財務報表的 input
         const yInput = document.getElementById('finance-year-input');
         if(yInput && response.sysYear) yInput.value = response.sysYear;
         
@@ -591,18 +593,6 @@ function openFullEditModal(userObj) {
   });
 }
 
-function submitFinanceCSV() {
-  const text = document.getElementById('finance-csv-input').value.trim();
-  if(!text) { Swal.fire('提醒', '請先貼上 CSV 內容！', 'warning'); return; }
-  
-  Swal.fire({ title: '上傳處理中', text: '正在將資料匯入財務庫...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  const gasUrl = window.CONFIG.GAS_URL;
-  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'uploadFinanceCSV', adminUid: currentUID, csvText: text }) })
-    .then(res => res.json()).then(res => {
-      if(res.success) { Swal.fire('匯入成功', res.message, 'success'); document.getElementById('finance-csv-input').value = ''; }
-      else Swal.fire('匯入失敗', res.message, 'error');
-    }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
-}
 
 // ==========================================
 // 權限管理控管 (Tab 6，僅超級管理員可見)
@@ -749,7 +739,6 @@ function manageAdminRole(targetUid, actionType) {
 // 【回合 B】活動報表與 ERP 管理引擎 (Tab 2)
 // ==========================================
 
-// 覆寫原有的 toggleEventView 支援 manage 面板與 archive 面板
 function toggleEventView(viewType) {
   document.getElementById('btn-toggle-report').classList.remove('active');
   document.getElementById('btn-toggle-manage').classList.remove('active');
@@ -768,7 +757,7 @@ function toggleEventView(viewType) {
     document.getElementById('btn-toggle-manage').classList.add('active');
     document.getElementById('event-manage-view').style.display = 'block';
     loadManageEventList(); 
-  } else if (viewType === 'archive') { // 【第四包新增】
+  } else if (viewType === 'archive') {
     document.getElementById('btn-toggle-archive').classList.add('active');
     document.getElementById('event-archive-view').style.display = 'block';
     loadArchiveEventList();
@@ -901,40 +890,125 @@ function togglePayment(regId, index) {
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
 
+// 【第五包修改】升級為具備動態表單生成能力的後台代報精靈
 function openAddRegModal() {
   let eventId = document.getElementById('report-event-select').value;
   if (!eventId) { Swal.fire('提醒', '請先選擇一個活動！', 'warning'); return; }
   
-  Swal.fire({
-    title: '新增報名者 (後台代報)',
-    html: `
+  let customFormStr = currentReportEventInfo ? currentReportEventInfo.extraQ : "";
+  let htmlFields = `
       <div class="text-start mt-2">
-        <label class="form-label fw-bold text-dark mb-1">姓名 <span class="text-danger">*</span></label>
+        <label class="form-label fw-bold text-dark">參與者姓名 <span class="text-danger">*</span></label>
         <input type="text" id="ar-name" class="form-control mb-3" placeholder="請輸入參與者姓名">
         
-        <label class="form-label fw-bold text-dark mb-1">聯絡電話</label>
-        <input type="text" id="ar-phone" class="form-control mb-3" placeholder="選填">
+        <label class="form-label fw-bold text-dark">聯絡電話</label>
+        <input type="tel" id="ar-phone" class="form-control mb-3" placeholder="選填">
         
-        <label class="form-label fw-bold text-dark mb-1">自訂選項 / 備註資訊</label>
-        <input type="text" id="ar-extra" class="form-control mb-3" placeholder="可以直接輸入任意文字">
-        
-        <label class="form-label fw-bold text-dark mb-1">繳費狀態</label>
-        <select id="ar-pay" class="form-select border-primary">
+        <label class="form-label fw-bold text-dark">繳費狀態</label>
+        <select id="ar-pay" class="form-select border-primary mb-3">
           <option value="未繳費">未繳費</option>
           <option value="已繳費">已繳費 (現場收現)</option>
           <option value="免繳費">免繳費</option>
         </select>
+        
+        <hr>
+        <h6 class="fw-bold text-muted mb-2"><i class="fas fa-list"></i> 報名選項 / 個資</h6>
+  `;
+
+  if (customFormStr && customFormStr.trim() !== '') {
+      const forms = customFormStr.split('|');
+      forms.forEach((f) => {
+          if (f.includes(':')) {
+              const parts = f.split(':');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  
+                  htmlFields += `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <select class="form-select border-primary admin-dynamic-select-add" data-qname="${qName}">
+                        <option value="" disabled selected>請選擇...</option>`;
+                  opts.forEach(o => { 
+                      htmlFields += `<option value="${o}">${o}</option>`; 
+                  });
+                  htmlFields += `</select></div>`;
+              }
+          } else if (f.includes('-')) {
+              const parts = f.split('-');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  
+                  htmlFields += `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <div class="bg-light p-2 rounded border">
+                        <div class="row g-2">`;
+                  opts.forEach((o, idx) => {
+                      const cId = `admin-chk-add-${qName}-${idx}`;
+                      htmlFields += `
+                        <div class="col-6">
+                          <div class="form-check">
+                            <input class="form-check-input admin-dynamic-checkbox-add" type="checkbox" value="${o}" id="${cId}" data-qname="${qName}">
+                            <label class="form-check-label text-muted" for="${cId}">${o}</label>
+                          </div>
+                        </div>`;
+                  });
+                  htmlFields += `</div></div></div>`;
+              }
+          }
+      });
+  }
+
+  htmlFields += `
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">身分證字號</label>
+          <input type="text" class="form-control admin-dynamic-input-add" data-qname="身分證" placeholder="若保險需要請填寫">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">生日</label>
+          <input type="date" class="form-control admin-dynamic-input-add" data-qname="生日">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">自訂備註</label>
+          <input type="text" class="form-control admin-dynamic-input-add" data-qname="備註" placeholder="其他備註資訊">
+        </div>
       </div>
-    `,
+  `;
+
+  Swal.fire({
+    title: '新增報名者 (後台代報)',
+    html: htmlFields,
     showCancelButton: true, confirmButtonText: '確定新增', cancelButtonText: '取消', confirmButtonColor: '#2ecc71',
     preConfirm: () => {
       let name = document.getElementById('ar-name').value.trim();
       if(!name) { Swal.showValidationMessage('請務必填寫姓名！'); return false; }
+      
+      let finalExtraObj = {};
+      document.querySelectorAll('.admin-dynamic-select-add').forEach(el => {
+          if(el.value) finalExtraObj[el.getAttribute('data-qname')] = el.value;
+      });
+      
+      let checkMap = {};
+      document.querySelectorAll('.admin-dynamic-checkbox-add:checked').forEach(el => {
+          const qName = el.getAttribute('data-qname');
+          if (!checkMap[qName]) checkMap[qName] = [];
+          checkMap[qName].push(el.value);
+      });
+      for (let q in checkMap) { finalExtraObj[q] = checkMap[q].join(', '); }
+
+      document.querySelectorAll('.admin-dynamic-input-add').forEach(el => {
+          if(el.value.trim()) finalExtraObj[el.getAttribute('data-qname')] = el.value.trim();
+      });
+
+      let finalExtraStr = Object.keys(finalExtraObj).length === 0 ? "" : JSON.stringify(finalExtraObj);
+
       return {
         name: name, 
         phone: document.getElementById('ar-phone').value.trim(),
-        extra: document.getElementById('ar-extra').value.trim(), 
-        payStatus: document.getElementById('ar-pay').value
+        payStatus: document.getElementById('ar-pay').value,
+        extra: finalExtraStr
       }
     }
   }).then(res => {
@@ -1261,6 +1335,13 @@ loadAdminEventList = function() {
   setTimeout(populateCategoryDropdown, 1500); 
 }
 
+// 【第五包新增】一鍵產生標準群組編號
+function generateGroupId() {
+  const dateStr = new Date().toISOString().slice(2,7).replace('-', ''); // e.g. "2604"
+  const randomStr = Math.floor(1000 + Math.random() * 9000); // 4位隨機數
+  document.getElementById('ec-group-id').value = "G" + dateStr + "-" + randomStr;
+}
+
 function submitNewEvent() {
   const name = document.getElementById('ec-name').value.trim();
   const category = document.getElementById('ec-category').value;
@@ -1562,9 +1643,6 @@ function deleteEvent(eventId, eventName) {
     });
   }
 
-// ==========================================
-// 【第四包新增】歷史封存庫 (Event Archive)
-// ==========================================
 function loadArchiveEventList() {
   document.getElementById('archive-event-loading').style.display = 'block';
   document.getElementById('archive-event-list').style.display = 'none';
@@ -1624,9 +1702,7 @@ function loadArchivedEventReport(eventId) {
     .then(res => res.json()).then(res => {
       if (res.success) {
         Swal.close();
-        // 切換畫面到報表視圖
         toggleEventView('report');
-        // 手動把下拉選單設為空，因為這不是現有活動
         document.getElementById('report-event-select').value = ""; 
         
         document.getElementById('print-section').style.display = 'block';
@@ -1635,7 +1711,7 @@ function loadArchivedEventReport(eventId) {
         
         let tbody = document.getElementById('report-tbody');
         tbody.innerHTML = ''; 
-        currentReportData = res.list; // 共用匯出 CSV 功能
+        currentReportData = res.list; 
         
         if (res.list.length === 0) { 
           tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fw-bold">此歷史活動尚無報名紀錄</td></tr>'; 
@@ -1663,9 +1739,6 @@ function loadArchivedEventReport(eventId) {
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
 
-// ==========================================
-// 【第四包新增】財務年度報表分析戰情室
-// ==========================================
 function loadFinancialSummary() {
   const yearInput = document.getElementById('finance-year-input').value || new Date().getFullYear();
   
@@ -1691,7 +1764,6 @@ function loadFinancialSummary() {
 }
 
 function renderFinanceCharts(data) {
-  // 圓餅圖：各奉獻項目佔比
   const catCtx = document.getElementById('financeCategoryChart');
   if(catCtx) {
      if(window.myAdminDonationCatChart) window.myAdminDonationCatChart.destroy();
@@ -1699,7 +1771,6 @@ function renderFinanceCharts(data) {
      const labels = Object.keys(data.categories);
      const values = Object.values(data.categories);
      
-     // 教會常用色系
      const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
      
      window.myAdminDonationCatChart = new Chart(catCtx, {
@@ -1716,7 +1787,6 @@ function renderFinanceCharts(data) {
      });
   }
 
-  // 長條圖：每月奉獻趨勢
   const trendCtx = document.getElementById('financeTrendChart');
   if(trendCtx) {
      if(window.myAdminDonationTrendChart) window.myAdminDonationTrendChart.destroy();
@@ -1745,4 +1815,233 @@ function renderFinanceCharts(data) {
         }
      });
   }
+}
+
+// ==========================================
+// 【第五包新增】智慧財務 Excel 檔案解析引擎
+// ==========================================
+function processFinanceFile() {
+  const fileInput = document.getElementById('finance-excel-input');
+  if (!fileInput.files || fileInput.files.length === 0) {
+      Swal.fire('提醒', '請先選擇一個 Excel 或 CSV 檔案！', 'warning');
+      return;
+  }
+  
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  Swal.fire({ title: '解析檔案中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  reader.onload = function(e) {
+      try {
+          const data = new Uint8Array(e.target.result);
+          // 使用 SheetJS 解析檔案
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // 轉換成二維陣列，header: 1 表示原樣輸出，不把第一列當 key
+          const rawRows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+          
+          if(rawRows.length < 3) {
+             Swal.fire('解析失敗', '檔案內容似乎為空或格式不符。', 'error');
+             return;
+          }
+
+          // 1. 智慧尋找日期 (掃描前 5 行找 YYYY/MM/DD)
+          let parsedDate = Utilities_formatDateClient(new Date()); 
+          for(let r=0; r<Math.min(5, rawRows.length); r++) {
+             let rowStr = rawRows[r].join(" ");
+             let dateMatch = rowStr.match(/(\d{4}\/\d{1,2}\/\d{1,2})/);
+             if(dateMatch) {
+                parsedDate = dateMatch[1];
+                break;
+             }
+          }
+
+          let cleanData = [];
+          
+          // 2. 開始智慧清洗每一行資料
+          for (let i = 0; i < rawRows.length; i++) {
+              let row = rawRows[i];
+              // 過濾空行或太短的行
+              if(!row || row.length < 3) continue;
+              
+              let col0 = String(row[0] || "").trim();
+              let col1 = String(row[1] || "").trim();
+              let col2 = String(row[2] || "").trim();
+              let col3 = String(row[3] || "").trim();
+              
+              // 過濾掉總計、共計、表頭等雜訊
+              if (col0.includes("共計") || col0.includes("總計") || col0.includes("明細表") || col0.includes("教會")) continue;
+              if (col0 === "日期" || col0 === "科目代碼" || col0 === "") continue;
+
+              // 【核心處理】針對混合在一起的文字進行正則分離
+              // 案例： "月定獻金0065-1  黃士杰 4101.00", 金額在 col1 或 col2
+              
+              let itemName = "";
+              let donationCode = "";
+              let familyId = "";
+              let personName = "";
+              let amount = 0;
+              let memo = "";
+              
+              // 嘗試從 col0 分離出「項目」和「奉獻代碼」
+              // 正則：先抓非數字文字(項目)，再抓帶有橫線的編號(代碼)
+              let matchCode = col0.match(/([^\d]+)\s*(\d{4}-\d{1,2})/);
+              if (matchCode) {
+                 itemName = matchCode[1].trim();
+                 donationCode = matchCode[2].trim();
+                 familyId = donationCode.split("-")[0];
+                 
+                 // 尋找人名 (通常跟在代碼後面，或是被分配到下一個非數字的欄位)
+                 let restOfCol0 = col0.replace(matchCode[0], "").trim();
+                 if (restOfCol0 && isNaN(parseInt(restOfCol0))) {
+                     personName = restOfCol0.split(/\s+/)[0]; 
+                 }
+              } else {
+                 // 如果沒有代碼，就先整包當成項目
+                 itemName = col0;
+              }
+
+              // 如果人名還沒找到，往後面的欄位找找看
+              if (!personName) {
+                  for(let c=1; c<row.length; c++) {
+                      let val = String(row[c] || "").trim();
+                      if (val && isNaN(parseInt(val.charAt(0))) && val !== "共計" && val !== "總計") {
+                          personName = val;
+                          break;
+                      }
+                  }
+              }
+              if(!personName) personName = "無名氏";
+
+              // 尋找金額 (尋找帶有逗號的數字，或純數字)
+              for(let c=1; c<row.length; c++) {
+                 let val = String(row[c] || "").trim();
+                 // 拔除千位逗號
+                 let cleanVal = val.replace(/,/g, "");
+                 // 如果教會的系統會把 3,000 變成 3.000，這裡做轉換
+                 if (cleanVal.indexOf('.') > 0 && cleanVal.split('.')[1].length === 3) {
+                     cleanVal = cleanVal.replace(/\./g, "");
+                 }
+                 
+                 if (cleanVal !== "" && !isNaN(cleanVal) && Number(cleanVal) > 10) { 
+                     // 假設金額大於 10 才算數，避免抓到 1.000 這種被誤認為 1 的科目代碼
+                     amount = Number(cleanVal);
+                     break;
+                 }
+              }
+
+              // 字典校正 (解決截斷問題)
+              if (itemName.includes("建築及專")) itemName = "建築及專案獻金";
+              if (itemName.includes("對內奉") || itemName.includes("對內獻")) itemName = "對內奉獻";
+              if (itemName.includes("對外獻") || itemName.includes("對外奉")) itemName = "對外獻金";
+
+              if (amount > 0) {
+                 cleanData.push({
+                    date: parsedDate,
+                    itemName: itemName,
+                    donationCode: donationCode,
+                    familyId: familyId,
+                    personName: personName,
+                    amount: amount,
+                    memo: memo
+                 });
+              }
+          }
+
+          if (cleanData.length === 0) {
+              Swal.fire('解析失敗', '無法從檔案中提取有效的奉獻資料，請檢查檔案格式。', 'error');
+              return;
+          }
+
+          // 3. 將結果顯示在畫面上供確認
+          currentFinancePreviewData = cleanData;
+          let totalAmount = cleanData.reduce((sum, curr) => sum + curr.amount, 0);
+
+          let previewHtml = `
+            <div class="alert alert-info p-2 mb-2" style="font-size:0.85rem;">
+               <i class="fas fa-check-circle"></i> 系統已自動解析檔案，基準日為 <b>${parsedDate}</b>。<br>
+               共抓取 <b>${cleanData.length}</b> 筆資料，總金額：<b>$ ${totalAmount.toLocaleString()}</b> 元。<br>
+               請確認下方隨機抽樣預覽是否正確：
+            </div>
+            <table class="table table-sm table-bordered table-striped" style="font-size:0.8rem;">
+               <thead class="table-light"><tr><th>項目</th><th>代碼</th><th>姓名</th><th>金額</th></tr></thead>
+               <tbody>
+          `;
+          
+          // 隨機抽樣 5 筆預覽
+          let maxPreview = Math.min(5, cleanData.length);
+          for(let i=0; i<maxPreview; i++) {
+             previewHtml += `<tr>
+                <td>${cleanData[i].itemName}</td>
+                <td>${cleanData[i].donationCode}</td>
+                <td>${cleanData[i].personName}</td>
+                <td class="text-end fw-bold">$${cleanData[i].amount.toLocaleString()}</td>
+             </tr>`;
+          }
+          previewHtml += `</tbody></table>`;
+          
+          // 將上傳按鈕換成「確認寫入」按鈕
+          previewHtml += `
+            <button class="btn btn-warning w-100 fw-bold rounded-pill shadow-sm" onclick="confirmFinanceUpload()">
+               <i class="fas fa-database"></i> 確認無誤，一鍵寫入資料庫
+            </button>
+          `;
+
+          document.getElementById('finance-preview-area').innerHTML = previewHtml;
+          document.getElementById('finance-preview-area').style.display = 'block';
+          document.getElementById('btn-upload-finance').style.display = 'none';
+          
+          Swal.close();
+
+      } catch (error) {
+          Swal.fire('解析失敗', '發生錯誤：' + error.message, 'error');
+      }
+  };
+  
+  reader.readAsArrayBuffer(file);
+}
+
+// 簡單的客戶端日期格式化工具
+function Utilities_formatDateClient(date) {
+    let d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('/');
+}
+
+// 【第五包新增】一鍵安全寫入已清洗好的 JSON 陣列
+function confirmFinanceUpload() {
+   if (!currentFinancePreviewData || currentFinancePreviewData.length === 0) return;
+   
+   Swal.fire({ title: '寫入資料庫中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+   
+   const gasUrl = window.CONFIG.GAS_URL;
+   fetch(gasUrl, { 
+      method: 'POST', 
+      body: JSON.stringify({ 
+          action: 'uploadFinanceJSON', 
+          adminUid: currentUID, 
+          financeData: currentFinancePreviewData 
+      }) 
+   })
+   .then(res => res.json()).then(res => {
+      if(res.success) { 
+         Swal.fire('寫入成功', res.message, 'success').then(() => {
+            // 寫入成功後重置上傳區塊
+            document.getElementById('finance-excel-input').value = "";
+            document.getElementById('finance-preview-area').style.display = 'none';
+            document.getElementById('btn-upload-finance').style.display = 'block';
+            currentFinancePreviewData = [];
+            // 重新載入年度圖表
+            loadFinancialSummary();
+         });
+      }
+      else Swal.fire('匯入失敗', res.message, 'error');
+   }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
