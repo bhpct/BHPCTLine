@@ -1561,3 +1561,188 @@ function deleteEvent(eventId, eventName) {
       }
     });
   }
+
+// ==========================================
+// 【第四包新增】歷史封存庫 (Event Archive)
+// ==========================================
+function loadArchiveEventList() {
+  document.getElementById('archive-event-loading').style.display = 'block';
+  document.getElementById('archive-event-list').style.display = 'none';
+  
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getArchivedEvents&uid=${currentUID}`)
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById('archive-event-loading').style.display = 'none';
+      if (res.success) {
+        renderArchiveEventList(res.list);
+      } else {
+        document.getElementById('archive-event-list').innerHTML = `<div class="alert alert-danger">${res.message}</div>`;
+        document.getElementById('archive-event-list').style.display = 'block';
+      }
+    }).catch(err => {
+      document.getElementById('archive-event-loading').style.display = 'none';
+      document.getElementById('archive-event-list').innerHTML = `<div class="alert alert-danger">連線失敗</div>`;
+      document.getElementById('archive-event-list').style.display = 'block';
+    });
+}
+
+function renderArchiveEventList(list) {
+  const container = document.getElementById('archive-event-list');
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted py-4">目前沒有已封存的歷史活動</div>';
+  } else {
+    list.forEach((evt) => {
+      container.innerHTML += `
+        <div class="list-group-item p-3 border-bottom border-0 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold text-secondary mb-0"><i class="fas fa-lock"></i> ${evt.name}</h6>
+            <span class="badge bg-secondary ms-1" style="font-size:0.75rem;">${evt.status}</span>
+          </div>
+          <div class="text-muted mb-2" style="font-size:0.85rem;">
+            <i class="far fa-calendar-alt w-20px"></i> ${evt.start} <br>
+            <i class="fas fa-hashtag w-20px"></i> ID: <span style="font-family:monospace;">${evt.id}</span>
+          </div>
+          <div class="text-end mt-2">
+            <button class="btn btn-sm btn-secondary rounded-pill px-3 shadow-sm" onclick="loadArchivedEventReport('${evt.id}')"><i class="fas fa-eye"></i> 檢視名單 (唯讀)</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+  container.style.display = 'block';
+}
+
+function loadArchivedEventReport(eventId) {
+  document.getElementById('print-section').style.display = 'none';
+  Swal.fire({ title: '撈取歷史名單中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getArchivedEventRegistrations&uid=${currentUID}&eventId=${eventId}`)
+    .then(res => res.json()).then(res => {
+      if (res.success) {
+        Swal.close();
+        // 切換畫面到報表視圖
+        toggleEventView('report');
+        // 手動把下拉選單設為空，因為這不是現有活動
+        document.getElementById('report-event-select').value = ""; 
+        
+        document.getElementById('print-section').style.display = 'block';
+        document.getElementById('print-event-name').innerText = res.eventInfo.name + " (已封存)";
+        document.getElementById('print-event-time').innerText = `活動時間：${res.eventInfo.date} | 報名人數：${res.list.length} 人`;
+        
+        let tbody = document.getElementById('report-tbody');
+        tbody.innerHTML = ''; 
+        currentReportData = res.list; // 共用匯出 CSV 功能
+        
+        if (res.list.length === 0) { 
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fw-bold">此歷史活動尚無報名紀錄</td></tr>'; 
+        } else {
+          res.list.forEach((reg, index) => {
+            let attClass = reg.attendance === '已出席' ? 'text-success' : 'text-danger';
+            let payBadge = reg.payStatus === '已繳費' ? '<span class="badge bg-success">已繳費</span>' : (reg.payStatus === '免繳費' ? '<span class="badge bg-secondary">免繳費</span>' : '<span class="badge bg-warning text-dark">未繳費</span>');
+            let readableExtra = parseExtraInfoToReadable(reg.extraInfo);
+
+            tbody.innerHTML += `<tr>
+              <td class="text-center fw-bold">${index + 1}</td>
+              <td class="fw-bold text-secondary">${reg.participantName}</td>
+              <td class="text-center text-muted">${reg.type}</td>
+              <td class="text-center">${reg.phone}</td>
+              <td class="text-center">${payBadge}</td>
+              <td class="text-center fw-bold ${attClass} print-blank-cell"><span class="no-print">${reg.attendance}</span></td>
+              <td class="text-muted" style="font-size:0.85rem; max-width:250px;">${readableExtra}</td>
+              <td class="text-center no-print text-muted" style="font-size:0.8rem;">
+                <i class="fas fa-lock"></i> 唯讀
+              </td>
+            </tr>`;
+          });
+        }
+      } else { Swal.fire('錯誤', res.message, 'error'); }
+    }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+}
+
+// ==========================================
+// 【第四包新增】財務年度報表分析戰情室
+// ==========================================
+function loadFinancialSummary() {
+  const yearInput = document.getElementById('finance-year-input').value || new Date().getFullYear();
+  
+  document.getElementById('finance-loading').style.display = 'block';
+  document.getElementById('finance-dashboard-view').style.display = 'none';
+
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getFinancialSummary&uid=${currentUID}&year=${yearInput}`)
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById('finance-loading').style.display = 'none';
+      if (res.success) {
+         document.getElementById('finance-dashboard-view').style.display = 'block';
+         document.getElementById('fin-total-amount').innerText = '$ ' + res.total.toLocaleString();
+         renderFinanceCharts(res);
+      } else {
+         Swal.fire('錯誤', res.message, 'error');
+      }
+    }).catch(err => {
+      document.getElementById('finance-loading').style.display = 'none';
+      Swal.fire('連線錯誤', err.message, 'error');
+    });
+}
+
+function renderFinanceCharts(data) {
+  // 圓餅圖：各奉獻項目佔比
+  const catCtx = document.getElementById('financeCategoryChart');
+  if(catCtx) {
+     if(window.myAdminDonationCatChart) window.myAdminDonationCatChart.destroy();
+     
+     const labels = Object.keys(data.categories);
+     const values = Object.values(data.categories);
+     
+     // 教會常用色系
+     const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
+     
+     window.myAdminDonationCatChart = new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+           labels: labels,
+           datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }]
+        },
+        options: {
+           responsive: true, maintainAspectRatio: false,
+           plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } },
+           cutout: '60%'
+        }
+     });
+  }
+
+  // 長條圖：每月奉獻趨勢
+  const trendCtx = document.getElementById('financeTrendChart');
+  if(trendCtx) {
+     if(window.myAdminDonationTrendChart) window.myAdminDonationTrendChart.destroy();
+     
+     const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+     const values = [];
+     for(let i=1; i<=12; i++) { values.push(data.monthly[String(i)]); }
+     
+     window.myAdminDonationTrendChart = new Chart(trendCtx, {
+        type: 'bar',
+        data: {
+           labels: months,
+           datasets: [{
+              label: '總奉獻金額',
+              data: values,
+              backgroundColor: 'rgba(241, 196, 15, 0.7)',
+              borderColor: 'rgba(243, 156, 18, 1)',
+              borderWidth: 1,
+              borderRadius: 4
+           }]
+        },
+        options: {
+           responsive: true, maintainAspectRatio: false,
+           scales: { y: { beginAtZero: true } },
+           plugins: { legend: { display: false } }
+        }
+     });
+  }
+}
