@@ -6,7 +6,7 @@ let adminData = null;
 // 全域變數庫
 let currentModalList = []; 
 let currentReportData = [];
-let currentReportEventInfo = null; // 【第二包新增】保存當下活動的完整資訊
+let currentReportEventInfo = null; // 保存當下活動的完整資訊
 let memberModalInstance = null;
 
 // 第三階段新增：全教會名單與管理員快取
@@ -85,19 +85,19 @@ function applyRBAC() {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); 
-    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles();
   } else if (lvl === "最高管理員") {
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
-    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     loadDashboard(); loadSystemSettings(); loadAllMembers();
   } else if (lvl === "活動管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
-    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     switchAdminTab(null, 'events'); 
   } else if (lvl === "財務管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
@@ -733,7 +733,6 @@ function manageAdminRole(targetUid, actionType) {
 // 【回合 B】活動報表與 ERP 管理引擎 (Tab 2)
 // ==========================================
 
-// 覆寫原有的 toggleEventView 支援 manage 面板
 function toggleEventView(viewType) {
   document.getElementById('btn-toggle-report').classList.remove('active');
   document.getElementById('btn-toggle-manage').classList.remove('active');
@@ -827,7 +826,7 @@ function loadEventReport() {
               <td class="text-center text-muted">${reg.type}</td>
               <td class="text-center">${reg.phone}</td>
               <td class="text-center">${payBadge}</td>
-              <td class="text-center fw-bold ${attClass}">${reg.attendance}</td>
+              <td class="text-center fw-bold ${attClass} print-blank-cell"><span class="no-print">${reg.attendance}</span></td>
               <td class="text-muted" style="font-size:0.85rem; max-width:250px;">${readableExtra}</td>
               <td class="text-center no-print">
                 <button class="btn btn-sm ${attBtnClass} mb-1" onclick="toggleAttendance('${reg.regId}', '${reg.attendance}')" title="切換出席/簽到狀態"><i class="fas ${attIcon}"></i></button>
@@ -1117,20 +1116,38 @@ function loadBroadcastForm() {
   if (optGroups && adminData.availableGroups) adminData.availableGroups.forEach(g => optGroups.innerHTML += `<option value="Group:${g}">${g}</option>`);
   const optServices = document.getElementById('optgroup-services');
   if (optServices && adminData.availableServices) adminData.availableServices.forEach(s => optServices.innerHTML += `<option value="Service:${s}">${s}</option>`);
+  
   const optEvents = document.getElementById('optgroup-events');
   const eventSelect = document.getElementById('broadcast-event'); 
+  
+  // 【第 4b 點】將系列活動(群組)整理出來加入發送對象
+  let groupEventMap = {};
+
   if (adminData.allAdminEvents && adminData.allAdminEvents.length > 0) {
     adminData.allAdminEvents.forEach(e => {
-      if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (報名者)</option>`;
+      if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (單一場次報名者)</option>`;
       if (eventSelect) eventSelect.innerHTML += `<option value="${e.id}">🎟️ [${e.category}] ${e.name}</option>`;
+      
+      // 收集群組資訊
+      if (e.groupId) {
+         let cleanName = e.name.replace(/\([一二三四五六七八九十1-9]+\)$/, "").trim();
+         groupEventMap[e.groupId] = cleanName;
+      }
     });
+    
+    // 將群組選項加入下拉選單
+    for (let gId in groupEventMap) {
+        if (optEvents) optEvents.innerHTML += `<option value="GroupEvent:${gId}">📂 ${groupEventMap[gId]} (整個系列報名者)</option>`;
+    }
+    
   } else if (adminData.activeEvents) {
      adminData.activeEvents.forEach(e => {
-      if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (報名者)</option>`;
+      if (optEvents) optEvents.innerHTML += `<option value="Event:${e.id}">${e.name} (單一場次報名者)</option>`;
       if (eventSelect) eventSelect.innerHTML += `<option value="${e.id}">🎟️ [${e.category}] ${e.name}</option>`;
     });
   }
 }
+
 function submitBroadcast() {
   const target = document.getElementById('broadcast-target').value;
   const msg = document.getElementById('broadcast-msg').value.trim();
@@ -1140,6 +1157,7 @@ function submitBroadcast() {
   let displayTarget = target;
   if (target.startsWith("Group:")) displayTarget = "團契：" + target.replace("Group:", "");
   else if (target.startsWith("Service:")) displayTarget = "服事單位：" + target.replace("Service:", "");
+  else if (target.startsWith("GroupEvent:")) displayTarget = "系列活動全體報名者"; // 【第 4b 點新增】
   else if (target.startsWith("Event:")) displayTarget = "活動報名者 (" + target.replace("Event:", "") + ")";
   else if (target.startsWith("Tier ")) displayTarget = "帳號等級：" + target;
 
@@ -1201,7 +1219,6 @@ function saveSystemSettings() {
 // 【回合 B】新增活動精靈 (Event Creator)
 // ==========================================
 
-// 監聽收費名目，如果是免費就隱藏金額框
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => { 
     const feeNameSelect = document.getElementById('ec-feeName');
@@ -1219,7 +1236,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1000);
 });
 
-// 在 applyRBAC 載入分類選項
 function populateCategoryDropdown() {
   const catSelect = document.getElementById('ec-category');
   if (!catSelect || !adminData || !adminData.categoryConfig) return;
@@ -1229,14 +1245,12 @@ function populateCategoryDropdown() {
   }
 }
 
-// 覆寫原本的 loadAdminEventList，順便呼叫 populateCategoryDropdown
 const originalLoadAdminEventList = loadAdminEventList;
 loadAdminEventList = function() {
   originalLoadAdminEventList();
-  setTimeout(populateCategoryDropdown, 1500); // 確保 adminData 載入後再填充
+  setTimeout(populateCategoryDropdown, 1500); 
 }
 
-// 收集資料並呼叫 API 建立活動
 function submitNewEvent() {
   const name = document.getElementById('ec-name').value.trim();
   const category = document.getElementById('ec-category').value;
@@ -1252,6 +1266,7 @@ function submitNewEvent() {
 
   const payload = {
     name: name,
+    groupId: document.getElementById('ec-group-id').value.trim(), // 【第 4a 點】新增擷取群組編號
     category: category,
     capacity: document.getElementById('ec-cap').value,
     start: formatTime(start),
@@ -1343,7 +1358,7 @@ function renderManageEventList(list) {
           <div class="text-muted mb-2" style="font-size:0.85rem;">
             <i class="far fa-calendar-alt w-20px"></i> ${evt.start} <br>
             <i class="fas fa-users w-20px"></i> 已報名：<strong class="text-primary">${evt.currentRegs}</strong> / ${evt.capacity} <br>
-            <i class="fas fa-hashtag w-20px"></i> ID: <span style="font-family:monospace;">${evt.id}</span>
+            <i class="fas fa-hashtag w-20px"></i> ID: <span style="font-family:monospace;">${evt.id}</span> | 群組: <span style="font-family:monospace;">${evt.groupId || '無'}</span>
           </div>
           <div class="text-end mt-2">
             <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm me-1" onclick="openEditEventModal('${evt.id}')"><i class="fas fa-edit"></i> 編輯設定</button>
@@ -1381,30 +1396,87 @@ function openEditEventModal(eventId) {
                 catOptions += `<option value="${catName}" ${sel}>${catName}</option>`;
             }
             
+            // 將字串時間嘗試轉換，否則直接保留供修改
+            let dateStartStr = evtDetail.date.split(" ~ ")[0].replace(" ", "T");
+            let dateEndStr = evtDetail.date.split(" ~ ")[1] ? evtDetail.date.split(" ~ ")[1].replace(" ", "T") : dateStartStr;
+            let regEndStr = evtDetail.regEndDate ? new Date(evtDetail.regEndDate).toISOString().slice(0, 16) : "";
+            
+            let proxyChecked = evtDetail.allowProxy ? "checked" : "";
+            let extraChecked = evtDetail.requireExtraInfo ? "checked" : "";
+
+            // 【第 3 點修正】編輯表單的欄位要和新增表單一樣多！
             Swal.fire({
                 title: '編輯活動設定',
                 width: '650px',
                 html: `
                     <div class="text-start mt-2" style="font-size:0.9rem;">
                         <div class="alert alert-warning p-2" style="font-size:0.85rem;"><i class="fas fa-exclamation-triangle"></i> 提示：若需更動狀態（如提早結束報名），請將狀態改為「已結束」。</div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">活動名稱</label>
-                            <input type="text" id="ee-name" class="form-control" value="${evtDetail.name}">
-                        </div>
+                        
                         <div class="row g-2 mb-3">
-                            <div class="col-6">
+                            <div class="col-8">
+                                <label class="form-label fw-bold text-dark">活動名稱 <span class="text-danger">*</span></label>
+                                <input type="text" id="ee-name" class="form-control border-primary" value="${evtDetail.name}">
+                            </div>
+                            <div class="col-4">
                                 <label class="form-label fw-bold text-dark">狀態</label>
-                                <select id="ee-status" class="form-select">
+                                <select id="ee-status" class="form-select border-primary">
                                     <option value="開放報名">開放報名</option>
                                     <option value="進行中">進行中</option>
                                     <option value="已結束">已結束</option>
                                 </select>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold text-dark">活動分類</label>
-                                <select id="ee-category" class="form-select">${catOptions}</select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">活動分類 <span class="text-danger">*</span></label>
+                                <select id="ee-category" class="form-select border-primary">${catOptions}</select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">人數上限</label>
+                                <input type="number" id="ee-cap" class="form-control" value="${evtDetail.remainingSpots || ''}">
                             </div>
                         </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">開始時間 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="ee-start" class="form-control" value="${dateStartStr}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">結束時間 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="ee-end" class="form-control" value="${dateEndStr}">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold text-dark">活動群組編號 (Group ID)</label>
+                                <input type="text" id="ee-groupId" class="form-control" value="${evtDetail.groupId || evtDetail.id}" placeholder="修改此編號可與其他活動建立系列關聯">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark">報名截止時間</label>
+                                <input type="datetime-local" id="ee-regEnd" class="form-control" value="${regEndStr}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark">收費名目</label>
+                                <select id="ee-feeName" class="form-select">
+                                    <option value="無" ${evtDetail.feeName === '無' ? 'selected' : ''}>免費活動</option>
+                                    <option value="活動代辦費" ${evtDetail.feeName === '活動代辦費' ? 'selected' : ''}>活動代辦費</option>
+                                    <option value="保證金" ${evtDetail.feeName === '保證金' ? 'selected' : ''}>保證金</option>
+                                    <option value="場地清潔費" ${evtDetail.feeName === '場地清潔費' ? 'selected' : ''}>場地清潔費</option>
+                                    <option value="教材費" ${evtDetail.feeName === '教材費' ? 'selected' : ''}>教材費</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark">收費金額</label>
+                                <input type="number" id="ee-feeAmount" class="form-control" value="${evtDetail.feeAmount || ''}">
+                            </div>
+                        </div>
+
                         <div class="row g-2 mb-3">
                             <div class="col-12">
                                 <label class="form-label fw-bold text-dark">海報網址</label>
@@ -1412,32 +1484,50 @@ function openEditEventModal(eventId) {
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-bold text-dark">詳細簡介</label>
-                                <textarea id="ee-desc" class="form-control" rows="3">${evtDetail.description || ''}</textarea>
+                                <textarea id="ee-desc" class="form-control" rows="2">${evtDetail.description || ''}</textarea>
                             </div>
                         </div>
-                        <div class="row g-2 mb-3">
+                        <div class="row g-2 mb-2">
                             <div class="col-12">
                                 <label class="form-label fw-bold text-dark">自訂報名選項</label>
                                 <input type="text" id="ee-custom" class="form-control" value="${evtDetail.customForm || ''}">
                             </div>
                         </div>
-                        <div class="form-text text-danger">* 註：時間、人數與收費等底層參數若需調整，建議刪除重新建立。</div>
+
+                        <div class="row g-2">
+                            <div class="col-6 form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="ee-proxy" ${proxyChecked}>
+                                <label class="form-check-label fw-bold ms-2" for="ee-proxy">允許代為報名</label>
+                            </div>
+                            <div class="col-6 form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="ee-extra" ${extraChecked}>
+                                <label class="form-check-label fw-bold ms-2" for="ee-extra">必填身分證(保險)</label>
+                            </div>
+                        </div>
+
                     </div>
                 `,
                 showCancelButton: true, confirmButtonText: '儲存更新', cancelButtonText: '取消', confirmButtonColor: '#17a2b8'
             }).then(result => {
                 if(result.isConfirmed) {
+                    const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
                     let updatedPayload = {
                         id: evtDetail.id,
                         name: document.getElementById('ee-name').value.trim(),
                         status: document.getElementById('ee-status').value,
                         category: document.getElementById('ee-category').value,
+                        groupId: document.getElementById('ee-groupId').value.trim(),
+                        start: formatTime(document.getElementById('ee-start').value),
+                        end: formatTime(document.getElementById('ee-end').value),
+                        regEnd: formatTime(document.getElementById('ee-regEnd').value),
+                        capacity: document.getElementById('ee-cap').value,
+                        feeName: document.getElementById('ee-feeName').value,
+                        feeAmount: document.getElementById('ee-feeAmount').value,
                         poster: document.getElementById('ee-poster').value.trim(),
                         desc: document.getElementById('ee-desc').value.trim(),
                         customOpt: document.getElementById('ee-custom').value.trim(),
-                        start: "", end: "", regEnd: "", capacity: evtDetail.remainingSpots, 
-                        proxy: evtDetail.allowProxy, extra: evtDetail.requireExtraInfo, 
-                        feeName: evtDetail.feeName, feeAmount: evtDetail.feeAmount 
+                        proxy: document.getElementById('ee-proxy').checked, 
+                        extra: document.getElementById('ee-extra').checked
                     };
 
                     Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
