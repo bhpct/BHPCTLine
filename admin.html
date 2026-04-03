@@ -28,9 +28,6 @@
     .clickable-card { transition: all 0.2s ease-in-out; cursor: pointer; }
     .clickable-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
 
-    /* ==========================================
-       【第 5 點】列印模式 CSS 魔法
-       ========================================== */
     @media print {
       body { background-color: white !important; }
       .admin-header, .nav-pills, .no-print, .swal2-container, #loading { display: none !important; }
@@ -41,7 +38,6 @@
       th, td { border: 1px solid #000 !important; padding: 8px !important; font-size: 12pt !important; color: black !important; }
       th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
       
-      /* 將「出席狀態」這格裡的文字隱藏，變成空白簽名欄 */
       .print-blank-cell span { display: none !important; }
       .print-blank-cell { min-width: 80px; }
     }
@@ -108,8 +104,11 @@
         <button class="btn btn-outline-info flex-grow-1 me-2 fw-bold auth-hidden" id="btn-toggle-manage" onclick="toggleEventView('manage')">
           <i class="fas fa-tasks"></i> 管理活動
         </button>
-        <button class="btn btn-outline-success flex-grow-1 fw-bold auth-hidden" id="btn-toggle-create" onclick="toggleEventView('create')">
+        <button class="btn btn-outline-success flex-grow-1 me-2 fw-bold auth-hidden" id="btn-toggle-create" onclick="toggleEventView('create')">
           <i class="fas fa-plus"></i> 新增活動
+        </button>
+        <button class="btn btn-outline-secondary flex-grow-1 fw-bold auth-hidden" id="btn-toggle-archive" onclick="toggleEventView('archive')">
+          <i class="fas fa-archive"></i> 歷史封存庫
         </button>
       </div>
 
@@ -189,6 +188,21 @@
           <div class="spinner-border text-info" role="status"></div>
         </div>
         <div class="list-group shadow-sm border-0" id="manage-event-list" style="display: none; max-height: 500px; overflow-y: auto;">
+        </div>
+      </div>
+      
+      <div id="event-archive-view" class="card p-4 border-0 shadow-sm" style="border-top: 5px solid #7f8c8d !important; display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="fw-bold text-dark mb-0"><i class="fas fa-archive text-secondary"></i> 歷史封存庫</h5>
+          <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="loadArchiveEventList()"><i class="fas fa-sync-alt"></i> 重新載入</button>
+        </div>
+        <div class="alert alert-light border p-2 mb-3" style="font-size:0.85rem;">
+          <i class="fas fa-lock text-secondary"></i> 這裡存放著結束超過 7 天，被系統大管家自動封存的活動。所有報名名單與回饋紀錄均處於<b>唯讀狀態</b>，確保歷史資料不被更動。
+        </div>
+        <div id="archive-event-loading" class="text-center py-4">
+          <div class="spinner-border text-secondary" role="status"></div>
+        </div>
+        <div class="list-group shadow-sm border-0" id="archive-event-list" style="display: none; max-height: 500px; overflow-y: auto;">
         </div>
       </div>
 
@@ -418,6 +432,48 @@
     </div>
 
     <div id="tab-members" class="admin-section">
+      <div id="finance-report-section" class="card p-4 border-0 shadow-sm mb-4 auth-hidden" style="border-top: 5px solid #f1c40f !important;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0"><i class="fas fa-chart-line text-warning"></i> 年度財務分析報表</h5>
+          <div class="input-group" style="width: 150px;">
+             <span class="input-group-text bg-light border-0"><i class="fas fa-calendar-alt text-muted"></i></span>
+             <input type="number" id="finance-year-input" class="form-control border-0 bg-light fw-bold text-dark" placeholder="年份" value="2026">
+             <button class="btn btn-sm btn-outline-warning" onclick="loadFinancialSummary()"><i class="fas fa-search"></i></button>
+          </div>
+        </div>
+        
+        <div id="finance-loading" class="text-center py-5">
+           <div class="spinner-border text-warning" role="status"></div>
+           <p class="mt-2 text-muted fw-bold">統計資料庫中，請稍候...</p>
+        </div>
+
+        <div id="finance-dashboard-view" style="display: none;">
+           <div class="row mb-4">
+             <div class="col-md-4 mb-3 mb-md-0">
+                <div class="p-3 bg-light rounded h-100 text-center border">
+                   <h6 class="text-muted fw-bold mb-2">年度總奉獻金額</h6>
+                   <h3 class="fw-bold text-success mb-0" id="fin-total-amount">$ 0</h3>
+                </div>
+             </div>
+             <div class="col-md-8">
+                <div class="p-3 bg-light rounded h-100 border">
+                   <h6 class="text-muted fw-bold mb-3 text-center">各奉獻項目佔比</h6>
+                   <div style="height: 150px; position: relative;">
+                       <canvas id="financeCategoryChart"></canvas>
+                   </div>
+                </div>
+             </div>
+           </div>
+           
+           <div class="p-3 bg-light rounded border">
+              <h6 class="text-muted fw-bold mb-3 text-center">每月奉獻趨勢</h6>
+              <div style="height: 250px; position: relative;">
+                  <canvas id="financeTrendChart"></canvas>
+              </div>
+           </div>
+        </div>
+      </div>
+
       <div id="finance-upload-section" class="card p-4 border-0 shadow-sm mb-4 auth-hidden" style="border-top: 5px solid #2ecc71 !important;">
         <h5 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice-dollar text-success"></i> 財務報表上傳</h5>
         <p class="text-muted" style="font-size:0.85rem;">請將教會會計系統產出的奉獻明細存成 CSV 格式後貼入下方：</p>
@@ -571,6 +627,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
