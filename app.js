@@ -177,20 +177,34 @@ function renderUI(response, lineName) {
   globalIsAdmin = response.isAdmin || false;
   globalAdminLevel = response.adminLevel || "";
 
-  if (globalIsAdmin) {
-      const headerEl = document.querySelector('.church-header');
-      if (headerEl && !document.getElementById('btn-to-admin')) {
+  // 【第 6 點優化】讓前台按鈕與後台對齊：左上角是「管理後台」(若為管理員)，右上角是「白色的重整圈圈」
+  const headerEl = document.querySelector('.church-header');
+  if (headerEl) {
+      // 為了避免重複插入，先清空已經存在的動態按鈕
+      const existingAdminBtn = document.getElementById('btn-to-admin-container');
+      const existingRefreshBtn = document.getElementById('btn-force-refresh');
+      if (existingAdminBtn) existingAdminBtn.remove();
+      if (existingRefreshBtn) existingRefreshBtn.remove();
+
+      headerEl.style.position = 'relative'; 
+
+      // 右上角：重整按鈕 (全體用戶皆有)
+      const refreshBtnHtml = `
+          <button id="btn-force-refresh" class="btn btn-sm btn-outline-light rounded-circle shadow-sm border-white" onclick="forceRefresh()" style="position: absolute; top: 15px; right: 15px;" title="重新抓取最新資料">
+              <i class="fas fa-sync-alt text-white"></i>
+          </button>
+      `;
+      headerEl.innerHTML += refreshBtnHtml;
+
+      // 左上角：管理後台按鈕 (僅限管理員)
+      if (globalIsAdmin) {
           const adminBtnHtml = `
-              <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 5px;">
-                  <button id="btn-force-refresh" class="btn btn-sm btn-outline-light rounded-circle shadow-sm" onclick="forceRefresh()" title="重新抓取權限">
-                      <i class="fas fa-sync-alt text-dark"></i>
-                  </button>
-                  <button id="btn-to-admin" class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='admin.html'" style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">
+              <div id="btn-to-admin-container" style="position: absolute; top: 15px; left: 15px;">
+                  <button id="btn-to-admin" class="btn btn-sm btn-light rounded-pill shadow-sm" onclick="window.location.href='admin.html'" style="font-size: 0.8rem; font-weight: bold; color: #8e44ad;">
                       <i class="fas fa-cog"></i> 管理後台
                   </button>
               </div>
           `;
-          headerEl.style.position = 'relative'; 
           headerEl.innerHTML += adminBtnHtml;
       }
   }
