@@ -28,6 +28,9 @@
     .clickable-card { transition: all 0.2s ease-in-out; cursor: pointer; }
     .clickable-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
 
+    /* ==========================================
+       【第 5 點】列印模式 CSS 魔法
+       ========================================== */
     @media print {
       body { background-color: white !important; }
       .admin-header, .nav-pills, .no-print, .swal2-container, #loading { display: none !important; }
@@ -37,6 +40,10 @@
       table { width: 100%; border-collapse: collapse; }
       th, td { border: 1px solid #000 !important; padding: 8px !important; font-size: 12pt !important; color: black !important; }
       th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+      
+      /* 將「出席狀態」這格裡的文字隱藏，變成空白簽名欄 */
+      .print-blank-cell span { display: none !important; }
+      .print-blank-cell { min-width: 80px; }
     }
 
     .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
@@ -153,7 +160,7 @@
                     <th style="width: 80px;">類型</th>
                     <th>聯絡電話</th>
                     <th style="width: 80px;">繳費</th>
-                    <th style="width: 80px;">出席</th>
+                    <th style="width: 80px;">出席(簽名)</th>
                     <th>自訂/備註</th>
                     <th class="no-print">操作</th>
                   </tr>
@@ -195,6 +202,11 @@
               <input type="text" class="form-control border-success" id="ec-name" placeholder="例如：2026 春季野外禮拜" required>
             </div>
             
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-dark">活動群組編號 (Group ID)</label>
+              <input type="text" class="form-control" id="ec-group-id" placeholder="選填。相同編號將視為系列活動">
+            </div>
+
             <div class="col-md-6">
               <label class="form-label fw-bold text-dark">活動分類 <span class="text-danger">*</span></label>
               <select class="form-select border-success" id="ec-category" required>
