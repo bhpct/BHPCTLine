@@ -85,16 +85,19 @@ function applyRBAC() {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); 
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
     loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles();
   } else if (lvl === "最高管理員") {
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
     loadDashboard(); loadSystemSettings(); loadAllMembers();
   } else if (lvl === "活動管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
+    document.getElementById('btn-toggle-manage').classList.remove('auth-hidden'); // 允許管理活動
     switchAdminTab(null, 'events'); 
   } else if (lvl === "財務管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
@@ -730,16 +733,23 @@ function manageAdminRole(targetUid, actionType) {
 // 【回合 B】活動報表與 ERP 管理引擎 (Tab 2)
 // ==========================================
 
-// 切換「名單報表」與「新增活動」面板
+// 覆寫原有的 toggleEventView 支援 manage 面板
 function toggleEventView(viewType) {
   document.getElementById('btn-toggle-report').classList.remove('active');
+  document.getElementById('btn-toggle-manage').classList.remove('active');
   document.getElementById('btn-toggle-create').classList.remove('active');
+  
   document.getElementById('event-report-view').style.display = 'none';
+  document.getElementById('event-manage-view').style.display = 'none';
   document.getElementById('event-create-view').style.display = 'none';
   
   if(viewType === 'report') {
     document.getElementById('btn-toggle-report').classList.add('active');
     document.getElementById('event-report-view').style.display = 'block';
+  } else if (viewType === 'manage') {
+    document.getElementById('btn-toggle-manage').classList.add('active');
+    document.getElementById('event-manage-view').style.display = 'block';
+    loadManageEventList(); 
   } else {
     document.getElementById('btn-toggle-create').classList.add('active');
     document.getElementById('event-create-view').style.display = 'block';
@@ -753,7 +763,7 @@ function loadAdminEventList() {
     .then(res => {
       if (res.success && res.list.length > 0) {
         let sel = document.getElementById('report-event-select');
-        sel.innerHTML = '<option value="">請選擇要檢視的活動報表...</option>'; // 防呆，清空重建
+        sel.innerHTML = '<option value="">請選擇要檢視的活動報表...</option>'; 
         res.list.forEach(e => { 
           sel.innerHTML += `<option value="${e.id}">${e.start} - ${e.name} (${e.status}) [${e.currentRegs}/${e.capacity}]</option>`; 
         });
@@ -761,11 +771,9 @@ function loadAdminEventList() {
     });
 }
 
-// 【第二包：解析 JSON 變成人類語言】
 function parseExtraInfoToReadable(extraStr) {
   if (!extraStr || extraStr.trim() === '') return '';
   try {
-    // 嘗試解析 JSON
     const obj = JSON.parse(extraStr);
     let readableArr = [];
     for (let key in obj) {
@@ -775,7 +783,6 @@ function parseExtraInfoToReadable(extraStr) {
     }
     return readableArr.join(', ');
   } catch (e) {
-    // 如果不是 JSON (可能是舊資料)，就原樣回傳
     return extraStr;
   }
 }
@@ -797,7 +804,7 @@ function loadEventReport() {
         let tbody = document.getElementById('report-tbody');
         tbody.innerHTML = ''; 
         currentReportData = res.list;
-        currentReportEventInfo = res.eventInfo; // 儲存起來，編輯時要用來畫動態表單
+        currentReportEventInfo = res.eventInfo; 
         
         if (res.list.length === 0) { 
           tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fw-bold">目前尚無人報名此活動</td></tr>'; 
@@ -805,16 +812,13 @@ function loadEventReport() {
           res.list.forEach((reg, index) => {
             let attClass = reg.attendance === '已出席' ? 'text-success' : 'text-danger';
             
-            // 繳費按鈕 UI
             let payBadge = reg.payStatus === '已繳費' ? '<span class="badge bg-success">已繳費</span>' : (reg.payStatus === '免繳費' ? '<span class="badge bg-secondary">免繳費</span>' : '<span class="badge bg-warning text-dark">未繳費</span>');
             let payBtnClass = reg.payStatus === '已繳費' ? 'btn-success' : 'btn-outline-warning text-dark';
             let payIcon = reg.payStatus === '已繳費' ? 'fa-check-circle' : 'fa-dollar-sign';
 
-            // 出席簽到按鈕 UI
             let attBtnClass = reg.attendance === '已出席' ? 'btn-success' : 'btn-outline-secondary';
             let attIcon = reg.attendance === '已出席' ? 'fa-user-check' : 'fa-user-times';
 
-            // 【第二包：套用解析函數】
             let readableExtra = parseExtraInfoToReadable(reg.extraInfo);
 
             tbody.innerHTML += `<tr>
@@ -927,17 +931,14 @@ function openAddRegModal() {
   });
 }
 
-// 【第二包新增：超級動態編輯器】
 function openEditRegModal(index) {
   let reg = currentReportData[index];
   let customFormStr = currentReportEventInfo ? currentReportEventInfo.extraQ : "";
   
-  // 嘗試解析現有的備註內容 (把 JSON 解開成物件)
   let existingAnswers = {};
   try {
       existingAnswers = JSON.parse(reg.extraInfo || "{}");
   } catch (e) {
-      // 如果解不開 (可能是舊的純文字備註)，就塞回原本的備註欄
       existingAnswers = { "備註": reg.extraInfo };
   }
 
@@ -951,7 +952,6 @@ function openEditRegModal(index) {
         <h6 class="fw-bold text-muted mb-2"><i class="fas fa-list"></i> 報名選項 / 個資</h6>
   `;
 
-  // 動態長出表單
   if (customFormStr && customFormStr.trim() !== '') {
       const forms = customFormStr.split('|');
       forms.forEach((f) => {
@@ -1002,7 +1002,6 @@ function openEditRegModal(index) {
       });
   }
 
-  // 把身分證跟生日如果本來有填，也抽出來當成獨立欄位
   if (existingAnswers['身分證']) {
       htmlFields += `
         <div class="mb-3">
@@ -1018,7 +1017,6 @@ function openEditRegModal(index) {
         </div>`;
   }
 
-  // 最後留一個純文字備註框
   let memoText = existingAnswers['備註'] || "";
   htmlFields += `
         <div class="mb-3">
@@ -1035,7 +1033,6 @@ function openEditRegModal(index) {
   }).then(res => {
     if(res.isConfirmed) {
       
-      // 收集動態表單修改後的資料打包成 JSON
       let finalExtraObj = {};
       
       document.querySelectorAll('.admin-dynamic-select').forEach(el => {
@@ -1100,7 +1097,6 @@ function downloadCSV() {
   let eventName = document.getElementById('print-event-name').innerText;
   let csvContent = '\uFEFF'; csvContent += "序號,報名時間,報名類型,姓名,聯絡電話,繳費狀態,出席狀態,自訂備註\n";
   currentReportData.forEach((row, index) => {
-    // 【第二包：下載 CSV 時也將 JSON 解析為人類易讀格式】
     let readableExtra = parseExtraInfoToReadable(row.extraInfo);
     let extra = String(readableExtra || '').replace(/"/g, '""'); 
     csvContent += `${index+1},${row.regTime},${row.type},${row.participantName},${row.phone},${row.payStatus},${row.attendance},"${extra}"\n`;
@@ -1298,3 +1294,178 @@ function submitNewEvent() {
     }
   });
 }
+
+// ==========================================
+// 【第三包新增】管理活動庫 (Event Manager)
+// ==========================================
+
+let currentManageEventList = [];
+
+function loadManageEventList() {
+  document.getElementById('manage-event-loading').style.display = 'block';
+  document.getElementById('manage-event-list').style.display = 'none';
+  
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminEventList&uid=${currentUID}`)
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById('manage-event-loading').style.display = 'none';
+      if (res.success) {
+        currentManageEventList = res.list;
+        renderManageEventList(res.list);
+      } else {
+        document.getElementById('manage-event-list').innerHTML = `<div class="alert alert-danger">${res.message}</div>`;
+        document.getElementById('manage-event-list').style.display = 'block';
+      }
+    }).catch(err => {
+      document.getElementById('manage-event-loading').style.display = 'none';
+      document.getElementById('manage-event-list').innerHTML = `<div class="alert alert-danger">連線失敗</div>`;
+      document.getElementById('manage-event-list').style.display = 'block';
+    });
+}
+
+function renderManageEventList(list) {
+  const container = document.getElementById('manage-event-list');
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted py-4">目前沒有任何活動紀錄</div>';
+  } else {
+    list.forEach((evt, index) => {
+      let bClass = evt.status === '開放報名' ? 'success' : (evt.status === '已封存' ? 'secondary' : 'primary');
+      
+      container.innerHTML += `
+        <div class="list-group-item p-3 border-bottom border-0">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold text-dark mb-0">${evt.name}</h6>
+            <span class="badge bg-${bClass} ms-1" style="font-size:0.75rem;">${evt.status}</span>
+          </div>
+          <div class="text-muted mb-2" style="font-size:0.85rem;">
+            <i class="far fa-calendar-alt w-20px"></i> ${evt.start} <br>
+            <i class="fas fa-users w-20px"></i> 已報名：<strong class="text-primary">${evt.currentRegs}</strong> / ${evt.capacity} <br>
+            <i class="fas fa-hashtag w-20px"></i> ID: <span style="font-family:monospace;">${evt.id}</span>
+          </div>
+          <div class="text-end mt-2">
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm me-1" onclick="openEditEventModal('${evt.id}')"><i class="fas fa-edit"></i> 編輯設定</button>
+            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" onclick="deleteEvent('${evt.id}', '${evt.name}')"><i class="fas fa-trash-alt"></i></button>
+          </div>
+        </div>
+      `;
+    });
+  }
+  container.style.display = 'block';
+}
+
+function openEditEventModal(eventId) {
+    Swal.fire({ title: '撈取活動資料中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    const gasUrl = window.CONFIG.GAS_URL;
+    fetch(`${gasUrl}?action=getUser&uid=${currentUID}`)
+        .then(res => res.json()).then(res => {
+            Swal.close();
+            let evtDetail = res.activeEvents.find(e => e.id === eventId);
+            
+            if (!evtDetail) {
+                evtDetail = res.allAdminEvents.find(e => e.id === eventId);
+                if (!evtDetail) {
+                    Swal.fire('錯誤', '找不到此活動的詳細資料，可能已被封存。', 'error');
+                    return;
+                }
+                evtDetail.allowProxy = false; evtDetail.requireExtraInfo = false; evtDetail.capacity = "";
+                evtDetail.posterUrl = ""; evtDetail.description = ""; evtDetail.feeName = "無"; evtDetail.feeAmount = ""; evtDetail.customForm = "";
+            }
+
+            let catOptions = '';
+            for (let catName in adminData.categoryConfig) {
+                let sel = (catName === evtDetail.category) ? 'selected' : '';
+                catOptions += `<option value="${catName}" ${sel}>${catName}</option>`;
+            }
+            
+            Swal.fire({
+                title: '編輯活動設定',
+                width: '650px',
+                html: `
+                    <div class="text-start mt-2" style="font-size:0.9rem;">
+                        <div class="alert alert-warning p-2" style="font-size:0.85rem;"><i class="fas fa-exclamation-triangle"></i> 提示：若需更動狀態（如提早結束報名），請將狀態改為「已結束」。</div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">活動名稱</label>
+                            <input type="text" id="ee-name" class="form-control" value="${evtDetail.name}">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-dark">狀態</label>
+                                <select id="ee-status" class="form-select">
+                                    <option value="開放報名">開放報名</option>
+                                    <option value="進行中">進行中</option>
+                                    <option value="已結束">已結束</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-dark">活動分類</label>
+                                <select id="ee-category" class="form-select">${catOptions}</select>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">海報網址</label>
+                                <input type="url" id="ee-poster" class="form-control" value="${evtDetail.posterUrl || ''}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">詳細簡介</label>
+                                <textarea id="ee-desc" class="form-control" rows="3">${evtDetail.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">自訂報名選項</label>
+                                <input type="text" id="ee-custom" class="form-control" value="${evtDetail.customForm || ''}">
+                            </div>
+                        </div>
+                        <div class="form-text text-danger">* 註：時間、人數與收費等底層參數若需調整，建議刪除重新建立。</div>
+                    </div>
+                `,
+                showCancelButton: true, confirmButtonText: '儲存更新', cancelButtonText: '取消', confirmButtonColor: '#17a2b8'
+            }).then(result => {
+                if(result.isConfirmed) {
+                    let updatedPayload = {
+                        id: evtDetail.id,
+                        name: document.getElementById('ee-name').value.trim(),
+                        status: document.getElementById('ee-status').value,
+                        category: document.getElementById('ee-category').value,
+                        poster: document.getElementById('ee-poster').value.trim(),
+                        desc: document.getElementById('ee-desc').value.trim(),
+                        customOpt: document.getElementById('ee-custom').value.trim(),
+                        start: "", end: "", regEnd: "", capacity: evtDetail.remainingSpots, 
+                        proxy: evtDetail.allowProxy, extra: evtDetail.requireExtraInfo, 
+                        feeName: evtDetail.feeName, feeAmount: evtDetail.feeAmount 
+                    };
+
+                    Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminUpdateEventConfig', adminUid: currentUID, eventData: updatedPayload }) })
+                        .then(res => res.json()).then(res => {
+                            if(res.success) Swal.fire('成功', res.message, 'success').then(() => loadManageEventList());
+                            else Swal.fire('錯誤', res.message, 'error');
+                        }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+                }
+            });
+        }).catch(err => Swal.fire('連線錯誤', '無法抓取活動詳細資料', 'error'));
+}
+
+function deleteEvent(eventId, eventName) {
+    Swal.fire({
+      title: '您確定要強制刪除活動嗎？', 
+      html: `活動：<b>${eventName}</b><br><br><span class="text-danger fw-bold">此操作不可逆！</span><br>這將會刪除該活動，以及<b>所有人</b>報名此活動的紀錄！`, 
+      icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#e74c3c', confirmButtonText: '是的，全部刪除！'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({ title: '銷毀中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const gasUrl = window.CONFIG.GAS_URL;
+        fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminDeleteEvent', adminUid: currentUID, eventId: eventId }) })
+          .then(res => res.json()).then(res => {
+            if(res.success) Swal.fire('已刪除', res.message, 'success').then(()=>loadManageEventList());
+            else Swal.fire('錯誤', res.message, 'error');
+          }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+      }
+    });
+  }
