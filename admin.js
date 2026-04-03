@@ -6,18 +6,28 @@ let adminData = null;
 // 全域變數庫
 let currentModalList = []; 
 let currentReportData = [];
+let currentReportEventInfo = null; // 【第二包新增】保存當下活動的完整資訊
 let memberModalInstance = null;
 
 // 第三階段新增：全教會名單與管理員快取
 let allMembersCache = [];
 let adminRolesCache = [];
 
-// ====== 【修復：相容動態載入的啟動機制】 ======
+// ====== 【防呆啟動引擎】確保 config.js 載入後才啟動 ======
 function initAdminSystem() {
   const loadingEl = document.getElementById('loading');
-  if (!myLiffId) { Swal.fire('系統錯誤', '未設定 LIFF ID！', 'error'); loadingEl.style.display = 'none'; return; }
+  if (loadingEl) loadingEl.style.display = 'flex';
+  
+  if (typeof window.CONFIG === 'undefined') {
+      console.warn("等待 config.js 載入中...");
+      setTimeout(initAdminSystem, 100);
+      return;
+  }
 
-  liff.init({ liffId: myLiffId }).then(() => {
+  const liffId = window.CONFIG.LIFF_ID;
+  if (!liffId) { Swal.fire('系統錯誤', '未設定 LIFF ID！', 'error'); if(loadingEl) loadingEl.style.display = 'none'; return; }
+
+  liff.init({ liffId: liffId }).then(() => {
     if (!liff.isLoggedIn()) { window.location.href = 'index.html'; } 
     else {
       liff.getProfile().then(profile => {
@@ -42,14 +52,11 @@ window.forceAdminRefresh = function() {
 
 function verifyAdminAuth(uid) {
   console.log("🛡️ 向伺服器驗證管理員權限中...");
-  fetch(`${GAS_URL}?action=getUser&uid=${uid}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getUser&uid=${uid}`)
     .then(async res => {
       const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch(e) {
-        throw new Error("<span style='color:red; font-size:0.85rem;'>伺服器回傳異常：</span><br>" + text.substring(0, 150).replace(/</g, "&lt;"));
-      }
+      try { return JSON.parse(text); } catch(e) { throw new Error("<span style='color:red; font-size:0.85rem;'>伺服器回傳異常：</span><br>" + text.substring(0, 150).replace(/</g, "&lt;")); }
     })
     .then(response => {
       if (response.isAdmin) {
@@ -59,10 +66,7 @@ function verifyAdminAuth(uid) {
         applyRBAC(); 
       } else {
         document.getElementById('loading').style.display = 'none';
-        Swal.fire({
-          title: '門禁管制', text: '抱歉，您沒有進入管理後台的權限喔！', icon: 'error',
-          confirmButtonColor: '#8e44ad', confirmButtonText: '返回首頁', allowOutsideClick: false
-        }).then(() => { window.location.href = 'index.html'; });
+        Swal.fire({ title: '門禁管制', text: '抱歉，您沒有進入管理後台的權限喔！', icon: 'error', confirmButtonColor: '#8e44ad', confirmButtonText: '返回首頁', allowOutsideClick: false }).then(() => { window.location.href = 'index.html'; });
       }
     }).catch(err => {
       document.getElementById('loading').style.display = 'none';
@@ -70,9 +74,6 @@ function verifyAdminAuth(uid) {
     });
 }
 
-// ==========================================
-// RBAC (角色基礎存取控制) 介面渲染引擎
-// ==========================================
 function applyRBAC() {
   const lvl = adminData.adminLevel;
   console.log("當前管理員身分：", lvl);
@@ -83,26 +84,18 @@ function applyRBAC() {
   if (lvl === "超級管理員") {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
-    loadDashboard();
-    loadSystemSettings();
-    loadAllMembers();
-    loadAdminRoles();
-    
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); 
+    loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles();
   } else if (lvl === "最高管理員") {
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
-    loadDashboard();
-    loadSystemSettings();
-    loadAllMembers();
-    
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
+    loadDashboard(); loadSystemSettings(); loadAllMembers();
   } else if (lvl === "活動管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
-    document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); // 允許新增活動
+    document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
     switchAdminTab(null, 'events'); 
-    
   } else if (lvl === "財務管理員") {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
@@ -111,29 +104,20 @@ function applyRBAC() {
     document.getElementById('member-management-section').style.display = 'none';
     document.getElementById('finance-upload-section').classList.remove('auth-hidden');
     switchAdminTab(null, 'members'); 
-    
   } else {
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
-    loadDashboard();
-    loadAllMembers();
+    loadDashboard(); loadAllMembers();
   }
 }
 
 function switchAdminTab(event, tabId) {
   if (event) event.preventDefault(); 
   document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-  
-  if (event && event.currentTarget) {
-    event.currentTarget.classList.add('active');
-  } else {
+  if (event && event.currentTarget) { event.currentTarget.classList.add('active'); } else {
     const navEl = document.getElementById('nav-tab-' + tabId);
-    if (navEl) {
-      const linkEl = navEl.querySelector('.nav-link');
-      if (linkEl) linkEl.classList.add('active');
-    }
+    if (navEl) { const linkEl = navEl.querySelector('.nav-link'); if (linkEl) linkEl.classList.add('active'); }
   }
-  
   document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
   const tabEl = document.getElementById('tab-' + tabId);
   if (tabEl) tabEl.classList.add('active');
@@ -144,7 +128,8 @@ function switchAdminTab(event, tabId) {
 // ==========================================
 function loadDashboard() {
   const dashContainer = document.getElementById('tab-dashboard');
-  fetch(`${GAS_URL}?action=getAdminDashboard&uid=${currentUID}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminDashboard&uid=${currentUID}`)
     .then(res => res.json())
     .then(res => {
       if (res.success) renderDashboard(res);
@@ -263,9 +248,9 @@ function approveFinanceAccess(targetUid, targetName) {
     if (result.isConfirmed) {
       const dCode = result.value;
       const fId = dCode.split('-')[0]; 
-      
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ action: 'approveFinanceAccess', adminUid: currentUID, targetUid: targetUid, donationCode: dCode, familyId: fId }) 
       })
@@ -285,7 +270,8 @@ function markPrayerDone(rowId) {
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'markPrayerDone', uid: currentUID, rowId: rowId, replyText: replyText }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'markPrayerDone', uid: currentUID, rowId: rowId, replyText: replyText }) })
         .then(res => res.json()).then(res => {
           if(res.success) { Swal.fire('成功', res.message, 'success').then(()=>loadDashboard()); } 
           else { Swal.fire('錯誤', res.message, 'error'); }
@@ -301,14 +287,15 @@ function getMemberModal() {
 function showMemberList(filterType) {
   let title = `📊 ${filterType} 名單`;
   if (filterType === 'Birthday') title = '🎂 本月壽星名單';
-  if (filterType === 'NewMembers') title = '🎉 本月新增綁定會友'; // 加入這行
+  if (filterType === 'NewMembers') title = '🎉 本月新增綁定會友'; 
   
   document.getElementById('memberListModalLabel').innerHTML = title;
   document.getElementById('member-list-tbody').innerHTML = '';
   document.getElementById('modal-loading').style.display = 'block';
   getMemberModal().show();
 
-  fetch(`${GAS_URL}?action=getAdminMemberList&uid=${currentUID}&filter=${filterType}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminMemberList&uid=${currentUID}&filter=${filterType}`)
     .then(res => res.json())
     .then(res => {
       document.getElementById('modal-loading').style.display = 'none';
@@ -356,7 +343,8 @@ function editUserSimple(index, currentFilter) {
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ 
           action: 'adminUpdateUser', adminUid: currentUID, targetUid: user.uid, 
@@ -383,7 +371,8 @@ function directMessageUser(targetUid, targetName) {
     if (result.isConfirmed) {
       let finalMsg = result.value.replace(/{name}/g, targetName);
       Swal.fire({ title: '發送中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: 'UID:' + targetUid, messageContent: finalMsg, attachEventId: '無' }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: 'UID:' + targetUid, messageContent: finalMsg, attachEventId: '無' }) })
       .then(res => res.json()).then(res => {
         if (res.success) Swal.fire('發送成功！', `已成功發送給 ${targetName}。`, 'success').then(() => { if (memberModalInstance) getMemberModal().show(); });
         else Swal.fire('發送失敗', res.message, 'error').then(() => { if (memberModalInstance) getMemberModal().show(); });
@@ -405,7 +394,8 @@ function loadAllMembers() {
     adminData.availableGroups.forEach(g => filterGroup.innerHTML += `<option value="${g}">${g}</option>`);
   }
 
-  fetch(`${GAS_URL}?action=getAllMembers&uid=${currentUID}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAllMembers&uid=${currentUID}`)
     .then(res => res.json())
     .then(res => {
       document.getElementById('full-member-loading').style.display = 'none';
@@ -572,7 +562,8 @@ function openFullEditModal(userObj) {
       };
 
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminUpdateFullUser', adminUid: currentUID, userData: payload }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminUpdateFullUser', adminUid: currentUID, userData: payload }) })
         .then(res => res.json()).then(res => {
           if (res.success) Swal.fire('成功', res.message, 'success').then(() => loadAllMembers());
           else Swal.fire('錯誤', res.message, 'error');
@@ -586,7 +577,8 @@ function submitFinanceCSV() {
   if(!text) { Swal.fire('提醒', '請先貼上 CSV 內容！', 'warning'); return; }
   
   Swal.fire({ title: '上傳處理中', text: '正在將資料匯入財務庫...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'uploadFinanceCSV', adminUid: currentUID, csvText: text }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'uploadFinanceCSV', adminUid: currentUID, csvText: text }) })
     .then(res => res.json()).then(res => {
       if(res.success) { Swal.fire('匯入成功', res.message, 'success'); document.getElementById('finance-csv-input').value = ''; }
       else Swal.fire('匯入失敗', res.message, 'error');
@@ -600,7 +592,8 @@ function loadAdminRoles() {
   document.getElementById('admin-role-loading').style.display = 'block';
   document.getElementById('admin-role-table').style.display = 'none';
 
-  fetch(`${GAS_URL}?action=getAdminRoles&uid=${currentUID}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminRoles&uid=${currentUID}`)
     .then(res => res.json()).then(res => {
       document.getElementById('admin-role-loading').style.display = 'none';
       if (res.success) {
@@ -667,7 +660,8 @@ function editAdminNotif(uid, name, currentNotifs) {
   }).then(result => {
     if(result.isConfirmed) {
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ 
           action: 'manageAdminRole', adminUid: currentUID, targetUid: uid, 
@@ -699,7 +693,8 @@ function assignAdminRole() {
   }).then(result => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ 
           action: 'manageAdminRole', adminUid: currentUID, targetUid: uid, targetName: nameText, 
@@ -721,7 +716,8 @@ function manageAdminRole(targetUid, actionType) {
   }).then(result => {
     if (result.isConfirmed) {
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'manageAdminRole', adminUid: currentUID, targetUid: targetUid, targetName: '', roleLevel: '', notifications: '', manageAction: actionType }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'manageAdminRole', adminUid: currentUID, targetUid: targetUid, targetName: '', roleLevel: '', notifications: '', manageAction: actionType }) })
         .then(res => res.json()).then(res => {
           if (res.success) Swal.fire('成功', res.message, 'success').then(() => loadAdminRoles());
           else Swal.fire('失敗', res.message, 'error');
@@ -751,17 +747,37 @@ function toggleEventView(viewType) {
 }
 
 function loadAdminEventList() {
-  fetch(`${GAS_URL}?action=getAdminEventList&uid=${currentUID}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminEventList&uid=${currentUID}`)
     .then(res => res.json())
     .then(res => {
       if (res.success && res.list.length > 0) {
         let sel = document.getElementById('report-event-select');
+        sel.innerHTML = '<option value="">請選擇要檢視的活動報表...</option>'; // 防呆，清空重建
         res.list.forEach(e => { 
-          // 【回合 B 新增】在下拉選單直接顯示目前報名人數與總名額
           sel.innerHTML += `<option value="${e.id}">${e.start} - ${e.name} (${e.status}) [${e.currentRegs}/${e.capacity}]</option>`; 
         });
       }
     });
+}
+
+// 【第二包：解析 JSON 變成人類語言】
+function parseExtraInfoToReadable(extraStr) {
+  if (!extraStr || extraStr.trim() === '') return '';
+  try {
+    // 嘗試解析 JSON
+    const obj = JSON.parse(extraStr);
+    let readableArr = [];
+    for (let key in obj) {
+      if (obj[key] && String(obj[key]).trim() !== '') {
+        readableArr.push(`${key}：${obj[key]}`);
+      }
+    }
+    return readableArr.join(', ');
+  } catch (e) {
+    // 如果不是 JSON (可能是舊資料)，就原樣回傳
+    return extraStr;
+  }
 }
 
 function loadEventReport() {
@@ -770,7 +786,8 @@ function loadEventReport() {
   document.getElementById('print-section').style.display = 'none';
   Swal.fire({ title: '撈取名單中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-  fetch(`${GAS_URL}?action=getAdminEventRegistrations&uid=${currentUID}&eventId=${eventId}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getAdminEventRegistrations&uid=${currentUID}&eventId=${eventId}`)
     .then(res => res.json()).then(res => {
       if (res.success) {
         Swal.close();
@@ -778,7 +795,9 @@ function loadEventReport() {
         document.getElementById('print-event-name').innerText = res.eventInfo.name;
         document.getElementById('print-event-time').innerText = `活動時間：${res.eventInfo.date} | 報名人數：${res.list.length} 人`;
         let tbody = document.getElementById('report-tbody');
-        tbody.innerHTML = ''; currentReportData = res.list;
+        tbody.innerHTML = ''; 
+        currentReportData = res.list;
+        currentReportEventInfo = res.eventInfo; // 儲存起來，編輯時要用來畫動態表單
         
         if (res.list.length === 0) { 
           tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fw-bold">目前尚無人報名此活動</td></tr>'; 
@@ -791,9 +810,12 @@ function loadEventReport() {
             let payBtnClass = reg.payStatus === '已繳費' ? 'btn-success' : 'btn-outline-warning text-dark';
             let payIcon = reg.payStatus === '已繳費' ? 'fa-check-circle' : 'fa-dollar-sign';
 
-            // 【本次新增】出席簽到按鈕 UI
+            // 出席簽到按鈕 UI
             let attBtnClass = reg.attendance === '已出席' ? 'btn-success' : 'btn-outline-secondary';
             let attIcon = reg.attendance === '已出席' ? 'fa-user-check' : 'fa-user-times';
+
+            // 【第二包：套用解析函數】
+            let readableExtra = parseExtraInfoToReadable(reg.extraInfo);
 
             tbody.innerHTML += `<tr>
               <td class="text-center fw-bold">${index + 1}</td>
@@ -802,7 +824,7 @@ function loadEventReport() {
               <td class="text-center">${reg.phone}</td>
               <td class="text-center">${payBadge}</td>
               <td class="text-center fw-bold ${attClass}">${reg.attendance}</td>
-              <td class="text-muted" style="font-size:0.75rem">${reg.extraInfo || ''}</td>
+              <td class="text-muted" style="font-size:0.85rem; max-width:250px;">${readableExtra}</td>
               <td class="text-center no-print">
                 <button class="btn btn-sm ${attBtnClass} mb-1" onclick="toggleAttendance('${reg.regId}', '${reg.attendance}')" title="切換出席/簽到狀態"><i class="fas ${attIcon}"></i></button>
                 <button class="btn btn-sm ${payBtnClass} mb-1" onclick="togglePayment('${reg.regId}', ${index})" title="切換繳費狀態"><i class="fas ${payIcon}"></i></button>
@@ -816,7 +838,6 @@ function loadEventReport() {
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
 
-// 【本次新增】手動切換簽到/出席狀態
 function toggleAttendance(regId, currentStatus) {
   let actionText = currentStatus === '已出席' ? '取消簽到 (改回未出席)' : '手動簽到 (改為已出席)';
   
@@ -828,11 +849,12 @@ function toggleAttendance(regId, currentStatus) {
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '更新中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminToggleAttendance', adminUid: currentUID, regId: regId }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminToggleAttendance', adminUid: currentUID, regId: regId }) })
         .then(res => res.json()).then(res => {
           if(res.success) { 
             Swal.fire({title: '成功', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false}); 
-            loadEventReport(); // 重新載入報表
+            loadEventReport(); 
           }
           else Swal.fire('錯誤', res.message, 'error');
         }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
@@ -840,20 +862,19 @@ function toggleAttendance(regId, currentStatus) {
   });
 }
 
-// 【回合 B 新增】一鍵切換繳費狀態
 function togglePayment(regId, index) {
   Swal.fire({ title: '更新繳費狀態中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminTogglePayment', adminUid: currentUID, regId: regId }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminTogglePayment', adminUid: currentUID, regId: regId }) })
     .then(res => res.json()).then(res => {
       if(res.success) { 
         Swal.fire({title: '成功', text: res.message, icon: 'success', timer: 1500, showConfirmButton: false}); 
-        loadEventReport(); // 重新載入報表
+        loadEventReport();
       }
       else Swal.fire('錯誤', res.message, 'error');
     }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
 }
 
-// 【回合 B 新增】手動幫無 LINE 會友建檔報名
 function openAddRegModal() {
   let eventId = document.getElementById('report-event-select').value;
   if (!eventId) { Swal.fire('提醒', '請先選擇一個活動！', 'warning'); return; }
@@ -869,7 +890,7 @@ function openAddRegModal() {
         <input type="text" id="ar-phone" class="form-control mb-3" placeholder="選填">
         
         <label class="form-label fw-bold text-dark mb-1">自訂選項 / 備註資訊</label>
-        <input type="text" id="ar-extra" class="form-control mb-3" placeholder="例如：便當:葷, 需專車接送">
+        <input type="text" id="ar-extra" class="form-control mb-3" placeholder="可以直接輸入任意文字">
         
         <label class="form-label fw-bold text-dark mb-1">繳費狀態</label>
         <select id="ar-pay" class="form-select border-primary">
@@ -894,7 +915,8 @@ function openAddRegModal() {
     if(res.isConfirmed) {
       Swal.fire({ title: '寫入資料庫中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       let v = res.value;
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ action: 'adminAddReg', adminUid: currentUID, eventId: eventId, name: v.name, phone: v.phone, extra: v.extra, payStatus: v.payStatus }) 
       }).then(res => res.json()).then(res => {
@@ -905,28 +927,147 @@ function openAddRegModal() {
   });
 }
 
-// 【回合 B 新增】修改現有報名資料
+// 【第二包新增：超級動態編輯器】
 function openEditRegModal(index) {
   let reg = currentReportData[index];
-  Swal.fire({
-    title: '編輯報名資料',
-    html: `
+  let customFormStr = currentReportEventInfo ? currentReportEventInfo.extraQ : "";
+  
+  // 嘗試解析現有的備註內容 (把 JSON 解開成物件)
+  let existingAnswers = {};
+  try {
+      existingAnswers = JSON.parse(reg.extraInfo || "{}");
+  } catch (e) {
+      // 如果解不開 (可能是舊的純文字備註)，就塞回原本的備註欄
+      existingAnswers = { "備註": reg.extraInfo };
+  }
+
+  let htmlFields = `
       <div class="text-start mt-2">
         <label class="form-label fw-bold text-dark">參與者姓名</label>
         <input type="text" id="er-name" class="form-control mb-3" value="${reg.participantName}">
         <label class="form-label fw-bold text-dark">聯絡電話</label>
         <input type="text" id="er-phone" class="form-control mb-3" value="${reg.phone}">
-        <label class="form-label fw-bold text-dark">自訂選項 / 備註資訊</label>
-        <input type="text" id="er-extra" class="form-control mb-2" value="${reg.extraInfo || ''}">
+        <hr>
+        <h6 class="fw-bold text-muted mb-2"><i class="fas fa-list"></i> 報名選項 / 個資</h6>
+  `;
+
+  // 動態長出表單
+  if (customFormStr && customFormStr.trim() !== '') {
+      const forms = customFormStr.split('|');
+      forms.forEach((f) => {
+          if (f.includes(':')) {
+              const parts = f.split(':');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  const currentAns = existingAnswers[qName] || "";
+                  
+                  htmlFields += `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <select class="form-select border-primary admin-dynamic-select" data-qname="${qName}">
+                        <option value="" disabled ${!currentAns ? 'selected' : ''}>請選擇...</option>`;
+                  opts.forEach(o => { 
+                      let sel = (o === currentAns) ? 'selected' : '';
+                      htmlFields += `<option value="${o}" ${sel}>${o}</option>`; 
+                  });
+                  htmlFields += `</select></div>`;
+              }
+          } else if (f.includes('-')) {
+              const parts = f.split('-');
+              if(parts.length === 2) {
+                  const qName = parts[0].trim();
+                  const opts = parts[1].split(',').map(o => o.trim());
+                  const currentAnsArr = (existingAnswers[qName] || "").split(',').map(x=>x.trim());
+                  
+                  htmlFields += `
+                    <div class="mb-3">
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <div class="bg-light p-2 rounded border">
+                        <div class="row g-2">`;
+                  opts.forEach((o, idx) => {
+                      const cId = `admin-chk-${qName}-${idx}`;
+                      let chk = currentAnsArr.includes(o) ? 'checked' : '';
+                      htmlFields += `
+                        <div class="col-6">
+                          <div class="form-check">
+                            <input class="form-check-input admin-dynamic-checkbox" type="checkbox" value="${o}" id="${cId}" data-qname="${qName}" ${chk}>
+                            <label class="form-check-label text-muted" for="${cId}">${o}</label>
+                          </div>
+                        </div>`;
+                  });
+                  htmlFields += `</div></div></div>`;
+              }
+          }
+      });
+  }
+
+  // 把身分證跟生日如果本來有填，也抽出來當成獨立欄位
+  if (existingAnswers['身分證']) {
+      htmlFields += `
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">身分證字號</label>
+          <input type="text" class="form-control admin-dynamic-input" data-qname="身分證" value="${existingAnswers['身分證']}">
+        </div>`;
+  }
+  if (existingAnswers['生日']) {
+      htmlFields += `
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">生日</label>
+          <input type="date" class="form-control admin-dynamic-input" data-qname="生日" value="${existingAnswers['生日']}">
+        </div>`;
+  }
+
+  // 最後留一個純文字備註框
+  let memoText = existingAnswers['備註'] || "";
+  htmlFields += `
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">自訂備註</label>
+          <input type="text" class="form-control admin-dynamic-input" data-qname="備註" value="${memoText}" placeholder="若無特殊選項，可直接填寫於此">
+        </div>
       </div>
-    `,
+  `;
+
+  Swal.fire({
+    title: '編輯報名資料',
+    html: htmlFields,
     showCancelButton: true, confirmButtonText: '儲存修改', cancelButtonText: '取消', confirmButtonColor: '#3498db'
   }).then(res => {
     if(res.isConfirmed) {
+      
+      // 收集動態表單修改後的資料打包成 JSON
+      let finalExtraObj = {};
+      
+      document.querySelectorAll('.admin-dynamic-select').forEach(el => {
+          if(el.value) finalExtraObj[el.getAttribute('data-qname')] = el.value;
+      });
+      
+      let checkMap = {};
+      document.querySelectorAll('.admin-dynamic-checkbox:checked').forEach(el => {
+          const qName = el.getAttribute('data-qname');
+          if (!checkMap[qName]) checkMap[qName] = [];
+          checkMap[qName].push(el.value);
+      });
+      for (let q in checkMap) { finalExtraObj[q] = checkMap[q].join(', '); }
+
+      document.querySelectorAll('.admin-dynamic-input').forEach(el => {
+          if(el.value.trim()) finalExtraObj[el.getAttribute('data-qname')] = el.value.trim();
+      });
+
+      let finalExtraStr = Object.keys(finalExtraObj).length === 0 ? "" : JSON.stringify(finalExtraObj);
+
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
-        body: JSON.stringify({ action: 'adminUpdateReg', adminUid: currentUID, regId: reg.regId, name: document.getElementById('er-name').value.trim(), phone: document.getElementById('er-phone').value.trim(), extra: document.getElementById('er-extra').value.trim() }) 
+        body: JSON.stringify({ 
+            action: 'adminUpdateReg', 
+            adminUid: currentUID, 
+            regId: reg.regId, 
+            name: document.getElementById('er-name').value.trim(), 
+            phone: document.getElementById('er-phone').value.trim(), 
+            extra: finalExtraStr 
+        }) 
       }).then(res => res.json()).then(res => {
           if(res.success) Swal.fire('成功', res.message, 'success').then(()=>loadEventReport());
           else Swal.fire('錯誤', res.message, 'error');
@@ -935,7 +1076,6 @@ function openEditRegModal(index) {
   });
 }
 
-// 【回合 B 新增】強制刪除報名紀錄 (釋放名額)
 function deleteReg(regId) {
   Swal.fire({
     title: '確認強制刪除？', 
@@ -945,7 +1085,8 @@ function deleteReg(regId) {
   }).then((result) => {
     if (result.isConfirmed) {
       Swal.fire({ title: '刪除中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'adminDeleteReg', adminUid: currentUID, regId: regId }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminDeleteReg', adminUid: currentUID, regId: regId }) })
         .then(res => res.json()).then(res => {
           if(res.success) Swal.fire('已刪除', res.message, 'success').then(()=>loadEventReport());
           else Swal.fire('錯誤', res.message, 'error');
@@ -959,7 +1100,9 @@ function downloadCSV() {
   let eventName = document.getElementById('print-event-name').innerText;
   let csvContent = '\uFEFF'; csvContent += "序號,報名時間,報名類型,姓名,聯絡電話,繳費狀態,出席狀態,自訂備註\n";
   currentReportData.forEach((row, index) => {
-    let extra = String(row.extraInfo || '').replace(/"/g, '""'); 
+    // 【第二包：下載 CSV 時也將 JSON 解析為人類易讀格式】
+    let readableExtra = parseExtraInfoToReadable(row.extraInfo);
+    let extra = String(readableExtra || '').replace(/"/g, '""'); 
     csvContent += `${index+1},${row.regTime},${row.type},${row.participantName},${row.phone},${row.payStatus},${row.attendance},"${extra}"\n`;
   });
   let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1009,7 +1152,8 @@ function submitBroadcast() {
     if (result.isConfirmed) {
       const btn = document.getElementById('btn-send-broadcast'); const originalHtml = btn.innerHTML;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 系統處理中...'; btn.disabled = true;
-      fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: target, messageContent: msg, attachEventId: eventId }) })
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'sendBroadcast', uid: currentUID, targetGroup: target, messageContent: msg, attachEventId: eventId }) })
       .then(res => res.json()).then(res => {
         btn.innerHTML = originalHtml; btn.disabled = false;
         if (res.success) { Swal.fire('發送成功！', res.message, 'success'); document.getElementById('broadcast-msg').value = ''; document.getElementById('broadcast-event').value = '無'; } 
@@ -1023,7 +1167,8 @@ function submitBroadcast() {
 // 系統進階設定 (Tab 4)
 // ==========================================
 function loadSystemSettings() {
-  fetch(`${GAS_URL}?action=getSystemSettings&uid=${currentUID}`)
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(`${gasUrl}?action=getSystemSettings&uid=${currentUID}`)
     .then(res => res.json()).then(res => {
       document.getElementById('settings-loading').style.display = 'none';
       if (res.success) {
@@ -1047,7 +1192,8 @@ function saveSystemSettings() {
     "自動_活動提醒1天_開關": document.getElementById('set-toggle-event1').checked ? "TRUE" : "FALSE", "自動_活動提醒1天_模板": document.getElementById('set-tpl-event1').value.trim(),
     "自動_活動回饋_開關": document.getElementById('set-toggle-feedback').checked ? "TRUE" : "FALSE", "自動_活動回饋_模板": document.getElementById('set-tpl-feedback').value.trim()
   };
-  fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'saveSystemSettings', uid: currentUID, settings: settingsObj }) })
+  const gasUrl = window.CONFIG.GAS_URL;
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'saveSystemSettings', uid: currentUID, settings: settingsObj }) })
   .then(res => res.json()).then(res => {
     btn.innerHTML = originalHtml; btn.disabled = false;
     if (res.success) Swal.fire({ title: '儲存成功', text: '排程設定已更新！', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -1061,7 +1207,7 @@ function saveSystemSettings() {
 
 // 監聽收費名目，如果是免費就隱藏金額框
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(() => { // 等待 DOM 完全載入
+  setTimeout(() => { 
     const feeNameSelect = document.getElementById('ec-feeName');
     if (feeNameSelect) {
       feeNameSelect.addEventListener('change', function() {
@@ -1106,7 +1252,6 @@ function submitNewEvent() {
     return;
   }
 
-  // 轉換 datetime-local 為 GAS 認得的格式 (YYYY/MM/DD HH:mm)
   const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
 
   const payload = {
@@ -1133,7 +1278,8 @@ function submitNewEvent() {
   }).then(result => {
     if (result.isConfirmed) {
       Swal.fire({ title: '系統寫入中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_URL, { 
+      const gasUrl = window.CONFIG.GAS_URL;
+      fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ action: 'adminCreateEvent', adminUid: currentUID, eventData: payload }) 
       })
@@ -1142,8 +1288,8 @@ function submitNewEvent() {
           Swal.fire('上架成功！', res.message, 'success').then(() => {
             document.getElementById('create-event-form').reset();
             document.getElementById('fee-amount-box').style.display = 'none';
-            toggleEventView('report'); // 切換回列表
-            loadAdminEventList(); // 重新整理清單
+            toggleEventView('report'); 
+            loadAdminEventList(); 
           });
         } else {
           Swal.fire('錯誤', res.message, 'error');
