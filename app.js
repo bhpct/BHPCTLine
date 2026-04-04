@@ -421,7 +421,7 @@ function renderUI(response, lineName) {
     if (locked) locked.style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
     financeUnlocked.style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
     
-    // 【修改】將靜態呼叫改為呼叫動態渲染
+    // 【更新】呼叫動態渲染
     if (response.tier === 'Tier 2' && response.found) {
       renderRealDonationChart(response.personalFinance);
     }
@@ -447,11 +447,12 @@ function renderUI(response, lineName) {
   }
 }
 
-// 【新增】接收真實財務數據並渲染圖表與列表
+// 【更新】接收真實財務數據並渲染圖表與列表
 function renderRealDonationChart(financeData) {
   if (!financeData) return;
   
-  safeSetText('my-total-donation', '$ ' + (financeData.totalAmount || 0).toLocaleString());
+  // 更新 HTML 裡面的總金額 ID (根據 finance.html 的 id)
+  safeSetText('finance-total', (financeData.totalAmount || 0).toLocaleString());
 
   const canvas = document.getElementById('donationChart'); 
   if (canvas) { 
@@ -481,23 +482,24 @@ function renderRealDonationChart(financeData) {
       }
   }
 
-  const listContainer = document.getElementById('my-donation-list');
+  // 更新明細清單 ID (根據 finance.html 的 id)
+  const listContainer = document.getElementById('donation-list');
   if (listContainer) {
       listContainer.innerHTML = '';
       if (financeData.records && financeData.records.length > 0) {
           financeData.records.forEach(r => {
              listContainer.innerHTML += `
-                <div class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom">
+                <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom">
                   <div>
                     <h6 class="mb-1 fw-bold text-dark">${r.itemName}</h6>
                     <small class="text-muted"><i class="far fa-calendar-alt"></i> ${r.date} | ${r.name}</small>
                   </div>
                   <span class="badge bg-success rounded-pill px-3 py-2" style="font-size:1rem;">$ ${r.amount.toLocaleString()}</span>
-                </div>
+                </li>
              `; 
           });
       } else {
-          listContainer.innerHTML = `<div class="p-4 text-center text-muted">今年度尚無奉獻紀錄</div>`;
+          listContainer.innerHTML = `<li class="list-group-item p-4 text-center text-muted border-0">今年度尚無奉獻紀錄</li>`;
       }
   }
 }
@@ -611,18 +613,17 @@ function toggleFamilyView() {
   Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
   
   const gasUrl = window.CONFIG.GAS_URL;
-  // 直接呼叫更新權限的 API
   fetch(gasUrl, { 
     method: 'POST', 
     body: JSON.stringify({ 
       action: 'adminUpdateFullUser', 
-      adminUid: currentUID, // 使用者自己更新自己
+      adminUid: currentUID, 
       userData: {
          uid: currentUID,
          name: currentUserData.name,
          phone: currentUserData.phone.replace(/^'/, ''),
          birthday: currentUserData.birthday,
-         donationCode: currentUserData.donationCode || "", // 需確保後端有傳回此欄位，這裡簡化處理
+         donationCode: currentUserData.donationCode || "", 
          familyId: currentUserData.familyId || "",
          familyView: isFamily,
          groups: currentUserData.groups,
@@ -632,7 +633,7 @@ function toggleFamilyView() {
       } 
     }) 
   }).then(() => {
-     forceRefresh(); // 強制重整抓最新資料
+     forceRefresh(); 
   });
 }
 
