@@ -19,6 +19,27 @@ window.triggerLineLogin = function() {
   liff.login({ redirectUri: cleanUrl });
 };
 
+// 【方案 B 新增】強制檢查是否為官方帳號好友
+async function requireLineFriend() {
+  try {
+    const friend = await liff.getFriendship();
+    if (!friend.friendFlag) {
+      Swal.fire({
+        title: '🛑 無法接收通知',
+        html: `您尚未加入「霧峰教會」官方帳號為好友，或已將我們封鎖。<br>為確保您能收到牧者回覆與活動通知，請先加入好友！<br><br><a href="https://line.me/R/ti/p/@bhpct" target="_blank" class="btn btn-success rounded-pill fw-bold mt-2"><i class="fab fa-line fa-lg"></i> 點此加為好友</a>`,
+        icon: 'warning',
+        confirmButtonText: '我已加入，繼續操作',
+        confirmButtonColor: '#8e44ad'
+      });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Liff Friendship Check Failed', err);
+    return true; // 如果 API 失敗，預設放行以免卡死
+  }
+}
+
 function setActiveNav() {
   const path = window.location.pathname;
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -421,7 +442,6 @@ function renderUI(response, lineName) {
     if (locked) locked.style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
     financeUnlocked.style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
     
-    // 【更新防呆】載入時，如果開關是「全戶」但是使用者沒權限，強制把它切回「個人」
     const familySwitch = document.getElementById('familySwitch');
     if (familySwitch) {
        if (familySwitch.checked && !response.familyView) {
@@ -569,9 +589,15 @@ function shareToLine(eventName, eventId) {
   window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
 }
 
-function submitBinding() {
+// 【方案 B】在綁定時檢查是否有加官方帳號為好友
+async function submitBinding() {
   const name = document.getElementById('bind-name').value.trim(); const phone = document.getElementById('bind-phone').value.trim(); const birthday = document.getElementById('bind-birthday').value;
   if (!name || !phone || !birthday) { Swal.fire('提醒', '請完整填寫真實姓名、電話與生日喔！', 'warning'); return; }
+  
+  // 新增防呆：檢查好友狀態
+  const isFriend = await requireLineFriend();
+  if (!isFriend) return;
+
   const btn = document.querySelector('#unbound-view .btn-warning'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 處理中...';
   const gasUrl = window.CONFIG.GAS_URL;
   fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'bindUser', uid: currentUID, lineName: globalUserName, realName: name, phone: phone, birthday: birthday }) })
@@ -651,9 +677,14 @@ function toggleFamilyView() {
   renderRealDonationChart(currentUserData.personalFinance, isFamily);
 }
 
-function submitPrayer() {
+// 【方案 B】在送出代禱前檢查好友狀態
+async function submitPrayer() {
   const target = document.getElementById('prayer-target').value; const content = document.getElementById('prayer-content').value; const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
   if(!target || !content) { Swal.fire('提醒', '請填寫代禱對象與內容！', 'warning'); return; }
+  
+  const isFriend = await requireLineFriend();
+  if (!isFriend) return;
+
   const btn = document.querySelector('#page-prayer .btn-primary'); btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 傳送中...';
   const gasUrl = window.CONFIG.GAS_URL;
   fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'submitPrayer', uid: currentUID, userName: globalUserName, target: target, content: content, isPublic: isPublic }) })
@@ -794,9 +825,13 @@ function toggleProxyFields() {
   }
 }
 
-function submitRegistration() {
+// 【方案 B】在送出報名前檢查好友狀態
+async function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
   
+  const isFriend = await requireLineFriend();
+  if (!isFriend) return;
+
   const isProxy = (document.getElementById('regProxyType').value === 'proxy'); 
   let pName = document.getElementById('regParticipantName').value.trim();
   let pPhone = document.getElementById('regParticipantPhone').value.trim();
