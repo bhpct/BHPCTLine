@@ -421,9 +421,16 @@ function renderUI(response, lineName) {
     if (locked) locked.style.display = (response.tier === 'Tier 2' && response.found) ? 'none' : 'block';
     financeUnlocked.style.display = (response.tier === 'Tier 2' && response.found) ? 'block' : 'none';
     
-    // 【更新】呼叫動態渲染
+    // 【更新防呆】載入時，如果開關是「全戶」但是使用者沒權限，強制把它切回「個人」
+    const familySwitch = document.getElementById('familySwitch');
+    if (familySwitch) {
+       if (familySwitch.checked && !response.familyView) {
+           familySwitch.checked = false;
+       }
+    }
+    
     if (response.tier === 'Tier 2' && response.found) {
-      renderRealDonationChart(response.personalFinance);
+      renderRealDonationChart(response.personalFinance, (familySwitch && familySwitch.checked));
     }
   }
 
@@ -447,19 +454,35 @@ function renderUI(response, lineName) {
   }
 }
 
-// 【更新】接收真實財務數據並渲染圖表與列表
-function renderRealDonationChart(financeData) {
+// 【更新】接收真實財務數據並根據視角開關渲染圖表與列表
+function renderRealDonationChart(financeData, isFamilyView = false) {
   if (!financeData) return;
   
-  // 更新 HTML 裡面的總金額 ID (根據 finance.html 的 id)
-  safeSetText('finance-total', (financeData.totalAmount || 0).toLocaleString());
+  // 1. 根據 isFamilyView 瞬間過濾 records
+  let filteredRecords = [];
+  if (isFamilyView) {
+      filteredRecords = financeData.records; // 大腦已經過濾過權限，全顯示
+  } else {
+      filteredRecords = financeData.records.filter(r => r.isMine === true); // 只顯示自己
+  }
+
+  // 2. 重新計算過濾後的總金額與分類佔比
+  let calcTotal = 0;
+  let calcCat = {};
+  filteredRecords.forEach(r => {
+      calcTotal += r.amount;
+      if (!calcCat[r.itemName]) calcCat[r.itemName] = 0;
+      calcCat[r.itemName] += r.amount;
+  });
+
+  safeSetText('finance-total', calcTotal.toLocaleString());
 
   const canvas = document.getElementById('donationChart'); 
   if (canvas) { 
       const ctx = canvas.getContext('2d');
-      const labels = Object.keys(financeData.categoryData || {});
-      const dataValues = Object.values(financeData.categoryData || {});
-      const totalAmount = financeData.totalAmount || 1; 
+      const labels = Object.keys(calcCat);
+      const dataValues = Object.values(calcCat);
+      const totalAmount = calcTotal || 1; 
       
       const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
       
@@ -482,12 +505,11 @@ function renderRealDonationChart(financeData) {
       }
   }
 
-  // 更新明細清單 ID (根據 finance.html 的 id)
   const listContainer = document.getElementById('donation-list');
   if (listContainer) {
       listContainer.innerHTML = '';
-      if (financeData.records && financeData.records.length > 0) {
-          financeData.records.forEach(r => {
+      if (filteredRecords && filteredRecords.length > 0) {
+          filteredRecords.forEach(r => {
              listContainer.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom">
                   <div>
@@ -499,7 +521,7 @@ function renderRealDonationChart(financeData) {
              `; 
           });
       } else {
-          listContainer.innerHTML = `<li class="list-group-item p-4 text-center text-muted border-0">今年度尚無奉獻紀錄</li>`;
+          listContainer.innerHTML = `<li class="list-group-item p-4 text-center text-muted border-0">此視角下尚無奉獻紀錄</li>`;
       }
   }
 }
@@ -519,7 +541,8 @@ function switchPage(pageId) {
   if (targetNavEl) targetNavEl.classList.add('active');
 
   if (pageId === 'finance' && currentUserData && currentUserData.tier === 'Tier 2') {
-    renderRealDonationChart(currentUserData.personalFinance);
+    const familySwitch = document.getElementById('familySwitch');
+    renderRealDonationChart(currentUserData.personalFinance, (familySwitch && familySwitch.checked));
   }
 }
 
@@ -607,34 +630,25 @@ function applyFinanceAccess() {
   });
 }
 
-// 切換為全戶或個人視角，並觸發重新抓取資料
+// 【更新】攔截沒有權限的切換操作，若有權限則瞬間在前端切換過濾資料
 function toggleFamilyView() { 
-  let isFamily = document.getElementById('familySwitch').checked;
-  Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+  const familySwitch = document.getElementById('familySwitch');
   
-  const gasUrl = window.CONFIG.GAS_URL;
-  fetch(gasUrl, { 
-    method: 'POST', 
-    body: JSON.stringify({ 
-      action: 'adminUpdateFullUser', 
-      adminUid: currentUID, 
-      userData: {
-         uid: currentUID,
-         name: currentUserData.name,
-         phone: currentUserData.phone.replace(/^'/, ''),
-         birthday: currentUserData.birthday,
-         donationCode: currentUserData.donationCode || "", 
-         familyId: currentUserData.familyId || "",
-         familyView: isFamily,
-         groups: currentUserData.groups,
-         service: currentUserData.service,
-         tier: currentUserData.tier,
-         baptism: currentUserData.baptism || ""
-      } 
-    }) 
-  }).then(() => {
-     forceRefresh(); 
+  // 權限檢查：如果資料庫裡沒有開通全戶視角，就不准他切換
+  if (currentUserData && !currentUserData.familyView) {
+      Swal.fire('權限不足', '您目前僅能查詢個人明細。<br>若您是戶長需要檢視全戶奉獻，請向辦公室申請開通權限！', 'warning');
+      familySwitch.checked = false; // 強制彈回
+      return;
+  }
+  
+  // 有權限的話，不用回後台，瞬間在前端過濾並重新畫圖！
+  let isFamily = familySwitch.checked;
+  Swal.fire({ 
+      title: isFamily ? '已切換至【全戶視角】' : '已切換至【個人視角】', 
+      icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 
   });
+  
+  renderRealDonationChart(currentUserData.personalFinance, isFamily);
 }
 
 function submitPrayer() {
