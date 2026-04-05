@@ -1479,9 +1479,9 @@ function openEditEventModal(eventId) {
                 catOptions += `<option value="${catName}" ${sel}>${catName}</option>`;
             }
             
-            let dateStartStr = evtDetail.date.split(" ~ ")[0].replace(" ", "T");
-            let dateEndStr = evtDetail.date.split(" ~ ")[1] ? evtDetail.date.split(" ~ ")[1].replace(" ", "T") : dateStartStr;
-            let regEndStr = evtDetail.regEndDate ? new Date(evtDetail.regEndDate).toISOString().slice(0, 16) : "";
+            let dateStartStr = evtDetail.startRaw || "";
+            let dateEndStr   = evtDetail.endRaw || dateStartStr;
+            let regEndStr    = evtDetail.regEndRaw || "";
             
             let proxyChecked = evtDetail.allowProxy ? "checked" : "";
             let extraChecked = evtDetail.requireExtraInfo ? "checked" : "";
@@ -2017,4 +2017,16 @@ function confirmFinanceUpload() {
       }
       else Swal.fire('匯入失敗', res.message, 'error');
    }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+}
+
+
+// 【新增】控制新增活動的收費金額框顯示與隱藏
+function toggleFeeAmountBox(val) {
+  const amtBox = document.getElementById('fee-amount-box');
+  if (val === "無" || !val) {
+    amtBox.style.display = 'none';
+    document.getElementById('ec-feeAmount').value = '';
+  } else {
+    amtBox.style.display = 'block';
+  }
 }
