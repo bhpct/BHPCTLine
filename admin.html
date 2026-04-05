@@ -260,7 +260,7 @@
 
             <div class="col-md-6">
               <label class="form-label fw-bold text-dark">收費名目</label>
-              <select class="form-select" id="ec-feeName">
+              <select class="form-select" id="ec-feeName" onchange="toggleFeeAmountBox(this.value)">
                 <option value="無">免費活動</option>
                 <option value="活動代辦費">活動代辦費</option>
                 <option value="保證金">保證金</option>
@@ -551,6 +551,7 @@
             <li><b>最高管理員：</b>可管理會友、活動、財務、排程 (無法進入此頁)。</li>
             <li><b>活動管理員：</b>僅可新增活動、檢視報表與發送推播。</li>
             <li><b>財務管理員：</b>僅可上傳財務 CSV 報表。</li>
+            <li><b>一般同工：</b>僅可檢視儀表板。</li>
           </ul>
         </div>
 
