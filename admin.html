@@ -234,31 +234,33 @@
                 </select>
             </div>
             
-            <div class="col-md-6">
-              <label class="form-label fw-bold text-dark">人數上限</label>
-              <input type="number" class="form-control" id="ec-cap" placeholder="留空代表無上限">
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-calendar-alt"></i> 時間與報名限制</h6>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-6">
               <label class="form-label fw-bold text-dark">活動開始時間 <span class="text-danger">*</span></label>
               <input type="datetime-local" class="form-control border-success" id="ec-start" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-6">
               <label class="form-label fw-bold text-dark">活動結束時間 <span class="text-danger">*</span></label>
               <input type="datetime-local" class="form-control border-success" id="ec-end" required>
             </div>
 
-            <div class="col-12 mt-4">
-              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-cogs"></i> 報名與收費設定</h6>
+            <div class="col-6">
+              <label class="form-label fw-bold text-dark">人數上限</label>
+              <input type="number" class="form-control" id="ec-cap" placeholder="留空代表無上限">
             </div>
-
-            <div class="col-md-6">
+            <div class="col-6">
               <label class="form-label fw-bold text-dark">報名截止時間</label>
               <input type="datetime-local" class="form-control" id="ec-regEnd">
-              <div class="form-text">留空代表活動結束前皆可報名</div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-cogs"></i> 收費與附加設定</h6>
+            </div>
+
+            <div class="col-6">
               <label class="form-label fw-bold text-dark">收費名目</label>
               <select class="form-select" id="ec-feeName" onchange="toggleFeeAmountBox(this.value)">
                 <option value="無">免費活動</option>
@@ -268,14 +270,21 @@
                 <option value="教材費">教材費</option>
               </select>
             </div>
-
-            <div class="col-md-6" id="fee-amount-box" style="display:none;">
+            <div class="col-6" id="fee-amount-box" style="display:none;">
               <label class="form-label fw-bold text-dark">收費金額 (元) <span class="text-danger">*</span></label>
               <input type="number" class="form-control border-warning" id="ec-feeAmount" placeholder="請輸入金額">
             </div>
 
-            <div class="col-12 mt-4">
-              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-list-ul"></i> 附加資訊設定</h6>
+            <div class="col-12 mt-3">
+              <label class="form-label fw-bold text-dark">活動宣傳海報 (圖片上傳)</label>
+              <input type="file" class="form-control" id="ec-poster-file" accept="image/*" onchange="compressImage(event)">
+              <input type="hidden" id="ec-poster-base64">
+              <div id="poster-preview" class="mt-2 text-center bg-light p-3 rounded border" style="display:none;">
+                <img id="poster-preview-img" src="" style="max-height: 180px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div class="text-success mt-2 fw-bold" style="font-size:0.85rem;">
+                  <i class="fas fa-check-circle"></i> 圖片準備就緒，將於上架時自動儲存至雲端
+                </div>
+              </div>
             </div>
 
             <div class="col-12">
@@ -291,11 +300,6 @@
                 　 👉 綜合範例：<code class="bg-white p-1 rounded border text-danger">便當:排骨,素食 | 交通-遊覽車,自行前往</code><br>
                 <i class="text-muted mt-1 d-block">* 註：系統支援全形與半形符號，請安心輸入！</i>
               </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-bold text-dark">活動宣傳海報網址</label>
-              <input type="url" class="form-control" id="ec-poster" placeholder="https://...">
             </div>
 
             <div class="col-12">
