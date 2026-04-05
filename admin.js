@@ -1353,6 +1353,7 @@ function submitNewEvent() {
 
   const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
 
+  // 將 Base64 圖片資料一起打包進 payload 中
   const payload = {
     name: name,
     groupId: document.getElementById('ec-group-id').value.trim(), 
@@ -1364,7 +1365,7 @@ function submitNewEvent() {
     feeName: document.getElementById('ec-feeName').value,
     feeAmount: document.getElementById('ec-feeAmount').value || "",
     customOpt: document.getElementById('ec-custom').value.trim(),
-    poster: document.getElementById('ec-poster').value.trim(),
+    posterBase64: document.getElementById('ec-poster-base64').value, // <== 新增這裡：取得圖片 Base64
     desc: document.getElementById('ec-desc').value.trim(),
     proxy: document.getElementById('ec-proxy').checked,
     extra: document.getElementById('ec-extra').checked
@@ -1372,12 +1373,12 @@ function submitNewEvent() {
 
   Swal.fire({
     title: '即將上架活動',
-    text: `確定要建立「${name}」嗎？上架後將同步發布並通知幹事。`,
+    text: `確定要建立「${name}」嗎？上架後將同步發布並通知幹事。圖片可能需要幾秒鐘上傳，請稍候。`,
     icon: 'question',
     showCancelButton: true, confirmButtonColor: '#2ecc71', confirmButtonText: '確定上架'
   }).then(result => {
     if (result.isConfirmed) {
-      Swal.fire({ title: '系統寫入中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: '系統寫入與上傳海報中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const gasUrl = window.CONFIG.GAS_URL;
       fetch(gasUrl, { 
         method: 'POST', 
@@ -1386,8 +1387,13 @@ function submitNewEvent() {
       .then(res => res.json()).then(res => {
         if (res.success) {
           Swal.fire('上架成功！', res.message, 'success').then(() => {
+            // 重置表單與圖片預覽區
             document.getElementById('create-event-form').reset();
             document.getElementById('fee-amount-box').style.display = 'none';
+            document.getElementById('poster-preview').style.display = 'none';
+            document.getElementById('poster-preview-img').src = '';
+            document.getElementById('ec-poster-base64').value = '';
+            
             toggleEventView('report'); 
             loadAdminEventList(); 
           });
@@ -1397,6 +1403,45 @@ function submitNewEvent() {
       }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
     }
   });
+}
+
+// 【新增】圖片壓縮與預覽引擎 (將圖片轉為 Base64)
+function compressImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      const MAX_WIDTH = 800; // 壓縮寬度限制在 800px 以內，節省傳輸時間與儲存空間
+
+      if (width > MAX_WIDTH) {
+        height *= MAX_WIDTH / width;
+        width = MAX_WIDTH;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // 轉換為 70% 畫質的 JPEG Base64
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+      document.getElementById('ec-poster-base64').value = dataUrl;
+
+      // 顯示預覽畫面
+      const previewContainer = document.getElementById('poster-preview');
+      const previewImg = document.getElementById('poster-preview-img');
+      previewImg.src = dataUrl;
+      previewContainer.style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function loadManageEventList() {
