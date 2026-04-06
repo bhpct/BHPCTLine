@@ -1132,7 +1132,9 @@ function renderChurchHealth(churchFinance, sysYear) {
     content.innerHTML = `
       <div class="d-flex justify-content-between align-items-end mb-1" style="font-size:0.85rem;">
         <span class="text-muted fw-bold">總預算 $${budget.toLocaleString()}</span>
-        <span class="fw-bold"><i class="fas ${icon}"></i> ${statusText}</span>
+        <span class="fw-bold" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#healthInfoModal">
+            <i class="fas ${icon}"></i> ${statusText} <i class="fas fa-question-circle ms-1 text-muted"></i>
+        </span>
       </div>
       <div class="progress mb-2" style="height: 12px; background-color:#e9ecef; border-radius: 10px;">
         <div class="progress-bar progress-bar-striped progress-bar-animated ${colorClass}" role="progressbar" style="width: ${visualRatio}%;"></div>
