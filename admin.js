@@ -1852,14 +1852,15 @@ function renderFinanceCharts(data) {
       let visualRatio = budget > 0 ? (currentTotal / budget) * 100 : 0;
       if (visualRatio > 100) visualRatio = 100;
 
+      // 【修改】全新定義的三階段健康度與文案 (後台)
       let colorClass = "bg-danger"; 
-      let statusText = "警戒落後";
+      let statusText = "嚴重落後";
       let icon = "fa-exclamation-circle text-danger";
       
-      if (healthRatio >= 90) {
-          colorClass = "bg-success"; statusText = "安全達標"; icon = "fa-check-circle text-success";
-      } else if (healthRatio >= 70) {
-          colorClass = "bg-warning"; statusText = "提醒注意"; icon = "fa-exclamation-triangle text-warning";
+      if (healthRatio >= 70) {
+          colorClass = "bg-success"; statusText = "安全範圍"; icon = "fa-check-circle text-success";
+      } else if (healthRatio >= 50) {
+          colorClass = "bg-warning"; statusText = "警戒範圍"; icon = "fa-exclamation-triangle text-warning";
       }
 
       if (daysPassed === 0) { statusText = "尚未開始"; icon = "fa-info-circle text-muted"; colorClass = "bg-secondary"; }
