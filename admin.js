@@ -85,25 +85,24 @@ function verifyAdminAuth(uid) {
     });
 }
 
+// ========== 👇 從這裡開始替換 applyRBAC 函式 👇 ==========
 function applyRBAC() {
   const lvl = adminData.adminLevel;
   console.log("當前管理員身分：", lvl);
 
   loadBroadcastForm();
   loadAdminEventList();
-  populateGroupIdDatalist();
+  if (typeof populateGroupIdDatalist === 'function') populateGroupIdDatalist(); 
 
   if (lvl === "超級管理員") {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
-    document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    document.getElementById('finance-report-section').classList.remove('auth-hidden');
+    document.getElementById('nav-tab-finance').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden'); 
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
     loadDashboard(); loadSystemSettings(); loadAllMembers(); loadAdminRoles(); loadFinancialSummary();
   } else if (lvl === "最高管理員") {
-    document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    document.getElementById('finance-report-section').classList.remove('auth-hidden');
+    document.getElementById('nav-tab-finance').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
@@ -112,6 +111,7 @@ function applyRBAC() {
     document.getElementById('nav-tab-dashboard').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
     document.getElementById('nav-tab-members').classList.add('auth-hidden');
+    document.getElementById('nav-tab-finance').classList.add('auth-hidden'); // 隱藏財務
     document.getElementById('btn-toggle-create').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-manage').classList.remove('auth-hidden');
     document.getElementById('btn-toggle-archive').classList.remove('auth-hidden');
@@ -121,17 +121,19 @@ function applyRBAC() {
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-broadcast').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
-    document.getElementById('member-management-section').style.display = 'none';
-    document.getElementById('finance-upload-section').classList.remove('auth-hidden');
-    document.getElementById('finance-report-section').classList.remove('auth-hidden');
-    switchAdminTab(null, 'members'); 
+    document.getElementById('nav-tab-members').classList.add('auth-hidden'); // 隱藏會友個資
+    document.getElementById('nav-tab-finance').classList.remove('auth-hidden'); // 顯示獨立的財務
+    switchAdminTab(null, 'finance'); // 登入直接跳轉至財務頁面
     loadFinancialSummary();
   } else {
+    // 一般同工
     document.getElementById('nav-tab-events').classList.add('auth-hidden');
     document.getElementById('nav-tab-settings').classList.add('auth-hidden');
+    document.getElementById('nav-tab-finance').classList.add('auth-hidden');
     loadDashboard(); loadAllMembers();
   }
 }
+// ========== 👆 替換到這裡為止 👆 ==========
 
 function switchAdminTab(event, tabId) {
   if (event) event.preventDefault(); 
