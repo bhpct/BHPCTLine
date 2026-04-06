@@ -37,7 +37,16 @@
       </div>
 
       <div id="finance-unlocked" style="display: none;">
-        <div class="card p-4 mt-3 bg-white border-0 shadow-sm" style="border-left: 5px solid #28a745 !important;">
+        
+        <div class="card shadow-sm border-0 mt-3" id="church-health-card" style="display:none; border-radius: 15px; border-left: 5px solid #17a2b8 !important;">
+            <div class="card-body p-3">
+                <h6 class="fw-bold text-dark mb-2"><i class="fas fa-church text-info"></i> 教會年度經常費進度</h6>
+                <div id="church-health-content">
+                    </div>
+            </div>
+        </div>
+
+        <div class="card p-4 mt-3 bg-white border-0 shadow-sm" style="border-radius: 15px; border-left: 5px solid #28a745 !important;">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h5 class="mb-0 text-success fw-bold"><i class="fas fa-hand-holding-usd"></i> <span id="dynamicYear">...</span> 年度奉獻</h5>
             <div class="form-check form-switch text-end" id="familySwitchContainer" style="display: block;">
@@ -45,23 +54,23 @@
               <label class="form-check-label text-muted" for="familySwitch" style="font-size: 0.9rem;">全戶視角</label>
             </div>
           </div>
-          <div class="text-muted" style="font-size: 0.9rem;">本年度累積總額</div>
+          <div class="text-muted" style="font-size: 0.9rem;">個人本年度累積總額</div>
           <h2 class="text-dark fw-bold mt-1" id="finance-total">$ 0</h2>
         </div>
 
-        <div class="card p-3 mt-3 shadow-sm border-0">
+        <div class="card p-3 mt-3 shadow-sm border-0" style="border-radius: 15px;">
           <h6 class="text-center text-muted mb-3 fw-bold">各項事工奉獻佔比</h6>
           <div style="position: relative; height:250px; width:100%">
             <canvas id="donationChart"></canvas>
           </div>
         </div>
 
-        <div class="card p-3 mt-3 mb-5 shadow-sm border-0">
+        <div class="card p-3 mt-3 mb-5 shadow-sm border-0" style="border-radius: 15px;">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-list text-primary"></i> 逐筆明細</h6>            
           </div>
           <ul class="list-group list-group-flush" id="donation-list">
-             </ul>
+              </ul>
         </div>
       </div>
     </div>
