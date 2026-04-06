@@ -153,7 +153,7 @@ function fetchUserData(uid, lineName) {
   const cacheKey = window.CACHE_PREFIX + uid;
   const cachedDataStr = localStorage.getItem(cacheKey);
   const loadingEl = document.getElementById('loading');
-  const gasUrl = window.CONFIG.GAS_URL; // 從 config 取出 URL
+  const gasUrl = window.CONFIG.GAS_URL; 
 
   if (cachedDataStr) {
     try {
@@ -435,6 +435,9 @@ function renderUI(response, lineName) {
     }
   }
 
+  // ==========================================
+  // 【重要更新】財務分頁：這裡加入了水線渲染引擎的呼叫
+  // ==========================================
   const financeUnlocked = document.getElementById('finance-unlocked');
   if (financeUnlocked) {
     safeSetText('dynamicYear', response.sysYear); 
@@ -451,6 +454,11 @@ function renderUI(response, lineName) {
     
     if (response.tier === 'Tier 2' && response.found) {
       renderRealDonationChart(response.personalFinance, (familySwitch && familySwitch.checked));
+      
+      // 【關鍵新增】只要是驗證用戶且資料存在，就立刻渲染最上方的教會整體進度水線！
+      if (response.churchFinance) {
+          renderChurchHealth(response.churchFinance, response.sysYear);
+      }
     }
   }
 
@@ -474,19 +482,17 @@ function renderUI(response, lineName) {
   }
 }
 
-// 【更新】接收真實財務數據並根據視角開關渲染圖表與列表
+// 接收真實財務數據並根據視角開關渲染圖表與列表
 function renderRealDonationChart(financeData, isFamilyView = false) {
   if (!financeData) return;
   
-  // 1. 根據 isFamilyView 瞬間過濾 records
   let filteredRecords = [];
   if (isFamilyView) {
-      filteredRecords = financeData.records; // 大腦已經過濾過權限，全顯示
+      filteredRecords = financeData.records; 
   } else {
-      filteredRecords = financeData.records.filter(r => r.isMine === true); // 只顯示自己
+      filteredRecords = financeData.records.filter(r => r.isMine === true); 
   }
 
-  // 2. 重新計算過濾後的總金額與分類佔比
   let calcTotal = 0;
   let calcCat = {};
   filteredRecords.forEach(r => {
@@ -594,7 +600,6 @@ async function submitBinding() {
   const name = document.getElementById('bind-name').value.trim(); const phone = document.getElementById('bind-phone').value.trim(); const birthday = document.getElementById('bind-birthday').value;
   if (!name || !phone || !birthday) { Swal.fire('提醒', '請完整填寫真實姓名、電話與生日喔！', 'warning'); return; }
   
-  // 新增防呆：檢查好友狀態
   const isFriend = await requireLineFriend();
   if (!isFriend) return;
 
@@ -656,18 +661,16 @@ function applyFinanceAccess() {
   });
 }
 
-// 【更新】攔截沒有權限的切換操作，若有權限則瞬間在前端切換過濾資料
+// 攔截沒有權限的切換操作，若有權限則瞬間在前端切換過濾資料
 function toggleFamilyView() { 
   const familySwitch = document.getElementById('familySwitch');
   
-  // 權限檢查：如果資料庫裡沒有開通全戶視角，就不准他切換
   if (currentUserData && !currentUserData.familyView) {
       Swal.fire('權限不足', '您目前僅能查詢個人明細。<br>若您是戶長需要檢視全戶奉獻，請向辦公室申請開通權限！', 'warning');
       familySwitch.checked = false; // 強制彈回
       return;
   }
   
-  // 有權限的話，不用回後台，瞬間在前端過濾並重新畫圖！
   let isFamily = familySwitch.checked;
   Swal.fire({ 
       title: isFamily ? '已切換至【全戶視角】' : '已切換至【個人視角】', 
@@ -677,7 +680,6 @@ function toggleFamilyView() {
   renderRealDonationChart(currentUserData.personalFinance, isFamily);
 }
 
-// 【方案 B】在送出代禱前檢查好友狀態
 async function submitPrayer() {
   const target = document.getElementById('prayer-target').value; const content = document.getElementById('prayer-content').value; const isPublic = document.querySelector('input[name="prayer-public"]:checked').value;
   if(!target || !content) { Swal.fire('提醒', '請填寫代禱對象與內容！', 'warning'); return; }
@@ -1029,13 +1031,13 @@ function submitFeedbackModal() {
     });
 }
 
-// ========== 👇 貼在 app.js 的最下方 👇 ==========
+// ========================================================
 // 【新增】教會整體預算進度與健康度渲染引擎
+// ========================================================
 function renderChurchHealth(churchFinance, sysYear) {
     const container = document.getElementById('church-health-card');
     const content = document.getElementById('church-health-content');
     
-    // 如果後台沒傳資料，或預算設定為 0，就直接隱藏這個卡片
     if (!container || !content || !churchFinance || churchFinance.budget <= 0) {
         if(container) container.style.display = 'none';
         return;
@@ -1050,25 +1052,18 @@ function renderChurchHealth(churchFinance, sysYear) {
     let totalDays = (targetYear % 4 === 0 && targetYear % 100 !== 0) || (targetYear % 400 === 0) ? 366 : 365;
     let daysPassed = 0;
 
-    // 計算已經過的天數
     if (targetYear < currentYear) {
-        daysPassed = totalDays; // 過去的年份，視為 100% 走完
+        daysPassed = totalDays; 
     } else if (targetYear === currentYear) {
         const start = new Date(currentYear, 0, 0);
-        daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24)); // 今年的話，計算今天是第幾天
+        daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24)); 
     }
 
-    // 1. 應達標水位：(總預算 / 全年天數) * 已經過的天數
     const expectedTarget = Math.round((budget / totalDays) * daysPassed);
-    
-    // 2. 健康度：實際總額 / 應達標水位
     let healthRatio = expectedTarget > 0 ? (currentTotal / expectedTarget) * 100 : (currentTotal > 0 ? 100 : 0);
-    
-    // 3. 視覺進度條：實際總額 / 總預算 (最高 100%)
     let visualRatio = budget > 0 ? (currentTotal / budget) * 100 : 0;
     if (visualRatio > 100) visualRatio = 100;
 
-    // 根據健康度決定顏色與文案
     let colorClass = "bg-danger"; 
     let statusText = "警戒落後";
     let icon = "fa-exclamation-circle text-danger";
@@ -1083,7 +1078,6 @@ function renderChurchHealth(churchFinance, sysYear) {
         icon = "fa-exclamation-triangle text-warning";
     }
 
-    // 如果是未來的年份
     if (daysPassed === 0) { 
         statusText = "年度尚未開始"; 
         icon = "fa-info-circle text-muted"; 
@@ -1103,6 +1097,5 @@ function renderChurchHealth(churchFinance, sysYear) {
         <span>當前應達標: $${expectedTarget.toLocaleString()} <strong class="text-dark">(${healthRatio.toFixed(1)}%)</strong></span>
       </div>
     `;
-    container.style.display = 'block'; // 繪製完畢，顯示卡片
+    container.style.display = 'block'; 
 }
-// ========== 👆 貼到這裡為止 👆 ==========
