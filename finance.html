@@ -122,6 +122,39 @@
     </div>
   </div>
 
+  <div class="modal fade" id="healthInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px; border:none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <div class="modal-header bg-light border-0">
+          <h5 class="modal-title fw-bold"><i class="fas fa-chart-line text-info"></i> 預算健康度指標說明</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="p-3 bg-white border-bottom text-muted" style="font-size: 0.85rem;">
+            指標算法：依據本年度「全教會總預算」，按日攤提計算出「今日應達標金額」，再與「實際奉獻總額」進行比較得出的健康比例。
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item p-3 border-bottom">
+              <div class="fw-bold text-success mb-1"><i class="fas fa-check-circle"></i> 安全範圍 (70% 以上)</div>
+              <div class="text-muted" style="font-size:0.9rem;">目前累積奉獻已達階段性目標的 70% 以上，整體財務狀況穩定健康。</div>
+            </li>
+            <li class="list-group-item p-3 border-bottom">
+              <div class="fw-bold text-warning mb-1"><i class="fas fa-exclamation-triangle"></i> 警戒範圍 (50% ~ 69%)</div>
+              <div class="text-muted" style="font-size:0.9rem;">進度稍有落後，距離按日攤提之應達標金額有段差距，需多加留意。</div>
+            </li>
+            <li class="list-group-item p-3">
+              <div class="fw-bold text-danger mb-1"><i class="fas fa-exclamation-circle"></i> 嚴重落後 (低於 50%)</div>
+              <div class="text-muted" style="font-size:0.9rem;">累積奉獻不及階段目標的一半，教會營運資金吃緊，請大家同心代禱與支持。</div>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-info text-white w-100 rounded-pill py-2 fw-bold" data-bs-dismiss="modal">我知道了</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
