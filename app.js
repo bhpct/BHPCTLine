@@ -486,31 +486,57 @@ function renderUI(response, lineName) {
 function renderRealDonationChart(financeData, isFamilyView = false) {
   if (!financeData) return;
   
-  let filteredRecords = [];
+  // 1. 計算「個人」與「全戶」的總金額
+  let personalTotal = 0;
+  let familyTotal = 0;
+  let globalCats = new Set(); // 收集所有出現過的科目名稱
+  
+  financeData.records.forEach(r => {
+      if (r.isMine) personalTotal += r.amount;
+      familyTotal += r.amount;
+      globalCats.add(r.itemName);
+  });
+
+  // 2. 更新上方卡片的金額與排版 (並排對比)
+  document.getElementById('finance-personal-total').innerText = '$ ' + personalTotal.toLocaleString();
+  document.getElementById('finance-family-total').innerText = '$ ' + familyTotal.toLocaleString();
+  
+  const pBox = document.getElementById('personal-total-box');
+  const fBox = document.getElementById('family-total-box');
   if (isFamilyView) {
-      filteredRecords = financeData.records; 
+      pBox.className = 'col-6'; // 個人縮半
+      fBox.style.display = 'block'; // 顯示全戶
   } else {
-      filteredRecords = financeData.records.filter(r => r.isMine === true); 
+      pBox.className = 'col-12';
+      fBox.style.display = 'none';
   }
 
-  let calcTotal = 0;
+  // 3. 建立一致的「科目色彩映射表」(確保圖表與清單顏色 100% 綁定)
+  const colorPalette = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
+  let colorMap = {};
+  Array.from(globalCats).sort().forEach((cat, idx) => {
+      colorMap[cat] = colorPalette[idx % colorPalette.length];
+  });
+
+  // 4. 根據視角過濾紀錄，並計算圖表所需的分類佔比
+  let filteredRecords = isFamilyView ? financeData.records : financeData.records.filter(r => r.isMine);
   let calcCat = {};
+  let calcTotal = 0; 
+
   filteredRecords.forEach(r => {
       calcTotal += r.amount;
       if (!calcCat[r.itemName]) calcCat[r.itemName] = 0;
       calcCat[r.itemName] += r.amount;
   });
 
-  safeSetText('finance-total', calcTotal.toLocaleString());
-
+  // 5. 繪製圓餅圖 (套用綁定顏色)
   const canvas = document.getElementById('donationChart'); 
   if (canvas) { 
       const ctx = canvas.getContext('2d');
       const labels = Object.keys(calcCat);
       const dataValues = Object.values(calcCat);
+      const chartColors = labels.map(label => colorMap[label]); // 抓取綁定顏色
       const totalAmount = calcTotal || 1; 
-      
-      const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
       
       if (window.myDonationChart) window.myDonationChart.destroy();
       
@@ -519,7 +545,7 @@ function renderRealDonationChart(financeData, isFamilyView = false) {
       } else {
           window.myDonationChart = new Chart(ctx, { 
               type: 'doughnut', 
-              data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: colors, borderWidth: 0 }] }, 
+              data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: chartColors, borderWidth: 0 }] }, 
               options: { 
                   responsive: true, maintainAspectRatio: false, 
                   plugins: { 
@@ -531,18 +557,36 @@ function renderRealDonationChart(financeData, isFamilyView = false) {
       }
   }
 
+  // 6. 渲染逐筆明細 (套用淡化區分邏輯)
   const listContainer = document.getElementById('donation-list');
   if (listContainer) {
       listContainer.innerHTML = '';
       if (filteredRecords && filteredRecords.length > 0) {
           filteredRecords.forEach(r => {
+             let isMe = r.isMine;
+             let catColor = colorMap[r.itemName] || '#6c757d'; // 取得綁定顏色
+             
+             // 【視覺淡化處理】非本人的改為細字體、灰底、透明空心框
+             let titleStyle = isMe ? "fw-bold text-dark" : "text-secondary";
+             let nameStyle = isMe ? "text-dark fw-bold" : "text-muted";
+             let bgStyle = isMe ? "" : "background-color: #fcfcfc;";
+             let dotOpacity = isMe ? "1" : "0.5";
+             
+             // 本人：實心標籤 / 家人：透明空心標籤 (借用色彩邊框)
+             let badgeStyle = isMe 
+                 ? `background-color: ${catColor}; color: white; border: 1px solid ${catColor};` 
+                 : `background-color: transparent; color: ${catColor}; border: 1px dashed ${catColor}; opacity: 0.8;`;
+
              listContainer.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom">
+                <li class="list-group-item d-flex justify-content-between align-items-center p-3 border-0 border-bottom" style="${bgStyle}">
                   <div>
-                    <h6 class="mb-1 fw-bold text-dark">${r.itemName}</h6>
-                    <small class="text-muted"><i class="far fa-calendar-alt"></i> ${r.date} | ${r.name}</small>
+                    <h6 class="mb-1 ${titleStyle}" style="${isMe ? '' : 'font-weight: normal !important;'}">
+                       <span style="display:inline-block; width:10px; height:10px; background-color:${catColor}; border-radius:50%; margin-right:5px; opacity:${dotOpacity};"></span>
+                       ${r.itemName}
+                    </h6>
+                    <small class="text-muted"><i class="far fa-calendar-alt"></i> ${r.date} | <span class="${nameStyle}">${r.name}</span></small>
                   </div>
-                  <span class="badge bg-success rounded-pill px-3 py-2" style="font-size:1rem;">$ ${r.amount.toLocaleString()}</span>
+                  <span class="badge rounded-pill px-3 py-2" style="font-size:1rem; ${badgeStyle}">$ ${r.amount.toLocaleString()}</span>
                 </li>
              `; 
           });
@@ -551,6 +595,7 @@ function renderRealDonationChart(financeData, isFamilyView = false) {
       }
   }
 }
+
 
 function switchPage(pageId) {
   const pages = ['profile', 'finance', 'prayer', 'events'];
