@@ -2203,3 +2203,66 @@ function compressEditImage(event) {
   reader.readAsDataURL(file);
 }
 // ========== 👆 貼到這裡為止 👆 ==========
+
+// ========== 👇 貼在 admin.js 的最下方 👇 ==========
+// 【新增】刪除會友資料引擎 (雙重確認防呆機制)
+function deleteMember(targetUid, memberName) {
+  // 第一重確認：告知後果與保留紀錄機制
+  Swal.fire({
+    title: '⚠️ 嚴重警告：確認刪除？',
+    html: `您即將刪除 <b>${memberName}</b> 的所有會籍基本資料與財務綁定。<br><br>
+           <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> 注意：此動作不可逆轉！</span><br>
+           <span class="text-muted mt-2 d-block" style="font-size:0.85rem;">
+             (但系統會自動保留其過去的報名與出席紀錄，若未來他重新加入，紀錄將自動恢復連動)
+           </span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: '是的，準備刪除',
+    cancelButtonText: '取消'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      
+      // 第二重確認 (Double Check)：確保絕對不是誤按
+      Swal.fire({
+        title: '最後確認',
+        text: `請注意，一旦刪除 ${memberName} 將無法復原。您確定要執行嗎？`,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: '永久刪除',
+        cancelButtonText: '取消'
+      }).then((result2) => {
+        if (result2.isConfirmed) {
+          
+          Swal.fire({ title: '資料刪除中...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+          const gasUrl = window.CONFIG.GAS_URL;
+          
+          fetch(gasUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'adminDeleteUser', adminUid: currentUID, targetUid: targetUid })
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              // 刪除成功後：關閉編輯視窗 -> 顯示成功訊息 -> 重新讀取會友名單
+              const editModalEl = document.getElementById('memberEditModal');
+              if (editModalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(editModalEl);
+                if (modalInstance) modalInstance.hide();
+              }
+              Swal.fire('已刪除', res.message, 'success').then(() => {
+                 loadAllMembers(); 
+              });
+            } else {
+              Swal.fire('權限錯誤', res.message, 'error');
+            }
+          })
+          .catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+        }
+      });
+    }
+  });
+}
+// ========== 👆 貼到此結束 👆 ==========
