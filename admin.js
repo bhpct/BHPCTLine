@@ -1880,27 +1880,31 @@ function renderFinanceCharts(data) {
   }
   
   const catCtx = document.getElementById('financeCategoryChart');
-  if(catCtx) {
-     if(window.myAdminDonationCatChart) window.myAdminDonationCatChart.destroy();
-     
-     const labels = Object.keys(data.categories);
-     const values = Object.values(data.categories);
-     
-     const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#16a085', '#d35400'];
-     
-     window.myAdminDonationCatChart = new Chart(catCtx, {
-        type: 'doughnut',
-        data: {
-           labels: labels,
-           datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }]
-        },
-        options: {
-           responsive: true, maintainAspectRatio: false,
-           plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } },
-           cutout: '60%'
-        }
-     });
-  }
+      if(catCtx) {
+         if(window.myAdminDonationCatChart) window.myAdminDonationCatChart.destroy();
+         
+         // 【新增排序】依照金額由大到小排序
+         let sortedCats = Object.keys(data.categories).sort((a, b) => data.categories[b] - data.categories[a]);
+         const labels = sortedCats;
+         const values = sortedCats.map(cat => data.categories[cat]);
+         
+         // 【更換調色盤】與前台相同的友善色彩（綠色第一）
+         const colorPalette = ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#95a5a6', '#e74c3c'];
+         const colors = labels.map((cat, idx) => colorPalette[idx % colorPalette.length]);
+         
+         window.myAdminDonationCatChart = new Chart(catCtx, {
+            type: 'doughnut',
+            data: {
+               labels: labels,
+               datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }]
+            },
+            options: {
+               responsive: true, maintainAspectRatio: false,
+               plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } },
+               cutout: '60%'
+            }
+         });
+      }
 
   const trendCtx = document.getElementById('financeTrendChart');
   if(trendCtx) {
