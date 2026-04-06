@@ -1028,3 +1028,81 @@ function submitFeedbackModal() {
         });
     });
 }
+
+// ========== 👇 貼在 app.js 的最下方 👇 ==========
+// 【新增】教會整體預算進度與健康度渲染引擎
+function renderChurchHealth(churchFinance, sysYear) {
+    const container = document.getElementById('church-health-card');
+    const content = document.getElementById('church-health-content');
+    
+    // 如果後台沒傳資料，或預算設定為 0，就直接隱藏這個卡片
+    if (!container || !content || !churchFinance || churchFinance.budget <= 0) {
+        if(container) container.style.display = 'none';
+        return;
+    }
+
+    const targetYear = Number(sysYear);
+    const budget = churchFinance.budget;
+    const currentTotal = churchFinance.total;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    let totalDays = (targetYear % 4 === 0 && targetYear % 100 !== 0) || (targetYear % 400 === 0) ? 366 : 365;
+    let daysPassed = 0;
+
+    // 計算已經過的天數
+    if (targetYear < currentYear) {
+        daysPassed = totalDays; // 過去的年份，視為 100% 走完
+    } else if (targetYear === currentYear) {
+        const start = new Date(currentYear, 0, 0);
+        daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24)); // 今年的話，計算今天是第幾天
+    }
+
+    // 1. 應達標水位：(總預算 / 全年天數) * 已經過的天數
+    const expectedTarget = Math.round((budget / totalDays) * daysPassed);
+    
+    // 2. 健康度：實際總額 / 應達標水位
+    let healthRatio = expectedTarget > 0 ? (currentTotal / expectedTarget) * 100 : (currentTotal > 0 ? 100 : 0);
+    
+    // 3. 視覺進度條：實際總額 / 總預算 (最高 100%)
+    let visualRatio = budget > 0 ? (currentTotal / budget) * 100 : 0;
+    if (visualRatio > 100) visualRatio = 100;
+
+    // 根據健康度決定顏色與文案
+    let colorClass = "bg-danger"; 
+    let statusText = "警戒落後";
+    let icon = "fa-exclamation-circle text-danger";
+    
+    if (healthRatio >= 90) {
+        colorClass = "bg-success"; 
+        statusText = "進度達標"; 
+        icon = "fa-check-circle text-success";
+    } else if (healthRatio >= 70) {
+        colorClass = "bg-warning"; 
+        statusText = "提醒注意"; 
+        icon = "fa-exclamation-triangle text-warning";
+    }
+
+    // 如果是未來的年份
+    if (daysPassed === 0) { 
+        statusText = "年度尚未開始"; 
+        icon = "fa-info-circle text-muted"; 
+        colorClass = "bg-secondary"; 
+    }
+
+    content.innerHTML = `
+      <div class="d-flex justify-content-between align-items-end mb-1" style="font-size:0.85rem;">
+        <span class="text-muted fw-bold">總預算 $${budget.toLocaleString()}</span>
+        <span class="fw-bold"><i class="fas ${icon}"></i> ${statusText}</span>
+      </div>
+      <div class="progress mb-2" style="height: 12px; background-color:#e9ecef; border-radius: 10px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated ${colorClass}" role="progressbar" style="width: ${visualRatio}%;"></div>
+      </div>
+      <div class="d-flex justify-content-between text-muted" style="font-size:0.75rem;">
+        <span>累積奉獻: <strong class="text-dark">$${currentTotal.toLocaleString()}</strong></span>
+        <span>當前應達標: $${expectedTarget.toLocaleString()} <strong class="text-dark">(${healthRatio.toFixed(1)}%)</strong></span>
+      </div>
+    `;
+    container.style.display = 'block'; // 繪製完畢，顯示卡片
+}
+// ========== 👆 貼到這裡為止 👆 ==========
