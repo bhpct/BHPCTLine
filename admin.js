@@ -1829,6 +1829,56 @@ function loadFinancialSummary() {
 }
 
 function renderFinanceCharts(data) {
+  const healthContainer = document.getElementById('finance-health-container');
+  if (healthContainer) {
+      const targetYear = Number(data.year);
+      const budget = data.budget || 0;
+      const currentTotal = data.total || 0;
+      
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      let totalDays = (targetYear % 4 === 0 && targetYear % 100 !== 0) || (targetYear % 400 === 0) ? 366 : 365;
+      let daysPassed = 0;
+
+      if (targetYear < currentYear) {
+          daysPassed = totalDays;
+      } else if (targetYear === currentYear) {
+          const start = new Date(currentYear, 0, 0);
+          daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+      }
+
+      const expectedTarget = Math.round((budget / totalDays) * daysPassed);
+      let healthRatio = expectedTarget > 0 ? (currentTotal / expectedTarget) * 100 : (currentTotal > 0 ? 100 : 0);
+      let visualRatio = budget > 0 ? (currentTotal / budget) * 100 : 0;
+      if (visualRatio > 100) visualRatio = 100;
+
+      let colorClass = "bg-danger"; 
+      let statusText = "警戒落後";
+      let icon = "fa-exclamation-circle text-danger";
+      
+      if (healthRatio >= 90) {
+          colorClass = "bg-success"; statusText = "安全達標"; icon = "fa-check-circle text-success";
+      } else if (healthRatio >= 70) {
+          colorClass = "bg-warning"; statusText = "提醒注意"; icon = "fa-exclamation-triangle text-warning";
+      }
+
+      if (daysPassed === 0) { statusText = "尚未開始"; icon = "fa-info-circle text-muted"; colorClass = "bg-secondary"; }
+
+      healthContainer.innerHTML = `
+        <div class="d-flex justify-content-between align-items-end mb-1" style="font-size:0.85rem;">
+          <span class="fw-bold text-muted">年度預算：$${budget.toLocaleString()}</span>
+          <span class="fw-bold"><i class="fas ${icon}"></i> ${statusText}</span>
+        </div>
+        <div class="progress" style="height: 12px; background-color:#e9ecef; border-radius: 10px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated ${colorClass}" role="progressbar" style="width: ${visualRatio}%;"></div>
+        </div>
+        <div class="text-end mt-1 text-muted" style="font-size:0.75rem;">
+          時間進度：第 ${daysPassed} 天 / 應達標：$${expectedTarget.toLocaleString()} <br>
+          <strong class="text-dark">當前健康度：${healthRatio.toFixed(1)}%</strong>
+        </div>
+      `;
+  }
+  
   const catCtx = document.getElementById('financeCategoryChart');
   if(catCtx) {
      if(window.myAdminDonationCatChart) window.myAdminDonationCatChart.destroy();
