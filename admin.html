@@ -466,22 +466,23 @@
         </div>
 
         <div id="finance-dashboard-view" style="display: none;">
-           <div class="row mb-4">
-             <div class="col-md-4 mb-3 mb-md-0">
-                <div class="p-3 bg-light rounded h-100 text-center border">
-                   <h6 class="text-muted fw-bold mb-2">年度總奉獻金額</h6>
-                   <h3 class="fw-bold text-success mb-0" id="fin-total-amount">$ 0</h3>
-                </div>
-             </div>
-             <div class="col-md-8">
-                <div class="p-3 bg-light rounded h-100 border">
-                   <h6 class="text-muted fw-bold mb-3 text-center">各奉獻項目佔比</h6>
-                   <div style="height: 150px; position: relative;">
-                       <canvas id="financeCategoryChart"></canvas>
-                   </div>
-                </div>
-             </div>
-           </div>
+          <div class="row mb-4">
+            <div class="col-md-5 mb-3 mb-md-0">
+               <div class="p-3 bg-light rounded h-100 text-center border">
+                  <h6 class="text-muted fw-bold mb-2">年度總奉獻金額</h6>
+                  <h3 class="fw-bold text-success mb-1" id="fin-total-amount">$ 0</h3>
+                  <div id="finance-health-container" class="mt-4 text-start"></div>
+               </div>
+            </div>
+            <div class="col-md-7">
+               <div class="p-3 bg-light rounded h-100 border">
+                  <h6 class="text-muted fw-bold mb-3 text-center">各奉獻項目佔比</h6>
+                  <div style="height: 150px; position: relative;">
+                      <canvas id="financeCategoryChart"></canvas>
+                  </div>
+               </div>
+            </div>
+          </div>
            
            <div class="p-3 bg-light rounded border">
               <h6 class="text-muted fw-bold mb-3 text-center">每月奉獻趨勢</h6>
