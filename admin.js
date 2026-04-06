@@ -1345,15 +1345,22 @@ function submitNewEvent() {
   const category = document.getElementById('ec-category').value;
   const start = document.getElementById('ec-start').value;
   const end = document.getElementById('ec-end').value;
+  const posterBase64 = document.getElementById('ec-poster-base64').value; // 抓取隱藏欄位
 
   if (!name || !category || !start || !end) {
     Swal.fire('提醒', '請填寫所有帶有紅色 * 號的必填欄位！', 'warning');
     return;
   }
 
+  // 【除錯檢查】如果選了檔案但 Base64 是空的，提示使用者
+  const fileInput = document.getElementById('ec-poster-file');
+  if (fileInput.files.length > 0 && (!posterBase64 || posterBase64.length < 100)) {
+    Swal.fire('圖片處理中', '圖片還在壓縮解析中，請等候預覽圖出現後再點擊上架！', 'info');
+    return;
+  }
+
   const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
 
-  // 將 Base64 圖片資料一起打包進 payload 中
   const payload = {
     name: name,
     groupId: document.getElementById('ec-group-id').value.trim(), 
@@ -1365,35 +1372,31 @@ function submitNewEvent() {
     feeName: document.getElementById('ec-feeName').value,
     feeAmount: document.getElementById('ec-feeAmount').value || "",
     customOpt: document.getElementById('ec-custom').value.trim(),
-    posterBase64: document.getElementById('ec-poster-base64').value, // <== 新增這裡：取得圖片 Base64
+    posterBase64: posterBase64, // 確保這行有值
     desc: document.getElementById('ec-desc').value.trim(),
     proxy: document.getElementById('ec-proxy').checked,
     extra: document.getElementById('ec-extra').checked
   };
 
+  console.log("準備送出的 Payload:", payload); // 您可以開啟瀏覽器 F12 檢查這行
+
   Swal.fire({
     title: '即將上架活動',
-    text: `確定要建立「${name}」嗎？上架後將同步發布並通知幹事。圖片可能需要幾秒鐘上傳，請稍候。`,
+    text: `確定要建立「${name}」嗎？`,
     icon: 'question',
     showCancelButton: true, confirmButtonColor: '#2ecc71', confirmButtonText: '確定上架'
   }).then(result => {
     if (result.isConfirmed) {
-      Swal.fire({ title: '系統寫入與上傳海報中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: '系統處理中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const gasUrl = window.CONFIG.GAS_URL;
-      fetch(gasUrl, { 
-        method: 'POST', 
-        body: JSON.stringify({ action: 'adminCreateEvent', adminUid: currentUID, eventData: payload }) 
-      })
+      fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminCreateEvent', adminUid: currentUID, eventData: payload }) })
       .then(res => res.json()).then(res => {
         if (res.success) {
-          Swal.fire('上架成功！', res.message, 'success').then(() => {
-            // 重置表單與圖片預覽區
+          // 修改這裡：顯示後端回傳的完整 message (包含圖片狀態)
+          Swal.fire({ title: '上架結果', text: res.message, icon: 'success' }).then(() => {
             document.getElementById('create-event-form').reset();
-            document.getElementById('fee-amount-box').style.display = 'none';
             document.getElementById('poster-preview').style.display = 'none';
-            document.getElementById('poster-preview-img').src = '';
             document.getElementById('ec-poster-base64').value = '';
-            
             toggleEventView('report'); 
             loadAdminEventList(); 
           });
@@ -1404,6 +1407,7 @@ function submitNewEvent() {
     }
   });
 }
+
 
 // 【新增】圖片壓縮與預覽引擎 (將圖片轉為 Base64)
 function compressImage(event) {
