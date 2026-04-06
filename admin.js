@@ -1504,6 +1504,7 @@ function renderManageEventList(list) {
   container.style.display = 'block';
 }
 
+// ========== 👇 從這裡開始替換 openEditEventModal 👇 ==========
 function openEditEventModal(eventId) {
     Swal.fire({ title: '撈取活動資料中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
@@ -1524,7 +1525,7 @@ function openEditEventModal(eventId) {
             }
 
             let catOptions = '';
-            for (let catName in adminData.categoryConfig) {
+            for (let catName in res.categoryConfig) {
                 let sel = (catName === evtDetail.category) ? 'selected' : '';
                 catOptions += `<option value="${catName}" ${sel}>${catName}</option>`;
             }
@@ -1532,18 +1533,20 @@ function openEditEventModal(eventId) {
             let dateStartStr = evtDetail.startRaw || "";
             let dateEndStr   = evtDetail.endRaw || dateStartStr;
             let regEndStr    = evtDetail.regEndRaw || "";
-            
             let proxyChecked = evtDetail.allowProxy ? "checked" : "";
             let extraChecked = evtDetail.requireExtraInfo ? "checked" : "";
+            
+            // 【關鍵】初始判斷收費欄位是否顯示
+            let feeBoxDisplay = (evtDetail.feeName === "無" || !evtDetail.feeName) ? "none" : "block";
 
             Swal.fire({
                 title: '編輯活動設定',
                 width: '650px',
                 html: `
                     <div class="text-start mt-2" style="font-size:0.9rem;">
-                        <div class="alert alert-warning p-2" style="font-size:0.85rem;"><i class="fas fa-exclamation-triangle"></i> 提示：若需更動狀態（如提早結束報名），請將狀態改為「已結束」。</div>
+                        <div class="alert alert-warning p-2" style="font-size:0.85rem;"><i class="fas fa-exclamation-triangle"></i> 提示：若需提早結束報名，請將狀態改為「已結束」。</div>
                         
-                        <div class="row g-2 mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-8">
                                 <label class="form-label fw-bold text-dark">活動名稱 <span class="text-danger">*</span></label>
                                 <input type="text" id="ee-name" class="form-control border-primary" value="${evtDetail.name}">
@@ -1556,45 +1559,45 @@ function openEditEventModal(eventId) {
                                     <option value="已結束">已結束</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">群組編號 (Group ID)</label>
+                                <input type="text" id="ee-groupId" class="form-control" list="existing-group-ids" value="${evtDetail.groupId || ''}" placeholder="修改此編號可建立系列關聯">
+                            </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold text-dark">活動分類 <span class="text-danger">*</span></label>
                                 <select id="ee-category" class="form-select border-primary">${catOptions}</select>
                             </div>
-                            <div class="col-md-6">
+                            
+                            <div class="col-12 mt-2">
+                              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-calendar-alt"></i> 時間與報名限制</h6>
+                            </div>
+
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-dark">開始時間 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="ee-start" class="form-control border-primary" value="${dateStartStr}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-dark">結束時間 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="ee-end" class="form-control border-primary" value="${dateEndStr}">
+                            </div>
+
+                            <div class="col-6">
                                 <label class="form-label fw-bold text-dark">人數上限</label>
                                 <input type="number" id="ee-cap" class="form-control" value="${evtDetail.remainingSpots || ''}">
                             </div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">開始時間 <span class="text-danger">*</span></label>
-                                <input type="datetime-local" id="ee-start" class="form-control" value="${dateStartStr}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">結束時間 <span class="text-danger">*</span></label>
-                                <input type="datetime-local" id="ee-end" class="form-control" value="${dateEndStr}">
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold text-dark">活動群組編號 (Group ID)</label>
-                                <input type="text" id="ee-groupId" class="form-control" value="${evtDetail.groupId || evtDetail.id}" placeholder="修改此編號可與其他活動建立系列關聯">
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-4">
+                            <div class="col-6">
                                 <label class="form-label fw-bold text-dark">報名截止時間</label>
                                 <input type="datetime-local" id="ee-regEnd" class="form-control" value="${regEndStr}">
                             </div>
-                            <div class="col-md-4">
+
+                            <div class="col-12 mt-2">
+                              <h6 class="fw-bold text-muted border-bottom pb-2"><i class="fas fa-cogs"></i> 收費與附加設定</h6>
+                            </div>
+
+                            <div class="col-6">
                                 <label class="form-label fw-bold text-dark">收費名目</label>
-                                <select id="ee-feeName" class="form-select">
+                                <select id="ee-feeName" class="form-select" onchange="document.getElementById('ee-fee-amount-box').style.display = (this.value === '無' ? 'none' : 'block'); if(this.value === '無') document.getElementById('ee-feeAmount').value = '';">
                                     <option value="無" ${evtDetail.feeName === '無' ? 'selected' : ''}>免費活動</option>
                                     <option value="活動代辦費" ${evtDetail.feeName === '活動代辦費' ? 'selected' : ''}>活動代辦費</option>
                                     <option value="保證金" ${evtDetail.feeName === '保證金' ? 'selected' : ''}>保證金</option>
@@ -1602,43 +1605,52 @@ function openEditEventModal(eventId) {
                                     <option value="教材費" ${evtDetail.feeName === '教材費' ? 'selected' : ''}>教材費</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-6" id="ee-fee-amount-box" style="display: ${feeBoxDisplay};">
                                 <label class="form-label fw-bold text-dark">收費金額</label>
-                                <input type="number" id="ee-feeAmount" class="form-control" value="${evtDetail.feeAmount || ''}">
+                                <input type="number" id="ee-feeAmount" class="form-control border-warning" value="${evtDetail.feeAmount || ''}">
                             </div>
-                        </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-12">
-                                <label class="form-label fw-bold text-dark">海報網址</label>
-                                <input type="url" id="ee-poster" class="form-control" value="${evtDetail.posterUrl || ''}">
+                            <div class="col-12 mt-2">
+                              <label class="form-label fw-bold text-dark">宣傳海報 (若要更換請上傳新圖)</label>
+                              <div class="form-text text-primary mb-2" style="font-size: 0.85rem;"><i class="fas fa-lightbulb"></i> <b>建議比例：16:9 或 4:3 (橫式圖佳)</b></div>
+                              <input type="file" class="form-control mb-2" id="ee-poster-file" accept="image/*" onchange="compressEditImage(event)">
+                              <input type="hidden" id="ee-poster-base64">
+                              
+                              <div class="text-center bg-light p-2 rounded border">
+                                <img id="edit-poster-preview-img" src="${evtDetail.posterUrl || ''}" style="max-height: 150px; border-radius: 8px; ${evtDetail.posterUrl ? '' : 'display:none;'}">
+                                <div id="edit-poster-status" class="text-muted mt-1" style="font-size:0.8rem;">${evtDetail.posterUrl ? '目前海報' : '尚未設定海報'}</div>
+                              </div>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label fw-bold text-dark">詳細簡介</label>
-                                <textarea id="ee-desc" class="form-control" rows="2">${evtDetail.description || ''}</textarea>
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-2">
+
                             <div class="col-12">
                                 <label class="form-label fw-bold text-dark">自訂報名選項</label>
                                 <input type="text" id="ee-custom" class="form-control" value="${evtDetail.customForm || ''}">
                             </div>
-                        </div>
 
-                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">詳細簡介</label>
+                                <textarea id="ee-desc" class="form-control" rows="2">${evtDetail.description || ''}</textarea>
+                            </div>
+
                             <div class="col-6 form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" id="ee-proxy" ${proxyChecked}>
+                                <input class="form-check-input ms-0" type="checkbox" id="ee-proxy" ${proxyChecked}>
                                 <label class="form-check-label fw-bold ms-2" for="ee-proxy">允許代為報名</label>
                             </div>
                             <div class="col-6 form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" id="ee-extra" ${extraChecked}>
+                                <input class="form-check-input ms-0" type="checkbox" id="ee-extra" ${extraChecked}>
                                 <label class="form-check-label fw-bold ms-2" for="ee-extra">必填身分證(保險)</label>
                             </div>
                         </div>
-
                     </div>
                 `,
-                showCancelButton: true, confirmButtonText: '儲存更新', cancelButtonText: '取消', confirmButtonColor: '#17a2b8'
+                showCancelButton: true, confirmButtonText: '儲存更新', cancelButtonText: '取消', confirmButtonColor: '#17a2b8',
+                preConfirm: () => {
+                    const fileInput = document.getElementById('ee-poster-file');
+                    const posterBase64 = document.getElementById('ee-poster-base64').value;
+                    if (fileInput.files.length > 0 && !posterBase64) {
+                        Swal.showValidationMessage('圖片處理中，請稍候幾秒再按儲存'); return false;
+                    }
+                }
             }).then(result => {
                 if(result.isConfirmed) {
                     const formatTime = (t) => t ? t.replace('T', ' ').replace(/-/g, '/') : "";
@@ -1654,14 +1666,15 @@ function openEditEventModal(eventId) {
                         capacity: document.getElementById('ee-cap').value,
                         feeName: document.getElementById('ee-feeName').value,
                         feeAmount: document.getElementById('ee-feeAmount').value,
-                        poster: document.getElementById('ee-poster').value.trim(),
                         desc: document.getElementById('ee-desc').value.trim(),
                         customOpt: document.getElementById('ee-custom').value.trim(),
                         proxy: document.getElementById('ee-proxy').checked, 
-                        extra: document.getElementById('ee-extra').checked
+                        extra: document.getElementById('ee-extra').checked,
+                        posterBase64: document.getElementById('ee-poster-base64').value, // 傳送新圖
+                        poster: evtDetail.posterUrl // 保留舊圖網址作為備案
                     };
 
-                    Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    Swal.fire({ title: '儲存與更新中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                     fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminUpdateEventConfig', adminUid: currentUID, eventData: updatedPayload }) })
                         .then(res => res.json()).then(res => {
                             if(res.success) Swal.fire('成功', res.message, 'success').then(() => loadManageEventList());
@@ -1671,6 +1684,8 @@ function openEditEventModal(eventId) {
             });
         }).catch(err => Swal.fire('連線錯誤', '無法抓取活動詳細資料', 'error'));
 }
+// ========== 👆 替換到這裡為止 👆 ==========
+
 
 function deleteEvent(eventId, eventName) {
     Swal.fire({
@@ -2080,3 +2095,52 @@ function toggleFeeAmountBox(val) {
     amtBox.style.display = 'block';
   }
 }
+
+
+// ========== 👇 複製整段貼到 admin.js 檔案最底部 👇 ==========
+// 【新增】自動生成現有群組編號下拉選單
+function populateGroupIdDatalist() {
+  const datalist = document.getElementById('existing-group-ids');
+  if (!datalist || !adminData || !adminData.allAdminEvents) return;
+  
+  let groupIds = new Set();
+  adminData.allAdminEvents.forEach(e => {
+    if (e.groupId && e.groupId.trim() !== "") groupIds.add(e.groupId.trim());
+  });
+  
+  datalist.innerHTML = '';
+  groupIds.forEach(id => {
+    datalist.innerHTML += `<option value="${id}"></option>`;
+  });
+}
+
+// 【新增】編輯視窗專用的圖片壓縮引擎
+function compressEditImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let width = img.width; let height = img.height;
+      const MAX_WIDTH = 800; 
+
+      if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+      document.getElementById('ee-poster-base64').value = dataUrl;
+
+      const previewImg = document.getElementById('edit-poster-preview-img');
+      previewImg.src = dataUrl;
+      previewImg.style.display = 'inline-block';
+      document.getElementById('edit-poster-status').innerHTML = '<span class="text-success fw-bold"><i class="fas fa-check"></i> 新圖片已就緒</span>';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+// ========== 👆 貼到這裡為止 👆 ==========
