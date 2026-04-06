@@ -223,7 +223,8 @@
             <div class="col-md-6">
               <label class="form-label fw-bold text-dark">活動群組編號 (Group ID)</label>
               <div class="input-group">
-                <input type="text" class="form-control" id="ec-group-id" placeholder="選填。相同編號將視為系列活動">
+                <input type="text" class="form-control" id="ec-group-id" list="existing-group-ids" placeholder="選填。點擊即可選現有編號">
+                <datalist id="existing-group-ids"></datalist>
                 <button class="btn btn-outline-secondary" type="button" onclick="generateGroupId()" title="自動產生群組編號"><i class="fas fa-magic"></i></button>
               </div>
             </div>
