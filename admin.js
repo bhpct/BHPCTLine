@@ -91,6 +91,7 @@ function applyRBAC() {
 
   loadBroadcastForm();
   loadAdminEventList();
+  populateGroupIdDatalist();
 
   if (lvl === "超級管理員") {
     document.getElementById('nav-tab-roles').classList.remove('auth-hidden');
