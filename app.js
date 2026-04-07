@@ -847,16 +847,32 @@ function openRegModal(eventId) {
               }
           }
       });
-      container.style.display = 'block';
-  } else {
-      container.style.display = 'none';
   }
+  
+  // 【本次新增】影音授權宣告 (永遠顯示在自訂表單最下方)
+  let mediaConsentHtml = `
+    <div class="mt-4 p-3 bg-white border border-info rounded shadow-sm">
+      <div class="form-check">
+        <input class="form-check-input border-info shadow-sm" type="checkbox" id="regMediaConsent" checked style="transform: scale(1.2); margin-top: 0.3rem;">
+        <label class="form-check-label fw-bold text-dark ms-1" for="regMediaConsent">
+          📸 活動影音宣傳授權 <span class="badge bg-info text-white ms-1" style="font-size:0.7rem;">自由勾選</span>
+        </label>
+        <div class="text-muted mt-2" style="font-size:0.85rem; line-height:1.5;">
+          我同意並授權教會於本次活動中拍攝影音，並使用於教會官方媒體上做為宣傳分享。
+          <div class="text-danger mt-1" style="font-size:0.8rem; font-weight:bold;">
+            (⚠️ 溫馨提醒：若您為「代為報名者」，必須為當事人之法定代理人或 2 等內親屬，方可代為勾選同意。)
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  fieldsArea.innerHTML += mediaConsentHtml;
+  container.style.display = 'block'; // 強制顯示動態區塊以顯示影音授權
   
   toggleProxyFields(); 
   document.getElementById('regAgree').checked = false;
   new bootstrap.Modal(document.getElementById('regModal')).show();
 }
-
 function toggleProxyFields() { 
   const isProxy = document.getElementById('regProxyType').value === 'proxy';
   
@@ -871,6 +887,7 @@ function toggleProxyFields() {
   }
 }
 
+// 【方案 B】在送出報名前檢查好友狀態
 // 【方案 B】在送出報名前檢查好友狀態
 async function submitRegistration() {
   if (!document.getElementById('regAgree').checked) { Swal.fire('提醒', '請先勾選同意收集資料聲明喔！', 'warning'); return; }
@@ -922,6 +939,10 @@ async function submitRegistration() {
   
   if (document.getElementById('regMemo').value) extraObj.備註 = document.getElementById('regMemo').value;
   
+  // 【本次新增】抓取影音宣傳授權狀態
+  const mediaConsentElement = document.getElementById('regMediaConsent');
+  const mediaConsentChecked = mediaConsentElement ? mediaConsentElement.checked : false;
+  
   const btn = document.querySelector('#regModal .btn-primary'); 
   
   const regModalEl = document.getElementById('regModal');
@@ -931,7 +952,20 @@ async function submitRegistration() {
   Swal.fire({ title: '處理中', text: '正在傳送報名資料...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
   
   const gasUrl = window.CONFIG.GAS_URL;
-  fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'submitRegistration', eventId: document.getElementById('regEventId').value, uid: currentUID, isProxy: isProxy, participantName: pName, participantPhone: pPhone, extraInfoStr: JSON.stringify(extraObj) }) })
+  
+  // 【本次新增】將 mediaConsent 打包進 payload 中送出給 API
+  const payload = {
+      action: 'submitRegistration', 
+      eventId: document.getElementById('regEventId').value, 
+      uid: currentUID, 
+      isProxy: isProxy, 
+      participantName: pName, 
+      participantPhone: pPhone, 
+      extraInfoStr: JSON.stringify(extraObj),
+      mediaConsent: mediaConsentChecked
+  };
+
+  fetch(gasUrl, { method: 'POST', body: JSON.stringify(payload) })
   .then(res => res.json()).then(res => { 
     if (res.success) { 
       clearCache(); 
@@ -979,7 +1013,6 @@ async function submitRegistration() {
     }); 
   });
 }
-
 function cancelRegistration(regId, eventName) {
   Swal.fire({ title: '確定取消報名嗎？', html: `活動：<b>${eventName}</b><br>取消後將釋出您的名額。`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d', confirmButtonText: '是的，我要取消', cancelButtonText: '保留名額' }).then((result) => {
     if (result.isConfirmed) {
