@@ -1361,14 +1361,13 @@ function submitNewEvent() {
   const category = document.getElementById('ec-category').value;
   const start = document.getElementById('ec-start').value;
   const end = document.getElementById('ec-end').value;
-  const posterBase64 = document.getElementById('ec-poster-base64').value; // 抓取隱藏欄位
+  const posterBase64 = document.getElementById('ec-poster-base64').value;
 
   if (!name || !category || !start || !end) {
     Swal.fire('提醒', '請填寫所有帶有紅色 * 號的必填欄位！', 'warning');
     return;
   }
 
-  // 【除錯檢查】如果選了檔案但 Base64 是空的，提示使用者
   const fileInput = document.getElementById('ec-poster-file');
   if (fileInput.files.length > 0 && (!posterBase64 || posterBase64.length < 100)) {
     Swal.fire('圖片處理中', '圖片還在壓縮解析中，請等候預覽圖出現後再點擊上架！', 'info');
@@ -1388,13 +1387,12 @@ function submitNewEvent() {
     feeName: document.getElementById('ec-feeName').value,
     feeAmount: document.getElementById('ec-feeAmount').value || "",
     customOpt: document.getElementById('ec-custom').value.trim(),
-    posterBase64: posterBase64, // 確保這行有值
+    posterBase64: posterBase64, 
     desc: document.getElementById('ec-desc').value.trim(),
     proxy: document.getElementById('ec-proxy').checked,
-    extra: document.getElementById('ec-extra').checked
+    extra: document.getElementById('ec-extra').checked,
+    seriesDates: getSeriesDatesJSON() // 【本次新增】打包系列日程 JSON 送出
   };
-
-  console.log("準備送出的 Payload:", payload); // 您可以開啟瀏覽器 F12 檢查這行
 
   Swal.fire({
     title: '即將上架活動',
@@ -1408,11 +1406,11 @@ function submitNewEvent() {
       fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: 'adminCreateEvent', adminUid: currentUID, eventData: payload }) })
       .then(res => res.json()).then(res => {
         if (res.success) {
-          // 修改這裡：顯示後端回傳的完整 message (包含圖片狀態)
           Swal.fire({ title: '上架結果', text: res.message, icon: 'success' }).then(() => {
             document.getElementById('create-event-form').reset();
             document.getElementById('poster-preview').style.display = 'none';
             document.getElementById('ec-poster-base64').value = '';
+            document.getElementById('series-dates-container').innerHTML = ''; // 【本次新增】清空課堂清單
             toggleEventView('report'); 
             loadAdminEventList(); 
           });
@@ -1423,7 +1421,6 @@ function submitNewEvent() {
     }
   });
 }
-
 
 // 【新增】圖片壓縮與預覽引擎 (將圖片轉為 Base64)
 function compressImage(event) {
@@ -1497,6 +1494,27 @@ function renderManageEventList(list) {
     list.forEach((evt, index) => {
       let bClass = evt.status === '開放報名' ? 'success' : (evt.status === '已封存' ? 'secondary' : 'primary');
       
+      // 【本次新增】權限防護邏輯
+      let canEdit = true;
+      let canDelete = true;
+      
+      if (adminData.adminLevel === "活動管理員") {
+          canDelete = false; // 1. 刪除按鈕全面隱藏
+          
+          // 2. 不是他建立的活動，隱藏編輯 (我們等下會在 code.gs 補傳 evt.creatorUid)
+          if (evt.creatorUid && evt.creatorUid !== currentUID) {
+              canEdit = false;
+          }
+      }
+
+      let editBtnHtml = canEdit 
+        ? `<button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm me-1" onclick="openEditEventModal('${evt.id}')"><i class="fas fa-edit"></i> 編輯設定</button>` 
+        : `<button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm me-1" disabled title="僅建立者可編輯"><i class="fas fa-lock"></i> 無權編輯</button>`;
+      
+      let deleteBtnHtml = canDelete 
+        ? `<button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" onclick="deleteEvent('${evt.id}', '${evt.name}')"><i class="fas fa-trash-alt"></i></button>` 
+        : ``;
+
       container.innerHTML += `
         <div class="list-group-item p-3 border-bottom border-0">
           <div class="d-flex justify-content-between align-items-center mb-1">
@@ -1509,8 +1527,8 @@ function renderManageEventList(list) {
             <i class="fas fa-hashtag w-20px"></i> ID: <span style="font-family:monospace;">${evt.id}</span> | 群組: <span style="font-family:monospace;">${evt.groupId || '無'}</span>
           </div>
           <div class="text-end mt-2">
-            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm me-1" onclick="openEditEventModal('${evt.id}')"><i class="fas fa-edit"></i> 編輯設定</button>
-            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" onclick="deleteEvent('${evt.id}', '${evt.name}')"><i class="fas fa-trash-alt"></i></button>
+            ${editBtnHtml}
+            ${deleteBtnHtml}
           </div>
         </div>
       `;
@@ -1518,7 +1536,6 @@ function renderManageEventList(list) {
   }
   container.style.display = 'block';
 }
-
 // ========== 👇 從這裡開始替換 openEditEventModal 👇 ==========
 function openEditEventModal(eventId) {
     Swal.fire({ title: '撈取活動資料中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -2169,7 +2186,6 @@ function toggleFeeAmountBox(val) {
 }
 
 
-// ========== 👇 複製整段貼到 admin.js 檔案最底部 👇 ==========
 // 【新增】自動生成現有群組編號下拉選單
 function populateGroupIdDatalist() {
   const datalist = document.getElementById('existing-group-ids');
@@ -2215,9 +2231,8 @@ function compressEditImage(event) {
   };
   reader.readAsDataURL(file);
 }
-// ========== 👆 貼到這裡為止 👆 ==========
 
-// ========== 👇 貼在 admin.js 的最下方 👇 ==========
+
 // 【新增】刪除會友資料引擎 (雙重確認防呆機制)
 function deleteMember(targetUid, memberName) {
   // 第一重確認：告知後果與保留紀錄機制
@@ -2278,4 +2293,51 @@ function deleteMember(targetUid, memberName) {
     }
   });
 }
-// ========== 👆 貼到此結束 👆 ==========
+
+
+// 【本次新增】系列活動日程動態介面引擎
+function syncSeriesFirstDate() {
+  const startVal = document.getElementById('ec-start').value;
+  if (!startVal) return;
+  const container = document.getElementById('series-dates-container');
+  const firstRowDate = container.querySelector('.series-date');
+  if (firstRowDate && !firstRowDate.value) {
+      const d = new Date(startVal);
+      firstRowDate.value = d.toISOString().split('T')[0];
+      const firstRowStart = container.querySelector('.series-start');
+      if(firstRowStart) firstRowStart.value = d.toTimeString().slice(0,5);
+  }
+}
+
+function addSeriesDateRow() {
+  const container = document.getElementById('series-dates-container');
+  const rowHtml = `
+    <div class="row g-2 mb-2 series-date-row align-items-center">
+      <div class="col-auto"><span class="badge bg-secondary"><i class="fas fa-calendar-day"></i></span></div>
+      <div class="col"><input type="date" class="form-control form-control-sm series-date" required></div>
+      <div class="col"><input type="time" class="form-control form-control-sm series-start" required></div>
+      <div class="col-auto text-muted">~</div>
+      <div class="col"><input type="time" class="form-control form-control-sm series-end" required></div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.series-date-row').remove()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function getSeriesDatesJSON() {
+  const rows = document.querySelectorAll('.series-date-row');
+  if (rows.length === 0) return "";
+  let series = [];
+  rows.forEach(row => {
+      const d = row.querySelector('.series-date').value;
+      const s = row.querySelector('.series-start').value;
+      const e = row.querySelector('.series-end').value;
+      if (d && s && e) {
+          series.push({ date: d, start: s, end: e });
+      }
+  });
+  return series.length > 0 ? JSON.stringify(series) : "";
+}
+
