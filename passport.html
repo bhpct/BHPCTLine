@@ -16,10 +16,10 @@
     <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
   </div>
 
-  <div class="church-header text-center mb-4" style="background-image: linear-gradient(135deg, #1abc9c, #16a085);">
+  <div class="church-header text-center mb-4">
     <h3 id="ui-userName">讀取中...</h3>
-    <span class="badge bg-light text-success mt-2 px-3 py-2 rounded-pill shadow-sm" style="font-size:0.95rem;">
-      <i class="fas fa-award"></i> 門徒學習護照
+    <span class="badge bg-secondary text-white mt-2" id="ui-userTier" style="cursor: pointer; font-size:0.9rem;" onclick="new bootstrap.Modal(document.getElementById('tierInfoModal')).show()">
+      <i class="fas fa-medal"></i> 驗證狀態 <i class="fas fa-question-circle ms-1"></i>
     </span>
   </div>
 
@@ -42,9 +42,37 @@
       </div>
 
       <div class="card p-4 border-0 shadow-sm mb-4" style="border-radius:15px;">
-        <h6 class="fw-bold text-dark text-center mb-3"><i class="fas fa-chart-pie text-warning"></i> 屬靈生命成長雷達圖</h6>
+        
+        <div class="text-center mb-4 border-bottom pb-4">
+          <h5 class="fw-bold mb-4" style="color: #2c3e50;"><i class="fas fa-project-diagram text-primary"></i> 一領一 門徒培育系統</h5>
+          <div class="d-flex justify-content-center">
+            <svg viewBox="0 0 600 600" width="100%" style="height: auto; max-width: 450px; filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));">
+              <defs>
+                <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
+                <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2ecc71"/><stop offset="100%" stop-color="#218838"/></linearGradient>
+                <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#d68910"/></linearGradient>
+                <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
+                <path id="arrow_shape" d="M -20 -60 L -20 -130 L -40 -130 L 0 -190 L 40 -130 L 20 -130 L 20 -60 Z" />
+              </defs>
+              <g transform="translate(300,300)">
+                <circle cx="0" cy="0" r="145" fill="rgba(44, 62, 80, 0.04)" stroke="#e0e0e0" stroke-width="2"/>
+                <use href="#arrow_shape" fill="url(#gradRed)" /><circle cx="0" cy="-120" r="35" fill="#fff" stroke="#c0392b" stroke-width="4"/><text x="0" y="-112" font-size="22" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text><text x="0" y="-205" font-size="16" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
+                <use href="#arrow_shape" fill="url(#gradGreen)" transform="rotate(90)" /><circle cx="120" cy="0" r="35" fill="#fff" stroke="#218838" stroke-width="4"/><text x="120" y="8" font-size="22" font-weight="bold" fill="#218838" text-anchor="middle">造就</text><text x="205" y="6" font-size="16" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
+                <use href="#arrow_shape" fill="url(#gradOrange)" transform="rotate(180)" /><circle cx="0" cy="120" r="35" fill="#fff" stroke="#d68910" stroke-width="4"/><text x="0" y="128" font-size="22" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text><text x="0" y="215" font-size="16" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
+                <use href="#arrow_shape" fill="url(#gradPurple)" transform="rotate(270)" /><circle cx="-120" cy="0" r="35" fill="#fff" stroke="#8e44ad" stroke-width="4"/><text x="-120" y="8" font-size="22" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text><text x="-205" y="6" font-size="16" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
+                <circle cx="0" cy="0" r="50" fill="#fff" stroke="#2c3e50" stroke-width="3"/>
+                <g transform="translate(0, -5)"><circle cx="0" cy="-15" r="12" fill="#2c3e50"/><path d="M -18 12 C -18 -5, 18 -5, 18 12 Z" fill="#2c3e50"/><text x="0" y="32" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">門徒培育</text></g>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <h5 class="fw-bold text-muted text-center mb-3">門徒均衡度分析</h5>
         <div style="height: 280px; position: relative;">
           <canvas id="radarChart"></canvas>
+        </div>
+        <div class="alert alert-light p-2 mt-4 text-start border shadow-sm" style="font-size: 0.8rem; border-left: 4px solid #3498db !important;">
+          <i class="fas fa-info-circle text-primary"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。點擊端點可查看詳細說明。
         </div>
       </div>
 
@@ -66,6 +94,22 @@
     <a href="prayer.html?page=prayer" class="nav-item text-center flex-fill" id="nav-prayer"><i class="fas fa-praying-hands d-block"></i><span style="font-size:0.7rem;">代禱</span></a>
     <a href="events.html?page=events" class="nav-item text-center flex-fill" id="nav-events"><i class="fas fa-calendar-alt d-block"></i><span style="font-size:0.7rem;">活動</span></a>
   </nav>
+
+  <div class="modal fade" id="tierInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 15px;">
+        <div class="modal-header bg-light"><h5 class="modal-title fw-bold"><i class="fas fa-layer-group text-primary"></i> 系統權限分級說明</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item p-3"><div class="fw-bold text-secondary mb-1"><i class="fas fa-user"></i> Tier 0 一般用戶</div><div class="text-muted" style="font-size:0.9rem;">未提供資料的訪客。僅能瀏覽公開頁面、接收教會一般資訊。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold text-primary mb-1"><i class="fas fa-user-check"></i> Tier 1 綁定用戶</div><div class="text-muted" style="font-size:0.9rem;">完成手機自助綁定之會友/新朋友。解鎖專屬「活動報名」、「學習護照」等互動功能。</div></li>
+            <li class="list-group-item p-3"><div class="fw-bold mb-1" style="color: #f39c12 !important;"><i class="fas fa-crown"></i> Tier 2 驗證用戶</div><div class="text-muted" style="font-size:0.9rem;">須至行政辦公室進行實體身分驗證。解鎖最高機密「個人與全戶財務奉獻」查詢權限。</div></li>
+          </ul>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary w-100 rounded-pill fw-bold" data-bs-dismiss="modal">我知道了</button></div>
+      </div>
+    </div>
+  </div>
 
   <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
