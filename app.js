@@ -755,6 +755,7 @@ function playPrayerAnimation(inputText) {
   setTimeout(() => { overlay.style.opacity = 0; setTimeout(() => { overlay.style.display = 'none'; document.getElementById('prayerForm').reset(); Swal.fire({ title: '奉耶穌基督的名祈禱，阿們！', text: '您的代禱事項已成功送出，將由牧者同工代禱。', icon: 'success', confirmButtonColor: '#0d6efd' }); }, 1500); }, 10500);
 }
 
+
 function openEventDetail(eventId) {
   const evt = globalActiveEvents.find(e => e.id === eventId);
   if (!evt) return;
@@ -780,38 +781,38 @@ function openEventDetail(eventId) {
   // 1. 將純文字的換行符號轉為 HTML 的 <br> 讓排版正常
   let safeDescHtml = (evt.description || "尚無詳細說明。").replace(/\n/g, '<br>');
   
-  // 2. 【緊湊美化版】如果有多日課程表，渲染為現代化緊湊清單
+  // 2. 【極致精簡版】對齊原生排版，移除多餘留白與外框
   let datesHtml = "";
   if (evt.seriesDates && evt.seriesDates.trim() !== "") {
       try {
           let parsedDates = JSON.parse(evt.seriesDates);
           if (parsedDates.length > 0) {
-              // 抓取這個活動的專屬顏色 (預設給藍色)
+              // 抓取顏色供 Badge 使用
               let config = dynamicCategoryConfig[evt.category] || {顏色: '#3498db'};
               
               datesHtml = `
-                <div class="mt-4 pt-3 border-top">
-                  <h6 class="fw-bold mb-2 text-dark" style="font-size: 0.95rem;">
-                    <i class="fas fa-calendar-check me-1" style="color: ${config.顏色};"></i> 課程詳細日程表
+                <div class="mt-4">
+                  <h6 class="fw-bold text-dark mb-2">
+                    <i class="fas fa-list-ol text-dark"></i> 課程詳細日程表
                   </h6>
-                  <div class="border rounded shadow-sm" style="overflow: hidden;">
-                    <ul class="list-group list-group-flush mb-0">
+                  <ul class="list-group list-group-flush border-top border-bottom mt-2">
               `;
               
               parsedDates.forEach((d, idx) => {
                   datesHtml += `
-                      <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="border-left: 4px solid ${config.顏色} !important; background-color: #fafafa;">
+                      <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom" style="background-color: transparent;">
                         <div class="d-flex align-items-center">
-                          <span class="badge me-2" style="background-color: ${config.顏色}; font-size: 0.75rem;">第 ${idx + 1} 堂</span>
-                          <span class="fw-bold text-dark" style="font-size: 0.9rem; letter-spacing: 0.5px;">${d.date}</span>
+                          <span class="badge text-white me-2" style="background-color: ${config.顏色}; font-size: 0.75rem; padding: 0.35rem 0.5rem;">第 ${idx + 1} 堂</span>
+                          <span class="fw-bold text-dark" style="font-size: 0.9rem;">${d.date}</span>
                         </div>
-                        <div class="text-muted" style="font-size: 0.85rem;">
-                          <i class="far fa-clock me-1"></i>${d.start} - ${d.end}
+                        <div class="text-muted text-end" style="font-size: 0.85rem; font-family: monospace;">
+                          <i class="far fa-clock me-1"></i>${d.start} ~ ${d.end}
                         </div>
                       </li>
                   `;
               });
-              datesHtml += `</ul></div></div>`;
+              
+              datesHtml += `</ul></div>`;
           }
       } catch (e) {
           console.error("前台解析系列日程失敗", e);
