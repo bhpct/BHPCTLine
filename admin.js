@@ -522,7 +522,8 @@ function openFullEditModal(userObj) {
     });
   }
 
-  Swal.fire({
+  // ========== 👇 完整替換您的 Swal.fire 編輯個資區塊 👇 ==========
+Swal.fire({
     title: '編輯完整個資',
     width: '600px',
     html: `
@@ -565,7 +566,18 @@ function openFullEditModal(userObj) {
         <div class="mb-2"><label class="fw-bold text-success border-bottom w-100 mb-1">參與服事單位 (可多選)</label><div>${srvHtml}</div></div>
       </div>
     `,
-    showCancelButton: true, confirmButtonText: '確定儲存', cancelButtonText: '取消', confirmButtonColor: '#8e44ad'
+    showCancelButton: true, 
+    confirmButtonText: '確定儲存', 
+    cancelButtonText: '取消', 
+    confirmButtonColor: '#8e44ad',
+    // 【重點新增】加上這一段 footer，讓刪除按鈕出現在視窗左下角
+    footer: `
+      <div class="w-100 text-start">
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" onclick="deleteMember('${userObj.uid}', '${userObj.name}')">
+          <i class="fas fa-trash-alt"></i> 刪除此會友資料
+        </button>
+      </div>
+    `
   }).then((result) => {
     if (result.isConfirmed) {
       let gArr = []; document.querySelectorAll('.fw-group-chk:checked').forEach(c => gArr.push(c.value));
@@ -594,6 +606,7 @@ function openFullEditModal(userObj) {
         }).catch(err => Swal.fire('錯誤', err.message, 'error'));
     }
   });
+// ========== 👆 替換到此結束 👆 ==========
 }
 
 
