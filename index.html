@@ -56,22 +56,15 @@
       </div>
 
       <div id="bound-profile-view" style="display:none;">
-        <div class="card p-4">
-          <h5 class="mb-3"><i class="fas fa-id-card text-primary"></i> 我的基本資料</h5>
+        <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+          <h5 class="mb-3 fw-bold"><i class="fas fa-id-card text-primary"></i> 我的基本資料</h5>
           <div class="row">
-            <div class="col-6"><div class="info-label">聯絡電話</div><div class="info-value" id="info-phone">...</div></div>
-            <div class="col-6"><div class="info-label">生日</div><div class="info-value" id="info-birthday">...</div></div>
-            <div class="col-12"><div class="info-label">服事單位</div><div class="info-value" id="info-service">...</div></div>
-            <div class="col-12"><div class="info-label">接收推播頻道 (團契/牧區)</div><div class="info-value text-primary" id="info-groups">...</div></div>
+            <div class="col-6"><div class="info-label text-muted" style="font-size:0.85rem;">聯絡電話</div><div class="info-value fw-bold mb-3" id="info-phone">...</div></div>
+            <div class="col-6"><div class="info-label text-muted" style="font-size:0.85rem;">生日</div><div class="info-value fw-bold mb-3" id="info-birthday">...</div></div>
+            <div class="col-12"><div class="info-label text-muted" style="font-size:0.85rem;">服事單位</div><div class="info-value fw-bold mb-3" id="info-service">...</div></div>
+            <div class="col-12"><div class="info-label text-muted" style="font-size:0.85rem;">接收推播頻道 (團契/牧區)</div><div class="info-value fw-bold text-primary mb-3" id="info-groups">...</div></div>
           </div>
-          <button class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#editProfileModal"><i class="fas fa-edit"></i> 修改資料與推播設定</button>
-        </div>
-
-        <div class="card p-4 mt-3">
-          <h5 class="mb-3"><i class="fas fa-passport text-success"></i> 學習護照</h5>
-          <div class="d-flex justify-content-between align-items-center mb-2"><span>累積參與活動：</span><span class="badge bg-success rounded-pill" style="font-size:1rem;" id="info-event-count">... 場</span></div>
-          <div class="d-flex justify-content-between align-items-center"><span>完成造就課程：</span><span class="badge bg-info rounded-pill" style="font-size:1rem;" id="info-course-count">... 堂</span></div>
-          <button id="btn-spiritual-history" class="btn btn-light w-100 mt-3 text-secondary border">讀取中...</button>
+          <button class="btn btn-outline-primary w-100 mt-2 rounded-pill fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal"><i class="fas fa-edit"></i> 修改資料與推播設定</button>
         </div>
       </div>
     </div>
@@ -96,109 +89,37 @@
             <li class="list-group-item p-3"><div class="fw-bold mb-1" style="color: #f39c12 !important;"><i class="fas fa-crown"></i> Tier 2 驗證用戶</div><div class="text-muted" style="font-size:0.9rem;">須至行政辦公室進行實體身分驗證。解鎖最高機密「個人與全戶財務奉獻」查詢權限。</div></li>
           </ul>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-primary w-100 rounded-pill" data-bs-dismiss="modal">我知道了</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary w-100 rounded-pill fw-bold" data-bs-dismiss="modal">我知道了</button></div>
       </div>
     </div>
   </div>
 
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-radius: 15px;">
-        <div class="modal-header bg-light"><h5 class="modal-title">修改資料與設定</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <form id="profileForm">
-            <div class="mb-3"><label class="form-label">聯絡電話</label><input type="tel" class="form-control" id="input-phone" placeholder="例如：0912345678"></div>
-            <div class="mb-3"><label class="form-label">生日</label><input type="date" class="form-control" id="input-birthday"></div>
-            <hr><label class="form-label text-success fw-bold"><i class="fas fa-hands-helping"></i> 我的服事單位：</label><div class="form-text mb-2">請勾選您目前參與的服事團隊。</div><div id="checkbox-services" class="row px-2 mb-3"></div>
-            <hr><label class="form-label text-primary fw-bold"><i class="fas fa-bell"></i> 我想接收以下消息：</label><div class="form-text mb-2">勾選後，當該單位有活動時您將會收到 LINE 專屬通知。</div><div id="checkbox-groups" class="row px-2"></div>
-          </form>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="saveProfile()">儲存修改</button></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-      <div class="modal-content" style="border-radius: 15px;">
-        <div class="modal-header bg-light"><h5 class="modal-title fw-bold text-primary"><i class="fas fa-book-open"></i> 我的學習歷程 (屬靈履歷)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body p-4">
-          <div class="row">
-            <div class="col-md-5 text-center border-end">
-              <h5 class="fw-bold mb-3" style="color: #2c3e50;">一領一 門徒培育系統</h5>
-              <div class="mb-4 d-flex justify-content-center">
-                <svg viewBox="0 0 600 600" width="100%" style="height: auto; max-width: 450px; filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));">
-                  <defs>
-                    <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
-                    <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2ecc71"/><stop offset="100%" stop-color="#218838"/></linearGradient>
-                    <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#d68910"/></linearGradient>
-                    <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
-                    <path id="arrow_shape" d="M -20 -60 L -20 -130 L -40 -130 L 0 -190 L 40 -130 L 20 -130 L 20 -60 Z" />
-                  </defs>
-                  <g transform="translate(300,300)">
-                    <circle cx="0" cy="0" r="145" fill="rgba(44, 62, 80, 0.04)" stroke="#e0e0e0" stroke-width="2"/>
-                    <use href="#arrow_shape" fill="url(#gradRed)" /><circle cx="0" cy="-120" r="35" fill="#fff" stroke="#c0392b" stroke-width="4"/><text x="0" y="-112" font-size="22" font-weight="bold" fill="#c0392b" text-anchor="middle">服事</text><text x="0" y="-205" font-size="16" font-weight="bold" fill="#c0392b" text-anchor="middle">參與事奉</text>
-                    <use href="#arrow_shape" fill="url(#gradGreen)" transform="rotate(90)" /><circle cx="120" cy="0" r="35" fill="#fff" stroke="#218838" stroke-width="4"/><text x="120" y="8" font-size="22" font-weight="bold" fill="#218838" text-anchor="middle">造就</text><text x="205" y="6" font-size="16" font-weight="bold" fill="#218838" text-anchor="start">靈命培育</text>
-                    <use href="#arrow_shape" fill="url(#gradOrange)" transform="rotate(180)" /><circle cx="0" cy="120" r="35" fill="#fff" stroke="#d68910" stroke-width="4"/><text x="0" y="128" font-size="22" font-weight="bold" fill="#d68910" text-anchor="middle">尋羊</text><text x="0" y="215" font-size="16" font-weight="bold" fill="#d68910" text-anchor="middle">建立關係</text>
-                    <use href="#arrow_shape" fill="url(#gradPurple)" transform="rotate(270)" /><circle cx="-120" cy="0" r="35" fill="#fff" stroke="#8e44ad" stroke-width="4"/><text x="-120" y="8" font-size="22" font-weight="bold" fill="#8e44ad" text-anchor="middle">見證</text><text x="-205" y="6" font-size="16" font-weight="bold" fill="#8e44ad" text-anchor="end">宣揚福音</text>
-                    <circle cx="0" cy="0" r="50" fill="#fff" stroke="#2c3e50" stroke-width="3"/>
-                    <g transform="translate(0, -5)"><circle cx="0" cy="-15" r="12" fill="#2c3e50"/><path d="M -18 12 C -18 -5, 18 -5, 18 12 Z" fill="#2c3e50"/><text x="0" y="32" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">門徒培育</text></g>
-                  </g>
-                </svg>
-              </div>
-              <h6 class="fw-bold text-muted mb-2">門徒均衡度分析</h6>
-              <div style="position: relative; height:220px; width:100%"><canvas id="radarChart"></canvas></div>
-              <div class="alert alert-light p-2 mt-3 text-start" style="font-size: 0.8rem;"><i class="fas fa-info-circle text-primary"></i> 此圖表幫助您了解自己在「見證、服事、造就、尋羊」四個面向的參與平衡狀態。點擊端點可查看詳細說明。</div>
-            </div>
-            <div class="col-md-7 mt-4 mt-md-0"><h6 class="fw-bold text-dark mb-3"><i class="fas fa-history"></i> 出席歷史明細</h6><ul class="list-group list-group-flush" id="history-list" style="font-size: 0.9rem;"></ul></div>
-          </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary w-100 rounded-pill" data-bs-dismiss="modal">關閉</button></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content" style="border-radius: 15px;">
-        <div class="modal-header bg-light">
-          <h5 class="modal-title fw-bold text-dark"><i class="fas fa-star text-warning"></i> 課程/活動回饋</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-center p-4">
-          <h6 class="fw-bold mb-1 text-primary" id="fbEventName">活動名稱</h6>
-          <p class="text-muted mb-4" style="font-size: 0.9rem;">您的寶貴意見是同工最大的鼓勵！</p>
-          
-          <form id="feedbackForm">
-            <input type="hidden" id="fbRegId">
-            <input type="hidden" id="fbEventId">
-            
-            <div class="mb-4">
-              <label class="form-label fw-bold d-block text-dark">您對本次活動的整體感受？</label>
-              <div class="star-rating">
-                <input type="radio" id="star5" name="rating" value="5"><label for="star5"><i class="fas fa-star"></i></label>
-                <input type="radio" id="star4" name="rating" value="4"><label for="star4"><i class="fas fa-star"></i></label>
-                <input type="radio" id="star3" name="rating" value="3"><label for="star3"><i class="fas fa-star"></i></label>
-                <input type="radio" id="star2" name="rating" value="2"><label for="star2"><i class="fas fa-star"></i></label>
-                <input type="radio" id="star1" name="rating" value="1"><label for="star1"><i class="fas fa-star"></i></label>
-              </div>
-            </div>
-
-            <div class="text-start">
-              <label class="form-label fw-bold text-dark mb-2" style="font-size: 0.95rem;">具體回饋或其他建議 (選填)</label>
-              <textarea class="form-control" id="fbContent" rows="4" placeholder="請寫下您的感動、收穫，或需要改善的地方..." style="border-radius: 10px; resize: none;"></textarea>
-            </div>
+        <div class="modal-header bg-light"><h5 class="modal-title fw-bold">修改資料與設定</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="profileForm">
+            <div class="mb-3"><label class="form-label fw-bold">聯絡電話</label><input type="tel" class="form-control" id="input-phone" placeholder="例如：0912345678"></div>
+            <div class="mb-3"><label class="form-label fw-bold">生日</label><input type="date" class="form-control" id="input-birthday"></div>
+            <hr>
+            <label class="form-label text-success fw-bold"><i class="fas fa-hands-helping"></i> 我的服事單位：</label>
+            <div class="form-text mb-3">請勾選您目前參與的服事團隊。</div>
+            <div id="checkbox-services" class="row px-2 mb-3"></div>
+            <hr>
+            <label class="form-label text-primary fw-bold"><i class="fas fa-bell"></i> 我想接收以下消息：</label>
+            <div class="form-text mb-3">勾選後，當該單位有活動時您將會收到 LINE 專屬通知。</div>
+            <div id="checkbox-groups" class="row px-2"></div>
           </form>
         </div>
-        <div class="modal-footer border-0 bg-light">
-          <button type="button" class="btn btn-warning w-100 rounded-pill py-2 fw-bold text-dark shadow-sm" onclick="submitFeedbackModal()"><i class="fas fa-paper-plane"></i> 送出回饋</button>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-primary w-100 rounded-pill fw-bold py-2 shadow-sm" onclick="saveProfile()"><i class="fas fa-save"></i> 儲存修改</button>
         </div>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
@@ -207,7 +128,6 @@
     if (typeof CONFIG !== 'undefined') {
         document.title = CONFIG.CHURCH_NAME + " - 我的會友中心";
     }
-    
     var script = document.createElement('script');
     script.src = "app.js?v=" + new Date().getTime();
     document.body.appendChild(script);
