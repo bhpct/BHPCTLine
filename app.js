@@ -776,7 +776,40 @@ function openEventDetail(eventId) {
   document.getElementById('detailFee').innerText = feeText;
   
   document.getElementById('detailDate').innerText = evt.date;
-  document.getElementById('detailDescription').innerText = evt.description || "尚無詳細說明。";
+  
+  // 【本次升級】處理詳細介紹與多日課程表
+  // 1. 將純文字的換行符號轉為 HTML 的 <br> 讓排版正常
+  let safeDescHtml = (evt.description || "尚無詳細說明。").replace(/\n/g, '<br>');
+  
+  // 2. 如果有「系列活動日程」，自動產生漂亮的課表
+  let datesHtml = "";
+  if (evt.seriesDates && evt.seriesDates.trim() !== "") {
+      try {
+          let parsedDates = JSON.parse(evt.seriesDates);
+          if (parsedDates.length > 0) {
+              datesHtml = `
+                <div class="mt-4 p-3 bg-light rounded border shadow-sm">
+                  <h6 class="fw-bold text-primary mb-3"><i class="fas fa-list-ol"></i> 課程詳細日程表</h6>
+                  <ul class="list-group list-group-flush" style="font-size: 0.85rem;">
+              `;
+              parsedDates.forEach((d, idx) => {
+                  datesHtml += `
+                    <li class="list-group-item bg-transparent px-0 py-2 border-bottom border-light">
+                      <span class="badge bg-secondary me-2">第 ${idx + 1} 堂</span>
+                      <i class="far fa-calendar-alt text-muted"></i> <strong class="text-dark">${d.date}</strong>
+                      <i class="far fa-clock text-muted ms-2"></i> ${d.start} ~ ${d.end}
+                    </li>
+                  `;
+              });
+              datesHtml += `</ul></div>`;
+          }
+      } catch (e) {
+          console.error("前台解析系列日程失敗", e);
+      }
+  }
+
+  // 3. 組合介紹文字與課表 (因為包含 HTML，所以改用 innerHTML 寫入)
+  document.getElementById('detailDescription').innerHTML = safeDescHtml + datesHtml;
 
   document.getElementById('btn-detail-register').onclick = function() {
       bootstrap.Modal.getInstance(document.getElementById('eventDetailModal')).hide();
@@ -785,7 +818,6 @@ function openEventDetail(eventId) {
 
   new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
 }
-
 function openRegModal(eventId) {
   const evt = globalActiveEvents.find(e => e.id === eventId);
   if(!evt) return;
