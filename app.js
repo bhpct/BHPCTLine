@@ -420,16 +420,21 @@ function renderUI(response, lineName) {
         eventListContainer.innerHTML += `
         <div class="card p-3 shadow-sm border-0 mb-3" style="border-left: 5px solid ${config.顏色} !important;">
           <div class="d-flex justify-content-between align-items-start">
-            <div onclick="openEventDetail('${ev.id}')" style="cursor:pointer; flex-grow: 1;">
+            
+            <div onclick="openEventDetail('${ev.id}')" style="cursor:pointer; flex-grow: 1; min-width: 0;">
               <span class="badge mb-2" style="background-color: ${config.顏色};">${ev.category}</span>
-              <h5 class="fw-bold mb-1 text-primary text-decoration-underline" style="color:${config.顏色} !important;">${ev.name} ${spotsHtml}</h5>
+              <h5 class="fw-bold mb-1 text-primary text-decoration-underline" style="color:${config.顏色} !important; word-break: break-word; white-space: normal;">${ev.name} ${spotsHtml}</h5>
               <div class="text-muted" style="font-size: 0.85rem;"><i class="far fa-calendar-alt w-20px"></i> ${ev.date}</div>
             </div>
-            <div class="text-end ms-2">
+            
+            <div class="text-end ms-3 flex-shrink-0" style="min-width: 90px;">
               ${countdownHtml}
-              <button class="btn btn-sm rounded-pill px-4 text-white" style="background-color: ${config.顏色}; border:none;" onclick="openRegModal('${ev.id}')">報名</button>
-              <div class="mt-2"><a href="#" onclick="shareToLine('${ev.name}', '${ev.id}')" class="share-line-btn"><i class="fab fa-line fa-lg"></i> 邀請朋友</a></div>
+              <button class="btn btn-sm rounded-pill text-white w-100 shadow-sm" style="background-color: ${config.顏色}; border:none; padding-top:0.4rem; padding-bottom:0.4rem;" onclick="openRegModal('${ev.id}')">報名</button>
+              <div class="mt-2 text-center">
+                <a href="#" onclick="shareToLine('${ev.name}', '${ev.id}')" class="share-line-btn" style="font-size: 0.8rem; display:inline-block;"><i class="fab fa-line fa-lg"></i> 邀請朋友</a>
+              </div>
             </div>
+            
           </div>
         </div>`;
       });
