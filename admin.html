@@ -244,18 +244,33 @@
 
             <div class="col-6">
               <label class="form-label fw-bold text-dark">活動開始時間 <span class="text-danger">*</span></label>
-              <input type="datetime-local" class="form-control border-success" id="ec-start" required>
+              <input type="datetime-local" class="form-control border-success" id="ec-start" required onchange="syncSeriesFirstDate()">
             </div>
             <div class="col-6">
               <label class="form-label fw-bold text-dark">活動結束時間 <span class="text-danger">*</span></label>
               <input type="datetime-local" class="form-control border-success" id="ec-end" required>
             </div>
 
-            <div class="col-6">
+            <div class="col-12 mt-3">
+              <div class="card bg-light border-0 shadow-sm p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label fw-bold text-primary mb-0"><i class="fas fa-list-ol"></i> 系列活動詳細日程 (選填)</label>
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="addSeriesDateRow()">
+                    <i class="fas fa-plus"></i> 新增課堂
+                  </button>
+                </div>
+                <div class="form-text text-muted mb-2" style="font-size: 0.85rem;">
+                  * 若此為跳週、不規律之系列課程，請依序加入每一堂課的日期與時間，系統將自動產生數位的「簽到集點卡」。
+                </div>
+                <div id="series-dates-container"></div>
+              </div>
+            </div>
+
+            <div class="col-6 mt-3">
               <label class="form-label fw-bold text-dark">人數上限</label>
               <input type="number" class="form-control" id="ec-cap" placeholder="留空代表無上限">
             </div>
-            <div class="col-6">
+            <div class="col-6 mt-3">
               <label class="form-label fw-bold text-dark">報名截止時間</label>
               <input type="datetime-local" class="form-control" id="ec-regEnd">
             </div>
