@@ -1222,12 +1222,18 @@ function downloadCSV() {
 function loadBroadcastForm() {
   if (!adminData) return;
   const optGroups = document.getElementById('optgroup-groups');
-  if (optGroups && adminData.availableGroups) adminData.availableGroups.forEach(g => optGroups.innerHTML += `<option value="Group:${g}">${g}</option>`);
   const optServices = document.getElementById('optgroup-services');
-  if (optServices && adminData.availableServices) adminData.availableServices.forEach(s => optServices.innerHTML += `<option value="Service:${s}">${s}</option>`);
-  
   const optEvents = document.getElementById('optgroup-events');
   const eventSelect = document.getElementById('broadcast-event'); 
+  
+  // 【本次優化】清空原本的選項，避免多次載入時重複疊加
+  if (optGroups) optGroups.innerHTML = '';
+  if (optServices) optServices.innerHTML = '';
+  if (optEvents) optEvents.innerHTML = '';
+  if (eventSelect) eventSelect.innerHTML = '<option value="無">無 (純文字推播)</option>';
+
+  if (optGroups && adminData.availableGroups) adminData.availableGroups.forEach(g => optGroups.innerHTML += `<option value="Group:${g}">${g}</option>`);
+  if (optServices && adminData.availableServices) adminData.availableServices.forEach(s => optServices.innerHTML += `<option value="Service:${s}">${s}</option>`);
   
   let groupEventMap = {};
 
@@ -1253,7 +1259,6 @@ function loadBroadcastForm() {
     });
   }
 }
-
 function submitBroadcast() {
   const target = document.getElementById('broadcast-target').value;
   const msg = document.getElementById('broadcast-msg').value.trim();
