@@ -777,38 +777,52 @@ function openEventDetail(eventId) {
   
   document.getElementById('detailDate').innerText = evt.date;
   
-  // 【本次升級】處理詳細介紹與多日課程表
   // 1. 將純文字的換行符號轉為 HTML 的 <br> 讓排版正常
   let safeDescHtml = (evt.description || "尚無詳細說明。").replace(/\n/g, '<br>');
   
-  // 2. 如果有「系列活動日程」，自動產生漂亮的課表
+  // 2. 【極致美化版】如果有多日課程表，渲染為現代化卡片清單
   let datesHtml = "";
   if (evt.seriesDates && evt.seriesDates.trim() !== "") {
       try {
           let parsedDates = JSON.parse(evt.seriesDates);
           if (parsedDates.length > 0) {
+              // 抓取這個活動的專屬顏色 (預設給藍色)
+              let config = dynamicCategoryConfig[evt.category] || {顏色: '#3498db'};
+              
               datesHtml = `
-                <div class="mt-4 p-3 bg-light rounded border shadow-sm">
-                  <h6 class="fw-bold text-primary mb-3"><i class="fas fa-list-ol"></i> 課程詳細日程表</h6>
-                  <ul class="list-group list-group-flush" style="font-size: 0.85rem;">
+                <div class="mt-4 pt-4 border-top">
+                  <h6 class="fw-bold mb-3" style="color: #2c3e50;">
+                    <i class="fas fa-calendar-check me-1" style="color: ${config.顏色};"></i> 課程詳細日程表
+                  </h6>
+                  <div class="d-flex flex-column gap-2">
               `;
+              
               parsedDates.forEach((d, idx) => {
                   datesHtml += `
-                    <li class="list-group-item bg-transparent px-0 py-2 border-bottom border-light">
-                      <span class="badge bg-secondary me-2">第 ${idx + 1} 堂</span>
-                      <i class="far fa-calendar-alt text-muted"></i> <strong class="text-dark">${d.date}</strong>
-                      <i class="far fa-clock text-muted ms-2"></i> ${d.start} ~ ${d.end}
-                    </li>
+                    <div class="d-flex align-items-center p-3 rounded shadow-sm border-0" style="background-color: #f8f9fa; border-left: 5px solid ${config.顏色} !important;">
+                      <div class="rounded text-white d-flex flex-column justify-content-center align-items-center shadow-sm me-3 flex-shrink-0" style="width: 45px; height: 45px; background-color: ${config.顏色};">
+                        <span style="font-size: 0.6rem; opacity: 0.9; margin-bottom: -2px;">第</span>
+                        <span class="fw-bold" style="font-size: 1.1rem; line-height: 1;">${idx + 1}</span>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">
+                          <i class="far fa-calendar-alt text-muted me-1"></i>${d.date}
+                        </h6>
+                        <div class="text-muted" style="font-size: 0.8rem;">
+                          <i class="far fa-clock text-muted me-1"></i>${d.start} ~ ${d.end}
+                        </div>
+                      </div>
+                    </div>
                   `;
               });
-              datesHtml += `</ul></div>`;
+              datesHtml += `</div></div>`;
           }
       } catch (e) {
           console.error("前台解析系列日程失敗", e);
       }
   }
 
-  // 3. 組合介紹文字與課表 (因為包含 HTML，所以改用 innerHTML 寫入)
+  // 3. 組合介紹文字與課表
   document.getElementById('detailDescription').innerHTML = safeDescHtml + datesHtml;
 
   document.getElementById('btn-detail-register').onclick = function() {
@@ -818,6 +832,8 @@ function openEventDetail(eventId) {
 
   new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
 }
+
+
 function openRegModal(eventId) {
   const evt = globalActiveEvents.find(e => e.id === eventId);
   if(!evt) return;
