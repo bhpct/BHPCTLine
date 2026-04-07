@@ -1536,7 +1536,7 @@ function renderManageEventList(list) {
   }
   container.style.display = 'block';
 }
-// ========== 👇 從這裡開始替換 openEditEventModal 👇 ==========
+
 function openEditEventModal(eventId) {
     Swal.fire({ title: '撈取活動資料中...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
@@ -1567,9 +1567,29 @@ function openEditEventModal(eventId) {
             let regEndStr    = evtDetail.regEndRaw || "";
             let proxyChecked = evtDetail.allowProxy ? "checked" : "";
             let extraChecked = evtDetail.requireExtraInfo ? "checked" : "";
-            
-            // 【關鍵】初始判斷收費欄位是否顯示
             let feeBoxDisplay = (evtDetail.feeName === "無" || !evtDetail.feeName) ? "none" : "block";
+
+            // 【本次新增】解析舊的系列日程，產生 HTML
+            let editSeriesHtml = '';
+            let rawSeries = res.allAdminEvents.find(e => e.id === eventId)?.seriesDates || evtDetail.seriesDates; // 確保抓到正確屬性
+            if (rawSeries && rawSeries.trim() !== '') {
+                try {
+                    let parsedDates = JSON.parse(rawSeries);
+                    parsedDates.forEach(d => {
+                        editSeriesHtml += `
+                        <div class="row g-2 mb-2 edit-series-date-row align-items-center">
+                          <div class="col-auto"><span class="badge bg-secondary"><i class="fas fa-calendar-day"></i></span></div>
+                          <div class="col"><input type="date" class="form-control form-control-sm edit-series-date" value="${d.date}" required></div>
+                          <div class="col"><input type="time" class="form-control form-control-sm edit-series-start" value="${d.start}" required></div>
+                          <div class="col-auto text-muted">~</div>
+                          <div class="col"><input type="time" class="form-control form-control-sm edit-series-end" value="${d.end}" required></div>
+                          <div class="col-auto">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.edit-series-date-row').remove()"><i class="fas fa-times"></i></button>
+                          </div>
+                        </div>`;
+                    });
+                } catch(e) { console.error("解析日程失敗", e); }
+            }
 
             Swal.fire({
                 title: '編輯活動設定',
@@ -1614,11 +1634,23 @@ function openEditEventModal(eventId) {
                                 <input type="datetime-local" id="ee-end" class="form-control border-primary" value="${dateEndStr}">
                             </div>
 
-                            <div class="col-6">
+                            <div class="col-12 mt-2">
+                              <div class="card bg-light border-0 shadow-sm p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                  <label class="form-label fw-bold text-primary mb-0"><i class="fas fa-list-ol"></i> 系列活動詳細日程</label>
+                                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="addEditSeriesDateRow()">
+                                    <i class="fas fa-plus"></i> 新增課堂
+                                  </button>
+                                </div>
+                                <div id="edit-series-dates-container">${editSeriesHtml}</div>
+                              </div>
+                            </div>
+
+                            <div class="col-6 mt-2">
                                 <label class="form-label fw-bold text-dark">人數上限</label>
                                 <input type="number" id="ee-cap" class="form-control" value="${evtDetail.remainingSpots || ''}">
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 mt-2">
                                 <label class="form-label fw-bold text-dark">報名截止時間</label>
                                 <input type="datetime-local" id="ee-regEnd" class="form-control" value="${regEndStr}">
                             </div>
@@ -1702,8 +1734,9 @@ function openEditEventModal(eventId) {
                         customOpt: document.getElementById('ee-custom').value.trim(),
                         proxy: document.getElementById('ee-proxy').checked, 
                         extra: document.getElementById('ee-extra').checked,
-                        posterBase64: document.getElementById('ee-poster-base64').value, // 傳送新圖
-                        poster: evtDetail.posterUrl // 保留舊圖網址作為備案
+                        posterBase64: document.getElementById('ee-poster-base64').value, 
+                        poster: evtDetail.posterUrl,
+                        seriesDates: getEditSeriesDatesJSON() // 【本次新增】打包新的系列日程 JSON
                     };
 
                     Swal.fire({ title: '儲存與更新中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1716,8 +1749,6 @@ function openEditEventModal(eventId) {
             });
         }).catch(err => Swal.fire('連線錯誤', '無法抓取活動詳細資料', 'error'));
 }
-// ========== 👆 替換到這裡為止 👆 ==========
-
 
 function deleteEvent(eventId, eventName) {
     Swal.fire({
@@ -2341,3 +2372,32 @@ function getSeriesDatesJSON() {
   return series.length > 0 ? JSON.stringify(series) : "";
 }
 
+function addEditSeriesDateRow() {
+  const container = document.getElementById('edit-series-dates-container');
+  const rowHtml = `
+    <div class="row g-2 mb-2 edit-series-date-row align-items-center">
+      <div class="col-auto"><span class="badge bg-secondary"><i class="fas fa-calendar-day"></i></span></div>
+      <div class="col"><input type="date" class="form-control form-control-sm edit-series-date" required></div>
+      <div class="col"><input type="time" class="form-control form-control-sm edit-series-start" required></div>
+      <div class="col-auto text-muted">~</div>
+      <div class="col"><input type="time" class="form-control form-control-sm edit-series-end" required></div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.edit-series-date-row').remove()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function getEditSeriesDatesJSON() {
+  const rows = document.querySelectorAll('.edit-series-date-row');
+  if (rows.length === 0) return "";
+  let series = [];
+  rows.forEach(row => {
+      const d = row.querySelector('.edit-series-date').value;
+      const s = row.querySelector('.edit-series-start').value;
+      const e = row.querySelector('.edit-series-end').value;
+      if (d && s && e) series.push({ date: d, start: s, end: e });
+  });
+  return series.length > 0 ? JSON.stringify(series) : "";
+}
