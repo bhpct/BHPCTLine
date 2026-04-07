@@ -53,6 +53,9 @@ function setActiveNav() {
   } else if (path.includes('prayer.html')) {
     const nav = document.getElementById('nav-prayer');
     if (nav) nav.classList.add('active');
+  } else if (path.includes('passport.html')) {
+    const nav = document.getElementById('nav-passport');
+    if (nav) nav.classList.add('active');
   } else {
     const nav = document.getElementById('nav-profile');
     if (nav) nav.classList.add('active');
@@ -470,6 +473,7 @@ function renderUI(response, lineName) {
     if (path.includes('events.html')) targetPage = 'events';
     else if (path.includes('finance.html')) targetPage = 'finance';
     else if (path.includes('prayer.html')) targetPage = 'prayer';
+    else if (path.includes('passport.html')) targetPage = 'passport'; // 加入 passport 判斷
     else targetPage = 'profile'; 
   }
   switchPage(targetPage);
@@ -597,7 +601,7 @@ function renderRealDonationChart(financeData, isFamilyView = false) {
 // ========== 👆 替換到此結束 👆 ==========
 
 function switchPage(pageId) {
-  const pages = ['profile', 'finance', 'prayer', 'events'];
+  const pages = ['profile', 'finance', 'prayer', 'events', 'passport']; // 加入 passport
   pages.forEach(p => {
     const pageEl = document.getElementById('page-' + p);
     if (pageEl) pageEl.style.display = 'none';
