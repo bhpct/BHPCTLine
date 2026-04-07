@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>霧峰教會 - 學習護照</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style> button, a, input, select, textarea { touch-action: manipulation; } </style>
+</head>
+<body>
+
+  <div id="loading" style="display: none;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="ms-3 fw-bold">系統連線中，請稍候...</span>
+  </div>
+
+  <div class="church-header text-center mb-4" style="background-image: linear-gradient(135deg, #1abc9c, #16a085);">
+    <h3 id="ui-userName">讀取中...</h3>
+    <span class="badge bg-light text-success mt-2 px-3 py-2 rounded-pill shadow-sm" style="font-size:0.95rem;">
+      <i class="fas fa-award"></i> 門徒學習護照
+    </span>
+  </div>
+
+  <div class="container pb-5">
+    <div id="page-passport" style="display: none;">
+      
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="card p-3 border-0 shadow-sm text-center" style="border-radius:15px; border-bottom: 4px solid #3498db !important;">
+            <h6 class="text-muted fw-bold mb-1" style="font-size:0.8rem;">參與活動</h6>
+            <h2 class="mb-0 fw-bold text-primary" id="info-event-count">0 場</h2>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card p-3 border-0 shadow-sm text-center" style="border-radius:15px; border-bottom: 4px solid #2ecc71 !important;">
+            <h6 class="text-muted fw-bold mb-1" style="font-size:0.8rem;">完成課程</h6>
+            <h2 class="mb-0 fw-bold text-success" id="info-course-count">0 堂</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4 border-0 shadow-sm mb-4" style="border-radius:15px;">
+        <h6 class="fw-bold text-dark text-center mb-3"><i class="fas fa-chart-pie text-warning"></i> 屬靈生命成長雷達圖</h6>
+        <div style="height: 280px; position: relative;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card p-0 border-0 shadow-sm mb-5" style="border-radius:15px; overflow: hidden;">
+        <div class="bg-light p-3 border-bottom">
+          <h6 class="fw-bold text-dark mb-0"><i class="fas fa-history text-secondary"></i> 出席與完課紀錄</h6>
+        </div>
+        <ul class="list-group list-group-flush" id="history-list">
+          </ul>
+      </div>
+
+    </div>
+  </div> 
+
+  <nav class="bottom-nav shadow-sm d-flex justify-content-around">
+    <a href="index.html?page=profile" class="nav-item text-center flex-fill" id="nav-profile"><i class="fas fa-user d-block"></i><span style="font-size:0.7rem;">我的</span></a>
+    <a href="passport.html?page=passport" class="nav-item text-center flex-fill" id="nav-passport"><i class="fas fa-award d-block"></i><span style="font-size:0.7rem;">護照</span></a>
+    <a href="finance.html?page=finance" class="nav-item text-center flex-fill" id="nav-finance"><i class="fas fa-hand-holding-usd d-block"></i><span style="font-size:0.7rem;">奉獻</span></a>
+    <a href="prayer.html?page=prayer" class="nav-item text-center flex-fill" id="nav-prayer"><i class="fas fa-praying-hands d-block"></i><span style="font-size:0.7rem;">代禱</span></a>
+    <a href="events.html?page=events" class="nav-item text-center flex-fill" id="nav-events"><i class="fas fa-calendar-alt d-block"></i><span style="font-size:0.7rem;">活動</span></a>
+  </nav>
+
+  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow" style="border-radius: 15px;">
+        <div class="modal-header text-white" style="background-color: #f39c12;">
+          <h5 class="modal-title fw-bold"><i class="fas fa-star"></i> 課程/活動回饋</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="fbRegId"><input type="hidden" id="fbEventId">
+          <h6 class="fw-bold text-dark mb-3" id="fbEventName">活動名稱</h6>
+          <label class="form-label fw-bold text-muted mb-2">整體滿意度評分 <span class="text-danger">*</span></label>
+          <div class="star-rating mb-4 d-flex justify-content-center flex-row-reverse" style="font-size: 2rem;">
+            <input type="radio" id="star5" name="rating" value="5" class="d-none"><label for="star5" class="text-warning mx-1" style="cursor:pointer;"><i class="far fa-star"></i></label>
+            <input type="radio" id="star4" name="rating" value="4" class="d-none"><label for="star4" class="text-warning mx-1" style="cursor:pointer;"><i class="far fa-star"></i></label>
+            <input type="radio" id="star3" name="rating" value="3" class="d-none"><label for="star3" class="text-warning mx-1" style="cursor:pointer;"><i class="far fa-star"></i></label>
+            <input type="radio" id="star2" name="rating" value="2" class="d-none"><label for="star2" class="text-warning mx-1" style="cursor:pointer;"><i class="far fa-star"></i></label>
+            <input type="radio" id="star1" name="rating" value="1" class="d-none"><label for="star1" class="text-warning mx-1" style="cursor:pointer;"><i class="far fa-star"></i></label>
+          </div>
+          <style>
+            .star-rating label i.far { font-weight: 400; }
+            .star-rating input:checked ~ label i.far, .star-rating label:hover i.far, .star-rating label:hover ~ label i.far { font-weight: 900; }
+          </style>
+          <label class="form-label fw-bold text-muted mb-2">具體建議與心得 (選填)</label>
+          <textarea class="form-control bg-light" id="fbContent" rows="4" placeholder="讓牧者同工知道您的收穫吧..."></textarea>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-warning text-white w-100 rounded-pill fw-bold py-2 shadow-sm" onclick="submitFeedbackModal()"><i class="fas fa-paper-plane"></i> 送出回饋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="config.js?v=1"></script>
+  <script>
+    if (typeof CONFIG !== 'undefined') document.title = CONFIG.CHURCH_NAME + " - 學習護照";
+    var script = document.createElement('script');
+    script.src = "app.js?v=" + new Date().getTime();
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
