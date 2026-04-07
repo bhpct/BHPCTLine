@@ -780,7 +780,7 @@ function openEventDetail(eventId) {
   // 1. 將純文字的換行符號轉為 HTML 的 <br> 讓排版正常
   let safeDescHtml = (evt.description || "尚無詳細說明。").replace(/\n/g, '<br>');
   
-  // 2. 【極致美化版】如果有多日課程表，渲染為現代化卡片清單
+  // 2. 【緊湊美化版】如果有多日課程表，渲染為現代化緊湊清單
   let datesHtml = "";
   if (evt.seriesDates && evt.seriesDates.trim() !== "") {
       try {
@@ -790,32 +790,28 @@ function openEventDetail(eventId) {
               let config = dynamicCategoryConfig[evt.category] || {顏色: '#3498db'};
               
               datesHtml = `
-                <div class="mt-4 pt-4 border-top">
-                  <h6 class="fw-bold mb-3" style="color: #2c3e50;">
+                <div class="mt-4 pt-3 border-top">
+                  <h6 class="fw-bold mb-2 text-dark" style="font-size: 0.95rem;">
                     <i class="fas fa-calendar-check me-1" style="color: ${config.顏色};"></i> 課程詳細日程表
                   </h6>
-                  <div class="d-flex flex-column gap-2">
+                  <div class="border rounded shadow-sm" style="overflow: hidden;">
+                    <ul class="list-group list-group-flush mb-0">
               `;
               
               parsedDates.forEach((d, idx) => {
                   datesHtml += `
-                    <div class="d-flex align-items-center p-3 rounded shadow-sm border-0" style="background-color: #f8f9fa; border-left: 5px solid ${config.顏色} !important;">
-                      <div class="rounded text-white d-flex flex-column justify-content-center align-items-center shadow-sm me-3 flex-shrink-0" style="width: 45px; height: 45px; background-color: ${config.顏色};">
-                        <span style="font-size: 0.6rem; opacity: 0.9; margin-bottom: -2px;">第</span>
-                        <span class="fw-bold" style="font-size: 1.1rem; line-height: 1;">${idx + 1}</span>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">
-                          <i class="far fa-calendar-alt text-muted me-1"></i>${d.date}
-                        </h6>
-                        <div class="text-muted" style="font-size: 0.8rem;">
-                          <i class="far fa-clock text-muted me-1"></i>${d.start} ~ ${d.end}
+                      <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="border-left: 4px solid ${config.顏色} !important; background-color: #fafafa;">
+                        <div class="d-flex align-items-center">
+                          <span class="badge me-2" style="background-color: ${config.顏色}; font-size: 0.75rem;">第 ${idx + 1} 堂</span>
+                          <span class="fw-bold text-dark" style="font-size: 0.9rem; letter-spacing: 0.5px;">${d.date}</span>
                         </div>
-                      </div>
-                    </div>
+                        <div class="text-muted" style="font-size: 0.85rem;">
+                          <i class="far fa-clock me-1"></i>${d.start} - ${d.end}
+                        </div>
+                      </li>
                   `;
               });
-              datesHtml += `</div></div>`;
+              datesHtml += `</ul></div></div>`;
           }
       } catch (e) {
           console.error("前台解析系列日程失敗", e);
