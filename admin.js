@@ -1259,6 +1259,23 @@ function loadBroadcastForm() {
     });
   }
 }
+
+
+function toggleBroadcastWarning(targetValue) {
+  const warningBox = document.getElementById('broadcast-warning-box');
+  const msgInput = document.getElementById('broadcast-msg');
+  if (targetValue === '全體LINE好友') {
+    warningBox.style.display = 'block';
+    // 若原訊息有變數，給予提醒
+    if (msgInput.value.includes('{name}')) {
+       Swal.fire('廣播模式提醒', '您選擇了廣播給全體好友，請記得移除訊息中的 {name} 變數，否則會友只會看到該串代碼喔！', 'warning');
+    }
+  } else {
+    warningBox.style.display = 'none';
+  }
+}
+
+
 function submitBroadcast() {
   const target = document.getElementById('broadcast-target').value;
   const msg = document.getElementById('broadcast-msg').value.trim();
@@ -1266,7 +1283,9 @@ function submitBroadcast() {
   if (!msg) { Swal.fire('提醒', '推播內容不能為空喔！', 'warning'); return; }
 
   let displayTarget = target;
-  if (target.startsWith("Group:")) displayTarget = "團契：" + target.replace("Group:", "");
+  if (target === "全體LINE好友") displayTarget = "LINE 官方帳號全體好友 (將消耗大量額度)";
+  else if (target === "全教會") displayTarget = "全教會 (僅限系統註冊會友)";
+  else if (target.startsWith("Group:")) displayTarget = "團契：" + target.replace("Group:", "");
   else if (target.startsWith("Service:")) displayTarget = "服事單位：" + target.replace("Service:", "");
   else if (target.startsWith("GroupEvent:")) displayTarget = "系列活動全體報名者"; 
   else if (target.startsWith("Event:")) displayTarget = "活動報名者 (" + target.replace("Event:", "") + ")";
