@@ -910,25 +910,53 @@ function openAddRegModal() {
   let eventId = document.getElementById('report-event-select').value;
   if (!eventId) { Swal.fire('提醒', '請先選擇一個活動！', 'warning'); return; }
   
-  let customFormStr = currentReportEventInfo ? currentReportEventInfo.extraQ : "";
+  let evt = currentReportEventInfo;
+  if (!evt) return;
+
+  // 自動判斷預設繳費狀態
+  let isFreeEvent = (!evt.feeAmount || Number(evt.feeAmount) <= 0);
+  let initialPayStatus = isFreeEvent ? "免繳費" : "未繳費";
+
+  let customFormStr = evt.extraQ || "";
+  let requireExtra = evt.requireExtraInfo;
+
   let htmlFields = `
-      <div class="text-start mt-2">
+      <div class="text-start mt-2" style="font-size:0.95rem;">
+        <div class="alert alert-info p-2 mb-3 shadow-sm border-0" style="font-size:0.85rem; border-left: 4px solid #3498db !important;">
+          <i class="fas fa-info-circle text-primary"></i> 此為後台人工代報，將以「無 LINE_UID」的訪客身分紀錄。
+        </div>
+
         <label class="form-label fw-bold text-dark">參與者姓名 <span class="text-danger">*</span></label>
-        <input type="text" id="ar-name" class="form-control mb-3" placeholder="請輸入參與者姓名">
+        <input type="text" id="ar-name" class="form-control border-primary mb-3" placeholder="請輸入參與者姓名">
         
         <label class="form-label fw-bold text-dark">聯絡電話</label>
         <input type="tel" id="ar-phone" class="form-control mb-3" placeholder="選填">
         
         <label class="form-label fw-bold text-dark">繳費狀態</label>
         <select id="ar-pay" class="form-select border-primary mb-3">
-          <option value="未繳費">未繳費</option>
+          <option value="未繳費" ${initialPayStatus === '未繳費' ? 'selected' : ''}>未繳費</option>
           <option value="已繳費">已繳費 (現場收現)</option>
-          <option value="免繳費">免繳費</option>
+          <option value="免繳費" ${initialPayStatus === '免繳費' ? 'selected' : ''}>免繳費</option>
         </select>
-        
         <hr>
-        <h6 class="fw-bold text-muted mb-2"><i class="fas fa-list"></i> 報名選項 / 個資</h6>
   `;
+
+  if (requireExtra) {
+    htmlFields += `
+        <h6 class="fw-bold text-danger mb-2"><i class="fas fa-shield-alt"></i> 保險/身分資料 (必填)</h6>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">身分證字號 <span class="text-danger">*</span></label>
+          <input type="text" class="form-control border-danger admin-dynamic-input-add" data-qname="身分證" placeholder="保險所需">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">生日 <span class="text-danger">*</span></label>
+          <input type="date" class="form-control border-danger admin-dynamic-input-add" data-qname="生日">
+        </div>
+        <hr>
+    `;
+  }
+
+  htmlFields += `<h6 class="fw-bold text-muted mb-2"><i class="fas fa-list"></i> 報名選項 / 備註</h6>`;
 
   if (customFormStr && customFormStr.trim() !== '') {
       const forms = customFormStr.split('|');
@@ -938,15 +966,12 @@ function openAddRegModal() {
               if(parts.length === 2) {
                   const qName = parts[0].trim();
                   const opts = parts[1].split(',').map(o => o.trim());
-                  
                   htmlFields += `
                     <div class="mb-3">
-                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
                       <select class="form-select border-primary admin-dynamic-select-add" data-qname="${qName}">
-                        <option value="" disabled selected>請選擇...</option>`;
-                  opts.forEach(o => { 
-                      htmlFields += `<option value="${o}">${o}</option>`; 
-                  });
+                        <option value="" disabled selected>請選擇${qName}...</option>`;
+                  opts.forEach(o => { htmlFields += `<option value="${o}">${o}</option>`; });
                   htmlFields += `</select></div>`;
               }
           } else if (f.includes('-')) {
@@ -954,10 +979,9 @@ function openAddRegModal() {
               if(parts.length === 2) {
                   const qName = parts[0].trim();
                   const opts = parts[1].split(',').map(o => o.trim());
-                  
                   htmlFields += `
                     <div class="mb-3">
-                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName}</label>
+                      <label class="form-label text-dark fw-bold" style="font-size:0.9rem;">${qName} <span class="text-danger">*</span></label>
                       <div class="bg-light p-2 rounded border">
                         <div class="row g-2">`;
                   opts.forEach((o, idx) => {
@@ -978,16 +1002,20 @@ function openAddRegModal() {
 
   htmlFields += `
         <div class="mb-3">
-          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">身分證字號</label>
-          <input type="text" class="form-control admin-dynamic-input-add" data-qname="身分證" placeholder="若保險需要請填寫">
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">生日</label>
-          <input type="date" class="form-control admin-dynamic-input-add" data-qname="生日">
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">自訂備註</label>
+          <label class="form-label fw-bold text-dark" style="font-size:0.9rem;">自訂備註 (選填)</label>
           <input type="text" class="form-control admin-dynamic-input-add" data-qname="備註" placeholder="其他備註資訊">
+        </div>
+
+        <div class="mt-4 p-3 bg-white border border-info rounded shadow-sm">
+          <div class="form-check">
+            <input class="form-check-input border-info shadow-sm" type="checkbox" id="ar-mediaConsent" checked style="transform: scale(1.2); margin-top: 0.3rem;">
+            <label class="form-check-label fw-bold text-dark ms-1" for="ar-mediaConsent">
+              📸 活動影音宣傳授權
+            </label>
+            <div class="text-muted mt-2" style="font-size:0.85rem; line-height:1.5;">
+              由於此為後台代報，系統預設<b>代為同意</b>授權教會於活動中拍攝影音。若當事人拒絕，請取消勾選。
+            </div>
+          </div>
         </div>
       </div>
   `;
@@ -995,15 +1023,21 @@ function openAddRegModal() {
   Swal.fire({
     title: '新增報名者 (後台代報)',
     html: htmlFields,
+    width: '600px',
     showCancelButton: true, confirmButtonText: '確定新增', cancelButtonText: '取消', confirmButtonColor: '#2ecc71',
     preConfirm: () => {
       let name = document.getElementById('ar-name').value.trim();
-      if(!name) { Swal.showValidationMessage('請務必填寫姓名！'); return false; }
+      if(!name) { Swal.showValidationMessage('請務必填寫參與者姓名！'); return false; }
       
+      let missingRequired = false;
       let finalExtraObj = {};
+
       document.querySelectorAll('.admin-dynamic-select-add').forEach(el => {
-          if(el.value) finalExtraObj[el.getAttribute('data-qname')] = el.value;
+          if(!el.value) missingRequired = true;
+          else finalExtraObj[el.getAttribute('data-qname')] = el.value;
       });
+      
+      if(missingRequired) { Swal.showValidationMessage('請填寫所有必填的下拉選項！'); return false; }
       
       let checkMap = {};
       document.querySelectorAll('.admin-dynamic-checkbox-add:checked').forEach(el => {
@@ -1014,16 +1048,26 @@ function openAddRegModal() {
       for (let q in checkMap) { finalExtraObj[q] = checkMap[q].join(', '); }
 
       document.querySelectorAll('.admin-dynamic-input-add').forEach(el => {
-          if(el.value.trim()) finalExtraObj[el.getAttribute('data-qname')] = el.value.trim();
+          const val = el.value.trim();
+          const qName = el.getAttribute('data-qname');
+          if (requireExtra && (qName === '身分證' || qName === '生日') && !val) {
+              missingRequired = true;
+          } else if (val) {
+              finalExtraObj[qName] = val;
+          }
       });
 
+      if(missingRequired) { Swal.showValidationMessage('因涉及保險，請務必填寫「身分證」與「生日」！'); return false; }
+
       let finalExtraStr = Object.keys(finalExtraObj).length === 0 ? "" : JSON.stringify(finalExtraObj);
+      let mediaConsentChecked = document.getElementById('ar-mediaConsent').checked;
 
       return {
         name: name, 
         phone: document.getElementById('ar-phone').value.trim(),
         payStatus: document.getElementById('ar-pay').value,
-        extra: finalExtraStr
+        extra: finalExtraStr,
+        mediaConsent: mediaConsentChecked
       }
     }
   }).then(res => {
@@ -1033,7 +1077,16 @@ function openAddRegModal() {
       const gasUrl = window.CONFIG.GAS_URL;
       fetch(gasUrl, { 
         method: 'POST', 
-        body: JSON.stringify({ action: 'adminAddReg', adminUid: currentUID, eventId: eventId, name: v.name, phone: v.phone, extra: v.extra, payStatus: v.payStatus }) 
+        body: JSON.stringify({ 
+            action: 'adminAddReg', 
+            adminUid: currentUID, 
+            eventId: eventId, 
+            name: v.name, 
+            phone: v.phone, 
+            extra: v.extra, 
+            payStatus: v.payStatus,
+            mediaConsent: v.mediaConsent 
+        }) 
       }).then(res => res.json()).then(res => {
           if(res.success) Swal.fire('新增成功', res.message, 'success').then(()=>loadEventReport());
           else Swal.fire('錯誤', res.message, 'error');
