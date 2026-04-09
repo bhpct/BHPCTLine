@@ -359,9 +359,10 @@
 
         <div class="mb-3">
           <label class="form-label fw-bold text-muted" style="font-size:0.9rem;">🎯 發送對象</label>
-          <select id="broadcast-target" class="form-select border-primary">
+          <select id="broadcast-target" class="form-select border-primary" onchange="toggleBroadcastWarning(this.value)">
             <optgroup label="全體與身分">
-              <option value="全教會">全教會 (所有人)</option>
+              <option value="全教會">全教會 (僅限系統內已註冊會友)</option>
+              <option value="全體LINE好友" class="fw-bold text-danger">📢 LINE 官方帳號全體好友 (廣播)</option>
               <option value="本月壽星">🎂 本月壽星</option>
               <option value="Tier 0">Tier 0 (一般用戶)</option>
               <option value="Tier 1">Tier 1 (綁定用戶)</option>
@@ -372,6 +373,16 @@
             <optgroup label="活動報名者" id="optgroup-events"></optgroup>
           </select>
         </div>
+        
+        <div id="broadcast-warning-box" class="alert alert-danger p-3 mb-3 border-0 shadow-sm" style="display: none; border-left: 5px solid #dc3545 !important;">
+          <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle"></i> 廣播模式警告</h6>
+          <ul class="mb-0 ps-3 text-dark" style="font-size: 0.85rem;">
+            <li class="mb-1">此選項將發送給<b>所有未封鎖官方帳號的好友</b>（包含潛水客）。</li>
+            <li class="mb-1"><b>不支援變數：</b>訊息內容請勿使用 <code>{name}</code>，對方只會看到原文字。</li>
+            <li><b>注意費用：</b>將大量消耗官方帳號免費訊息額度，請謹慎使用。</li>
+          </ul>
+        </div>
+        
 
         <div class="mb-3">
           <label class="form-label fw-bold text-muted" style="font-size:0.9rem;">💬 推播內容</label>
