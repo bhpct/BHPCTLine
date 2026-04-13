@@ -214,9 +214,18 @@ function renderDashboard(data) {
               <div class="mb-3 text-dark" style="font-size: 0.9rem;">
                 <i class="fas fa-phone-alt w-20px text-muted"></i> ${f.phone}
               </div>
-              <button class="btn btn-sm btn-outline-success rounded-pill w-100 fw-bold py-2" onclick="approveFinanceAccess('${f.uid}', '${f.name}')">
-                <i class="fas fa-user-check"></i> 處理並一鍵開通 (升級 Tier 2)
-              </button>
+              <div class="row g-2">
+                <div class="col-8">
+                  <button class="btn btn-sm btn-outline-success rounded-pill w-100 fw-bold py-2" onclick="approveFinanceAccess('${f.uid}', '${f.name}', '${f.suggestedCode}')">
+                    <i class="fas fa-user-check"></i> 處理並開通
+                  </button>
+                </div>
+                <div class="col-4">
+                  <button class="btn btn-sm btn-outline-danger rounded-pill w-100 fw-bold py-2" onclick="rejectFinanceAccess('${f.uid}', '${f.name}')">
+                    <i class="fas fa-times"></i> 刪除
+                  </button>
+                </div>
+              </div>
             </div>`;
       });
   } else {
@@ -229,7 +238,7 @@ function renderDashboard(data) {
   
   if (data.pendingPrayers && data.pendingPrayers.length > 0) {
       data.pendingPrayers.forEach(p => {
-          let badge = p.isPublic === "公開" ? `<span class="badge bg-info">公開</span>` : `<span class="badge bg-secondary">保密</span>`;
+          let badge = p.isPublic === "公開" ? `<span class="badge bg-info text-white">公開</span>` : `<span class="badge bg-secondary">保密</span>`;
           html += `
             <div class="list-group-item p-3 border-0 border-bottom">
               <div class="d-flex justify-content-between align-items-center mb-2">
@@ -238,11 +247,18 @@ function renderDashboard(data) {
               </div>
               <div class="mb-2 text-dark" style="font-size: 0.9rem;">${badge} <strong class="ms-1">對象：</strong>${p.target}</div>
               <div class="mb-3 p-3 bg-light rounded text-dark" style="font-size: 0.95rem; white-space: pre-wrap; border-left: 3px solid #f39c12;">${p.content}</div>
-              <div class="mt-2">
-                <textarea id="reply-${p.rowId}" class="form-control mb-2" rows="2" placeholder="牧者勉勵回覆... (送出後推播給會友)"></textarea>
-                <button class="btn btn-sm btn-success rounded-pill w-100 fw-bold py-2" onclick="markPrayerDone(${p.rowId})">
-                  <i class="fas fa-check"></i> 標記已代禱 (並發送通知)
-                </button>
+              <textarea id="reply-${p.rowId}" class="form-control mb-2" rows="2" placeholder="牧者勉勵回覆... (送出後會推播給會友)"></textarea>
+              <div class="row g-2">
+                <div class="col-8">
+                  <button class="btn btn-sm btn-success rounded-pill w-100 fw-bold py-2" onclick="markPrayerDone(${p.rowId})">
+                    <i class="fas fa-check"></i> 標記已代禱
+                  </button>
+                </div>
+                <div class="col-4">
+                  <button class="btn btn-sm btn-danger rounded-pill w-100 fw-bold py-2" onclick="deletePrayer(${p.rowId}, '${p.name}')">
+                    <i class="fas fa-trash-alt"></i> 刪除
+                  </button>
+                </div>
               </div>
             </div>`;
       });
@@ -252,39 +268,53 @@ function renderDashboard(data) {
   document.getElementById('tab-dashboard').innerHTML = html + `</div>`;
 }
 
-function approveFinanceAccess(targetUid, targetName) {
+
+function approveFinanceAccess(targetUid, targetName, suggestedCode) {
+  let hintText = suggestedCode 
+      ? `<span class="text-success fw-bold"><i class="fas fa-magic"></i> 系統偵測到曾有奉獻紀錄，已為您自動帶入：</span>` 
+      : `<span class="text-muted">請輸入該會友的「奉獻代碼」，系統將自動擷取「家庭編號」。</span>`;
+
   Swal.fire({
     title: `核准開通：${targetName}`,
     html: `
       <div class="text-start mt-2">
-        <p class="text-muted mb-3" style="font-size:0.85rem;">請輸入該會友的「奉獻代碼」，系統將自動擷取「家庭編號」並將其升級為 Tier 2。</p>
+        <p class="mb-3" style="font-size:0.85rem;">${hintText}</p>
         <label class="form-label fw-bold text-success">奉獻代碼</label>
-        <input type="text" id="finance-code-input" class="form-control mb-3" placeholder="例如：0198-1">
+        <input type="text" id="finance-code-input" class="form-control border-success mb-3" value="${suggestedCode || ''}" placeholder="例如：0198-1">
+        
+        <div class="form-check form-switch mt-4 p-3 bg-light rounded border shadow-sm">
+          <input class="form-check-input ms-0 me-2" type="checkbox" id="finance-family-view" style="transform: scale(1.2);">
+          <label class="form-check-label fw-bold text-dark" for="finance-family-view">同時開啟「全戶視角」</label>
+          <div class="text-muted mt-1" style="font-size:0.8rem;">若開啟，該會友將能查詢同家庭編號內的所有奉獻紀錄。</div>
+        </div>
       </div>
     `,
     showCancelButton: true, confirmButtonText: '確定開通', cancelButtonText: '取消', confirmButtonColor: '#28a745',
     preConfirm: () => {
       const code = document.getElementById('finance-code-input').value.trim();
+      const famView = document.getElementById('finance-family-view').checked;
       if (!code) Swal.showValidationMessage('請輸入奉獻代碼！');
-      return code;
+      return { code: code, famView: famView };
     }
   }).then((result) => {
     if (result.isConfirmed) {
-      const dCode = result.value;
+      const dCode = result.value.code;
+      const fView = result.value.famView;
       const fId = dCode.split('-')[0]; 
       Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const gasUrl = window.CONFIG.GAS_URL;
       fetch(gasUrl, { 
         method: 'POST', 
-        body: JSON.stringify({ action: 'approveFinanceAccess', adminUid: currentUID, targetUid: targetUid, donationCode: dCode, familyId: fId }) 
+        body: JSON.stringify({ action: 'approveFinanceAccess', adminUid: currentUID, targetUid: targetUid, donationCode: dCode, familyId: fId, familyView: fView }) 
       })
       .then(res => res.json()).then(res => {
-        if (res.success) Swal.fire('開通成功', `已將 ${targetName} 升級為 Tier 2！`, 'success').then(() => loadDashboard());
+        if (res.success) Swal.fire('開通成功', `已將 ${targetName} 升級並綁定！`, 'success').then(() => loadDashboard());
         else Swal.fire('錯誤', res.message, 'error');
       }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
     }
   });
 }
+
 
 function markPrayerDone(rowId) {
   const replyText = document.getElementById(`reply-${rowId}`).value.trim();
@@ -2478,3 +2508,47 @@ function getEditSeriesDatesJSON() {
   });
   return series.length > 0 ? JSON.stringify(series) : "";
 }
+
+
+// 刪除財務申請
+function rejectFinanceAccess(targetUid, targetName) {
+    Swal.fire({
+        title: '確定取消申請？',
+        text: `您即將刪除/駁回 ${targetName} 的財務開通申請。`,
+        icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: '確定刪除'
+    }).then(result => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            fetch(window.CONFIG.GAS_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'rejectFinanceAccess', adminUid: currentUID, targetUid: targetUid }) 
+            }).then(res=>res.json()).then(res=>{
+                if(res.success) Swal.fire('已刪除', res.message, 'success').then(()=>loadDashboard());
+                else Swal.fire('錯誤', res.message, 'error');
+            }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+        }
+    });
+}
+
+// 刪除代禱事項
+function deletePrayer(rowId, name) {
+    Swal.fire({
+        title: '確定刪除代禱？',
+        text: `您即將刪除 ${name} 提出的這筆代禱事項。`,
+        icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: '確定刪除'
+    }).then(result => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: '處理中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            fetch(window.CONFIG.GAS_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'deletePrayer', adminUid: currentUID, rowId: rowId }) 
+            }).then(res=>res.json()).then(res=>{
+                if(res.success) Swal.fire('已刪除', res.message, 'success').then(()=>loadDashboard());
+                else Swal.fire('錯誤', res.message, 'error');
+            }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
+        }
+    });
+}
+// ========== 👆 貼到這裡為止 👆 ==========
