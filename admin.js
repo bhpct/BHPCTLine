@@ -1223,10 +1223,9 @@ function openEditRegModal(index) {
   Swal.fire({
     title: '編輯報名資料',
     html: htmlFields,
-    showCancelButton: true, confirmButtonText: '儲存修改', cancelButtonText: '取消', confirmButtonColor: '#3498db'
-  }).then(res => {
-    if(res.isConfirmed) {
-      
+    showCancelButton: true, confirmButtonText: '儲存修改', cancelButtonText: '取消', confirmButtonColor: '#3498db',
+    // 【修復核心】使用 preConfirm 在舊視窗關閉前先把資料打包好！
+    preConfirm: () => {
       let finalExtraObj = {};
       
       document.querySelectorAll('.admin-dynamic-select').forEach(el => {
@@ -1246,22 +1245,32 @@ function openEditRegModal(index) {
       });
 
       let finalExtraStr = Object.keys(finalExtraObj).length === 0 ? "" : JSON.stringify(finalExtraObj);
-
+      
+      return {
+        name: document.getElementById('er-name').value.trim(),
+        phone: document.getElementById('er-phone').value.trim(),
+        extraStr: finalExtraStr
+      };
+    }
+  }).then(res => {
+    if(res.isConfirmed) {
       Swal.fire({ title: '儲存中', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const gasUrl = window.CONFIG.GAS_URL;
+      
+      // 這裡直接取用 res.value 裡面的打包資料，就不會再抓不到元素了
       fetch(gasUrl, { 
         method: 'POST', 
         body: JSON.stringify({ 
             action: 'adminUpdateReg', 
             adminUid: currentUID, 
             regId: reg.regId, 
-            name: document.getElementById('er-name').value.trim(), 
-            phone: document.getElementById('er-phone').value.trim(), 
-            extra: finalExtraStr 
+            name: res.value.name, 
+            phone: res.value.phone, 
+            extra: res.value.extraStr 
         }) 
-      }).then(res => res.json()).then(res => {
-          if(res.success) Swal.fire('成功', res.message, 'success').then(()=>loadEventReport());
-          else Swal.fire('錯誤', res.message, 'error');
+      }).then(r => r.json()).then(data => {
+          if(data.success) Swal.fire('成功', data.message, 'success').then(()=>loadEventReport());
+          else Swal.fire('錯誤', data.message, 'error');
       }).catch(err => Swal.fire('連線錯誤', err.message, 'error'));
     }
   });
