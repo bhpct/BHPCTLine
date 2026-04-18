@@ -1108,7 +1108,15 @@ function openFeedbackModal(regId, eventId, eventName) {
     document.getElementById('fbRegId').value = regId;
     document.getElementById('fbEventId').value = eventId;
     document.getElementById('fbEventName').innerText = eventName;
-    document.getElementById('feedbackForm').reset();
+    
+    // 【修復】手動清空欄位，避免找不到 form 標籤而報錯
+    const starRadios = document.getElementsByName('rating');
+    for (let i = 0; i < starRadios.length; i++) {
+        starRadios[i].checked = false;
+    }
+    const fbContent = document.getElementById('fbContent');
+    if(fbContent) fbContent.value = '';
+
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
 }
 
